@@ -7,9 +7,9 @@
 可复现入口（仓库根）：[`scripts/bench/`](../../scripts/bench/README.md)。
 
 - 链 B：`./scripts/bench/run_chain_b.sh` → 文档里的 `pytest -m tool -k dds`，再加一层 **不改** `ddspubsub` 的 ping-pong 包分位
-- 链 A：先 `source config/env/chain_a.sh`，再 `./scripts/bench/run_chain_a.sh`；本机没有 Humble 时看 `STATUS: blocked` 和 [`scripts/bench/docker_chain_a.sh`](../../scripts/bench/docker_chain_a.sh)
+- 链 A：先 `source config/env/chain_a.sh`，再 `./scripts/bench/run_chain_a.sh`；本机没有 Humble 时用 [`scripts/bench/docker_chain_a.sh`](../../scripts/bench/docker_chain_a.sh)（`docker/ros/` Humble 镜像，运行时再 source 链 A）
 
-已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)。本次基线：[`docs/artifacts/bench/2026-09-10/`](../../docs/artifacts/bench/2026-09-10/README.md)（链 A / 链 B 分文件；`same-process` 与 `same-host` 分文件）。
+已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)。本次基线：[`docs/artifacts/bench/2026-09-10/`](../../docs/artifacts/bench/2026-09-10/README.md)（链 A / 链 B **分文件**；`same-process` / `same-host` / `cross-host-UDP` **分文件**。链 A 与链 B **不要**合成对照表）。
 
 源码在本仓：[`dimos_bridge/dimos/protocol/pubsub/benchmark/`](../../dimos_bridge/dimos/protocol/pubsub/benchmark/)。  
 这是从 `topsun_dimos` 整目录拷来的；默认传输仍是 LCM（**不在**本仓 DDS 范围）。完整 DimOS 依赖（`uv` extra、消息类型、非 stub 模块）仍在上游仓。本仓缺那些依赖时，下列命令会在 import 处失败——那是环境问题，不是「已经测过」。
@@ -86,12 +86,12 @@ pytest dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py -m tool -k
 TOPOLOGY=same-host ./scripts/bench/run_chain_b.sh
 ICEORYX=off TOPOLOGY=same-host ./scripts/bench/run_chain_b.sh
 
-# 链 A（需要 Humble + rmw_fastrtps_cpp）
-source /opt/ros/humble/setup.bash
-source config/env/chain_a.sh
-./scripts/bench/run_chain_a.sh
-# 或操作员稍后：
+# 链 A（需要 Humble + rmw_fastrtps_cpp；推荐 Docker 配方）
 ./scripts/bench/docker_chain_a.sh
+# 本机已有 Humble 时：
+# source /opt/ros/humble/setup.bash && source config/env/chain_a.sh && ./scripts/bench/run_chain_a.sh
+# 可选同机两进程（仍标 same-host；Fast-DDS 默认 transport，不要发明 SHM）：
+# TOPOLOGY=same-host ./scripts/bench/run_chain_a.sh
 ```
 
 DimOS 默认 `addopts` 会排除 `tool`，checkout 上跑官方命令时 runner 会加 `-o addopts=` 再写 `-m tool`。

@@ -1,8 +1,8 @@
-# Environment — A / `same-process`
+# Environment — A / `same-host`
 
 - **STATUS:** `ok` (ping-pong percentiles; official ROS pytest collection failed on Image stub)
-- **UTC:** `2026-09-10T17:24:30Z`
-- **Topology (required label):** `same-process`
+- **UTC:** `2026-09-10T17:25:08Z`
+- **Topology (required label):** `same-host`
 - **Chain:** `A`
 - **hostname:** `cursor`
 - **hostname class:** `cursor-cloud-vm`
@@ -31,9 +31,11 @@
 
 ## Notes
 
-Sourced `config/env/chain_a.sh` at runtime (RMW=`rmw_fastrtps_cpp`, `ROS_DOMAIN_ID=42`, `FASTRTPS_DEFAULT_PROFILES_FILE=/work/config/fastdds.xml`).
-ROS setup=`/opt/ros/humble/setup.bash`. pytest exit=2 (dimos_bridge `Image` stub). pingpong exit=0.
-Humble Fast-DDS XMLPARSER logs `Invalid element ... Name: history` and `Error parsing '/work/config/fastdds.xml'` — the contract seed was **not** edited; domain 42 still comes from `ROS_DOMAIN_ID`. Do not invent SHM. Do not compare with Chain B.
+Two OS processes (`--role responder` + client) on one VM, `--net=host --ipc=host`.
+Sourced `config/env/chain_a.sh` at runtime (RMW=`rmw_fastrtps_cpp`, `ROS_DOMAIN_ID=42`).
+Fast-DDS default transports (XML does not force UDP-only or SHM-only). **Do not label this SHM.**
+Humble Fast-DDS XMLPARSER rejects `<history>` in writer/reader QoS of the contract seed; file unchanged.
+pytest exit=2 (dimos_bridge `Image` stub). pingpong exit=0. Do not compare with Chain B.
 
 These facts describe the measurement environment. They are **not** a
 root-cause analysis. Do not mix Chain A and Chain B in one table.

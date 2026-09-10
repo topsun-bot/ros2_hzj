@@ -60,7 +60,7 @@ If Humble / `rclpy` is missing, the script writes `STATUS: blocked` under
 | Label | Meaning |
 |-------|---------|
 | `same-process` | Publisher and subscriber in one process |
-| `same-host` | Two processes on one machine (SHM and/or localhost UDP) |
+| `same-host` | Two processes on one machine. Label the transport you actually used (Chain B without RouDi = localhost UDP, **not** SHM; Chain A = Fast-DDS defaults — do not invent SHM) |
 | `cross-host-UDP` | Two machines over UDP |
 
 Keep SHM vs UDP vs same-process in **separate** files/tables.

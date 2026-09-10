@@ -97,6 +97,7 @@ run_in_image() {
       source /opt/ros/humble/setup.bash
       set -u
       source /work/config/env/chain_a.sh
+      git config --global --add safe.directory /work 2>/dev/null || true
       export PYTHONPATH=/work/dimos_bridge:\${PYTHONPATH:-}
       # pytest is not in the DimOS docker/ros package list; install only in this
       # ephemeral container so the official -m tool filter can run. No image ENV.
