@@ -50,9 +50,9 @@ In `config/fastdds.xml` only: one additive SHM transport; `useBuiltinTransports`
 - DimOS `ddspubsub` / `rospubsub` / ping-pong QoS, sizes, gap, sample counts
 - `config/env/chain_a.sh` (still RMW=`rmw_fastrtps_cpp`, domain 42)
 - No `RMW_FASTRTPS_USE_QOS_FROM_XML`, no `historyMemoryPolicy`, no `publishMode`
-- iter2 `sendSocketBufferSize` / `listenSocketBufferSize` 2 MiB (left as-is; also set on the UDP descriptor)
+- iter2 `sendSocketBufferSize` / `listenSocketBufferSize` 2 MiB (left as-is on the participant)
 - iter3/4 `preallocated_number=32` / `dynamic=false` (left as-is)
-- SHM `maxMessageSize` (stays 65500; not the iter3 2 MiB probe)
+- Builtin SHM `maxMessageSize` (stays 65500). The additive transport is 280000, not the iter3 2 MiB / 4 MiB probe.
 - Chain B Cyclone URI / iceoryx
 - Cross-host UDP (still blocked; single VM)
 - 《3》90%/LLM scoring, 《4》Mac/preprod hero, 《5》Promptfoo, 《6》CVE audit
@@ -67,3 +67,7 @@ BENCH_DATE=2026-09-10-iter5 \
 ```
 
 Like-to-like vs `docs/artifacts/bench/2026-09-10-iter4/` (primary). Honesty vs `2026-09-10-iter2-after` for mid-size. 1 MiB must stay within noise of iter4 (or better). Primary table: **same-host**. Same-process is an honesty check only. Deltas in [`delta.md`](delta.md). Do not put Chain A and Chain B in one table.
+
+## Keep
+
+Kept. Same-host BestEffort 256 KiB p50 **−18.6%** vs iter4 (and **−8.0%** vs iter2-after). 1 MiB BestEffort/Reliable 80/80 and faster than iter4. Exclusive 768 KiB SHM and UDP-only stay discarded.
