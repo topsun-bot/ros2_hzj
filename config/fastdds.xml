@@ -16,6 +16,11 @@
   不是现网 XML，也不是自定义 RMW。
   域 ID 以环境变量 ROS_DOMAIN_ID=42 为准（须操作员显式 source helper）。
   中文说明：config/fastdds.zh.md
+
+  Humble Fast-DDS (2.6) XMLPARSER: History QoS 必须写在
+  <topic><historyQos>，不能写在 <qos><history>。
+  2026-09-10 基线日志：Invalid element ... Name: history → loadXMLFile 失败。
+  iter1 只改这个 schema 落点；kind/depth 与冻结表相同。
 -->
 <profiles xmlns="http://www.eprosima.com">
     <participant profile_name="ros2_hzj_chain_a_contract_seed" is_default_profile="true">
@@ -27,6 +32,12 @@
 
     <!-- 以下 writer/reader 名称对应冻结表，不是 DimOS publisher 的运行时绑定。 -->
     <data_writer profile_name="foxglove_teleop_to_cmd_vel">
+        <topic>
+            <historyQos>
+                <kind>KEEP_LAST</kind>
+                <depth>1</depth>
+            </historyQos>
+        </topic>
         <qos>
             <reliability>
                 <kind>BEST_EFFORT</kind>
@@ -34,13 +45,15 @@
             <durability>
                 <kind>VOLATILE</kind>
             </durability>
-            <history>
-                <kind>KEEP_LAST</kind>
-                <depth>1</depth>
-            </history>
         </qos>
     </data_writer>
     <data_reader profile_name="foxglove_teleop_to_cmd_vel">
+        <topic>
+            <historyQos>
+                <kind>KEEP_LAST</kind>
+                <depth>1</depth>
+            </historyQos>
+        </topic>
         <qos>
             <reliability>
                 <kind>BEST_EFFORT</kind>
@@ -48,14 +61,16 @@
             <durability>
                 <kind>VOLATILE</kind>
             </durability>
-            <history>
-                <kind>KEEP_LAST</kind>
-                <depth>1</depth>
-            </history>
         </qos>
     </data_reader>
 
     <data_writer profile_name="goal_pose">
+        <topic>
+            <historyQos>
+                <kind>KEEP_LAST</kind>
+                <depth>5</depth>
+            </historyQos>
+        </topic>
         <qos>
             <reliability>
                 <kind>RELIABLE</kind>
@@ -63,13 +78,15 @@
             <durability>
                 <kind>VOLATILE</kind>
             </durability>
-            <history>
-                <kind>KEEP_LAST</kind>
-                <depth>5</depth>
-            </history>
         </qos>
     </data_writer>
     <data_reader profile_name="goal_pose">
+        <topic>
+            <historyQos>
+                <kind>KEEP_LAST</kind>
+                <depth>5</depth>
+            </historyQos>
+        </topic>
         <qos>
             <reliability>
                 <kind>RELIABLE</kind>
@@ -77,14 +94,16 @@
             <durability>
                 <kind>VOLATILE</kind>
             </durability>
-            <history>
-                <kind>KEEP_LAST</kind>
-                <depth>5</depth>
-            </history>
         </qos>
     </data_reader>
 
     <data_writer profile_name="way_point">
+        <topic>
+            <historyQos>
+                <kind>KEEP_LAST</kind>
+                <depth>5</depth>
+            </historyQos>
+        </topic>
         <qos>
             <reliability>
                 <kind>RELIABLE</kind>
@@ -92,13 +111,15 @@
             <durability>
                 <kind>VOLATILE</kind>
             </durability>
-            <history>
-                <kind>KEEP_LAST</kind>
-                <depth>5</depth>
-            </history>
         </qos>
     </data_writer>
     <data_reader profile_name="way_point">
+        <topic>
+            <historyQos>
+                <kind>KEEP_LAST</kind>
+                <depth>5</depth>
+            </historyQos>
+        </topic>
         <qos>
             <reliability>
                 <kind>RELIABLE</kind>
@@ -106,10 +127,6 @@
             <durability>
                 <kind>VOLATILE</kind>
             </durability>
-            <history>
-                <kind>KEEP_LAST</kind>
-                <depth>5</depth>
-            </history>
         </qos>
     </data_reader>
 
