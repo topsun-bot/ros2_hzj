@@ -47,7 +47,12 @@ If Humble / `rclpy` is missing, the script writes `STATUS: blocked` under
 `docs/artifacts/bench/<UTC-date>/chain_a_*` and prints the Docker recipe:
 
 ```bash
+# Builds docker/ros/ (Humble; no RMW/domain ENV in the image) unless
+# CHAIN_A_IMAGE already exists. Sources config/env/chain_a.sh at runtime.
+# Default topologies: same-process then same-host; cross-host-UDP is
+# recorded as blocked on a single VM.
 ./scripts/bench/docker_chain_a.sh
+# optional: CHAIN_A_TOPOLOGIES=same-process ./scripts/bench/docker_chain_a.sh
 ```
 
 ## Topology labels (required, pick exactly one per run)
@@ -55,7 +60,7 @@ If Humble / `rclpy` is missing, the script writes `STATUS: blocked` under
 | Label | Meaning |
 |-------|---------|
 | `same-process` | Publisher and subscriber in one process |
-| `same-host` | Two processes on one machine (SHM and/or localhost UDP) |
+| `same-host` | Two processes on one machine. Label the transport you actually used (Chain B without RouDi = localhost UDP, **not** SHM; Chain A = Fast-DDS defaults — do not invent SHM) |
 | `cross-host-UDP` | Two machines over UDP |
 
 Keep SHM vs UDP vs same-process in **separate** files/tables.

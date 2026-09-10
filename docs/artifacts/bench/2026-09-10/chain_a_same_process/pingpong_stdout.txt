@@ -1,3 +1,22 @@
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mInvalid element found into 'writerQosPoliciesType'. Name: history[34;1m -> Function [36mgetXMLWriterQosPolicies[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing publisher profile[34;1m -> Function [36mparseXMLPublisherProf[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing profile's tag data_writer[34;1m -> Function [36mparseProfiles[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mInvalid element found into 'readerQosPoliciesType'. Name: history[34;1m -> Function [36mgetXMLReaderQosPolicies[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing subscriber profile[34;1m -> Function [36mparseXMLSubscriberProf[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing profile's tag data_reader[34;1m -> Function [36mparseProfiles[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mInvalid element found into 'writerQosPoliciesType'. Name: history[34;1m -> Function [36mgetXMLWriterQosPolicies[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing publisher profile[34;1m -> Function [36mparseXMLPublisherProf[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing profile's tag data_writer[34;1m -> Function [36mparseProfiles[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mInvalid element found into 'readerQosPoliciesType'. Name: history[34;1m -> Function [36mgetXMLReaderQosPolicies[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing subscriber profile[34;1m -> Function [36mparseXMLSubscriberProf[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing profile's tag data_reader[34;1m -> Function [36mparseProfiles[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mInvalid element found into 'writerQosPoliciesType'. Name: history[34;1m -> Function [36mgetXMLWriterQosPolicies[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing publisher profile[34;1m -> Function [36mparseXMLPublisherProf[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing profile's tag data_writer[34;1m -> Function [36mparseProfiles[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mInvalid element found into 'readerQosPoliciesType'. Name: history[34;1m -> Function [36mgetXMLReaderQosPolicies[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing subscriber profile[34;1m -> Function [36mparseXMLSubscriberProf[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing profile's tag data_reader[34;1m -> Function [36mparseProfiles[m
+[37;1m2026-09-10 17:24:13.687 [31;1m[[37;1mXMLPARSER[31;1m Error] [37mError parsing '/work/config/fastdds.xml'[34;1m -> Function [36mloadXMLFile[m
 {
   "status": "ok",
   "chain": "A",
@@ -3390,3 +3409,4 @@
     }
   ]
 }
+

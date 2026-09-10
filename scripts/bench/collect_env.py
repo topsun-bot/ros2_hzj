@@ -50,7 +50,12 @@ def _cyclonedds_c() -> str:
 
 
 def _git_sha(root: Path) -> str:
-    return _run(["git", "-C", str(root), "rev-parse", "HEAD"]) or "unknown"
+    # Container often runs as root on a host-owned checkout.
+    return (
+        _run(["git", "-C", str(root), "-c", f"safe.directory={root}", "rev-parse", "HEAD"])
+        or _run(["git", "-C", str(root), "rev-parse", "HEAD"])
+        or "unknown"
+    )
 
 
 def _os_pretty() -> str:

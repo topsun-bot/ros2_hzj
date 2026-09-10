@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.137" timestamp="2026-09-10T17:24:13.358585" hostname="cursor"><testcase classname="" name="" time="0.000"><error message="collection failure">/usr/lib/python3/dist-packages/pluggy/hooks.py:286: in __call__
+    return self._hookexec(self, self.get_hookimpls(), kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:92: in _hookexec
+    return self._inner_hookexec(hook, methods, kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:83: in &lt;lambda&gt;
+    self._inner_hookexec = lambda hook, methods, kwargs: hook.multicall(
+/usr/lib/python3/dist-packages/_pytest/python.py:200: in pytest_collect_file
+    module: Module = ihook.pytest_pycollect_makemodule(path=path, parent=parent)
+/usr/lib/python3/dist-packages/pluggy/hooks.py:286: in __call__
+    return self._hookexec(self, self.get_hookimpls(), kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:92: in _hookexec
+    return self._inner_hookexec(hook, methods, kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:83: in &lt;lambda&gt;
+    self._inner_hookexec = lambda hook, methods, kwargs: hook.multicall(
+/opt/ros/humble/lib/python3.10/site-packages/launch_testing/pytest/hooks.py:193: in pytest_pycollect_makemodule
+    entrypoint = find_launch_test_entrypoint(path)
+/opt/ros/humble/lib/python3.10/site-packages/launch_testing/pytest/hooks.py:186: in find_launch_test_entrypoint
+    module = path.pyimport()
+/usr/lib/python3/dist-packages/py/_path/local.py:704: in pyimport
+    __import__(modname)
+/usr/lib/python3/dist-packages/_pytest/assertion/rewrite.py:170: in exec_module
+    exec(co, module.__dict__)
+dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py:24: in &lt;module&gt;
+    from dimos.protocol.pubsub.benchmark.testdata import testcases
+dimos_bridge/dimos/protocol/pubsub/benchmark/testdata.py:22: in &lt;module&gt;
+    from dimos.msgs.sensor_msgs.Image import Image, ImageFormat
+dimos_bridge/dimos/msgs/sensor_msgs/Image.py:9: in &lt;module&gt;
+    raise ImportError(
+E   ImportError: dimos_bridge stub: module 'dimos.msgs.sensor_msgs.Image' is not vendored in ros2_hzj. See topsun_dimos @ a5259958db23c8ea6648544ed138eab19726ce93</error></testcase></testsuite></testsuites>

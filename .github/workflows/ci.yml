@@ -82,7 +82,14 @@ jobs:
           test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/raw.json
           test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
           test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/environment.md
+          test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/raw.json
           grep -q 'STATUS' docs/artifacts/bench/2026-09-10/chain_a_same_process/environment.md
+          test -f docs/artifacts/bench/2026-09-10/chain_a_same_host/environment.md
+          test -f docs/artifacts/bench/2026-09-10/chain_a_same_host/summary.md
+          grep -q 'same-host' docs/artifacts/bench/2026-09-10/chain_a_same_host/environment.md
+          test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
+          grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
           grep -q 'domainId>42' config/fastdds.xml
           grep -q 'rmw_fastrtps_cpp' config/env/chain_a.sh

@@ -1,0 +1,18 @@
+{
+  "ok": false,
+  "error": "checkout imported poorly: ModuleNotFoundError: No module named 'cyclonedds'",
+  "tried": [
+    {
+      "label": "tmp_checkout",
+      "path": "/tmp/topsun_dimos",
+      "status": "missing"
+    },
+    {
+      "label": "vendored_bridge",
+      "path": "/work/dimos_bridge",
+      "status": "import_error",
+      "detail": "ModuleNotFoundError: No module named 'cyclonedds'"
+    }
+  ],
+  "pinned_sha": "a5259958db23c8ea6648544ed138eab19726ce93"
+}

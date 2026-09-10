@@ -12,6 +12,38 @@ TOPOLOGY="${TOPOLOGY:-same-process}"
 OUT_DIR="${BENCH_ARTIFACT_ROOT}/chain_a_${TOPOLOGY//-/_}"
 bench_mkdir "${OUT_DIR}"
 
+write_cross_host_blocked() {
+  local reason="cross-host-UDP needs a second machine; this runner is single-host"
+  python3 "${SCRIPT_DIR}/pingpong.py" \
+    --chain A \
+    --topology cross-host-UDP \
+    --out "${OUT_DIR}/raw.json" >/dev/null || true
+  python3 "${SCRIPT_DIR}/collect_env.py" \
+    --out "${OUT_DIR}/environment.md" \
+    --repo-root "${ROS2_HZJ_ROOT}" \
+    --chain A \
+    --topology cross-host-UDP \
+    --status blocked \
+    --rmw "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}" \
+    --ros-domain-id "${ROS_DOMAIN_ID:-42}" \
+    --ros-distro "${ROS_DISTRO:-}" \
+    --dimos-source "not used (single-host VM)" \
+    --blocked-reason "${reason}" \
+    --notes "Single cloud VM. Cross-host UDP left blocked. No fake percentiles. Do not compare with Chain B."
+  python3 "${SCRIPT_DIR}/write_summary.py" \
+    --raw "${OUT_DIR}/raw.json" \
+    --out "${OUT_DIR}/summary.md" \
+    --title "Chain A cross-host-UDP" \
+    --pytest-note "Not run: needs a second host."
+  printf '%s\n' "STATUS: blocked — ${reason}" >"${OUT_DIR}/BLOCKED.txt"
+  bench_log "wrote blocked ${OUT_DIR}"
+}
+
+if [[ "${TOPOLOGY}" == "cross-host-UDP" ]]; then
+  write_cross_host_blocked
+  exit 0
+fi
+
 # Apply Chain A contract if the caller did not already.
 if [[ -z "${RMW_IMPLEMENTATION:-}" || -z "${ROS_DOMAIN_ID:-}" ]]; then
   # shellcheck source=../../config/env/chain_a.sh
@@ -22,8 +54,11 @@ ROS_SETUP=""
 for cand in /opt/ros/humble/setup.bash /opt/ros/jazzy/setup.bash /opt/ros/${ROS_DISTRO:-humble}/setup.bash; do
   if [[ -f "${cand}" ]]; then
     ROS_SETUP="${cand}"
+    # Humble setup.bash reads AMENT_TRACE_SETUP_FILES unset; nounset must be off.
+    set +u
     # shellcheck disable=SC1090
     source "${cand}"
+    set -u
     break
   fi
 done
@@ -159,7 +194,7 @@ python3 "${SCRIPT_DIR}/collect_env.py" \
   --rmw "${RMW_IMPLEMENTATION}" \
   --ros-domain-id "${ROS_DOMAIN_ID}" \
   --ros-distro "${ROS_DISTRO:-}" \
-  --notes "Sourced chain_a.sh. ROS setup=${ROS_SETUP}. pytest exit=${PYTEST_RC}. pingpong exit=${PING_RC}."
+  --notes "Sourced chain_a.sh (RMW=rmw_fastrtps_cpp, ROS_DOMAIN_ID=42). ROS setup=${ROS_SETUP}. pytest exit=${PYTEST_RC}. pingpong exit=${PING_RC}. Topology=${TOPOLOGY}. Fast-DDS transports are whatever the Humble rmw_fastrtps_cpp default plus config/fastdds.xml use — fastdds.xml does not force UDP-only or SHM-only; do not invent SHM. Do not compare with Chain B."
 
 python3 "${SCRIPT_DIR}/write_summary.py" \
   --raw "${OUT_DIR}/raw.json" \

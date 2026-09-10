@@ -345,109 +345,72 @@ def responder_chain_b(*, qos_kind: str, topic_prefix: str, domain_id: int) -> No
         bus.stop()
 
 
-def run_chain_a_same_process(
-    *,
-    qos_kind: str,
-    msg_size: int,
-    warmup: int,
-    samples: int,
-    timeout_s: float,
-    topic_prefix: str,
-) -> dict[str, Any]:
+def _byte_multiarray_data(blob: bytes) -> list[bytes]:
+    """Humble ``std_msgs/ByteMultiArray.data`` is ``byte[]`` (each item ``bytes``)."""
+    return [bytes([b]) for b in blob]
+
+
+def _blob_from_byte_multiarray(data: Any) -> bytes:
+    if not data:
+        return b""
+    first = data[0]
+    if isinstance(first, (bytes, bytearray)):
+        return b"".join(data)
+    return bytes(data)
+
+
+def _rclpy_ensure_init() -> None:
     import rclpy
+
+    if not rclpy.ok():
+        rclpy.init()
+
+
+def _rclpy_ensure_shutdown() -> None:
+    import rclpy
+
+    if rclpy.ok():
+        rclpy.shutdown()
+
+
+def _chain_a_qos(qos_kind: str) -> Any:
     from rclpy.qos import (
         QoSDurabilityPolicy,
         QoSHistoryPolicy,
         QoSProfile,
         QoSReliabilityPolicy,
     )
-    from std_msgs.msg import ByteMultiArray
 
     if qos_kind == "high_throughput":
-        qos = QoSProfile(
+        return QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=1,
         )
-    else:
-        qos = QoSProfile(
+    if qos_kind == "reliable":
+        return QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
             history=QoSHistoryPolicy.KEEP_LAST,
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=5000,
         )
+    raise ValueError(qos_kind)
 
-    rclpy.init()
-    node = rclpy.create_node("hzj_bench_pingpong")
-    ping_name = f"{topic_prefix}/ping"
-    pong_name = f"{topic_prefix}/pong"
 
-    lock = threading.Lock()
-    got: dict[int, int] = {}
-    ev = threading.Event()
-    expect_seq = -1
-
-    pub_pong = node.create_publisher(ByteMultiArray, pong_name, qos)
-    pub_ping = node.create_publisher(ByteMultiArray, ping_name, qos)
-
-    def on_ping(msg: ByteMultiArray) -> None:
-        pub_pong.publish(msg)
-
-    def on_pong(msg: ByteMultiArray) -> None:
-        now = time.perf_counter_ns()
-        if len(msg.data) < 12:
-            return
-        seq, _t0 = struct.unpack_from("<IQ", bytes(msg.data), 0)
-        with lock:
-            if seq == expect_seq:
-                got[seq] = now
-                ev.set()
-
-    node.create_subscription(ByteMultiArray, ping_name, on_ping, qos)
-    node.create_subscription(ByteMultiArray, pong_name, on_pong, qos)
-
-    spin_stop = threading.Event()
-
-    def spin() -> None:
-        while not spin_stop.is_set() and rclpy.ok():
-            rclpy.spin_once(node, timeout_sec=0.01)
-
-    th = threading.Thread(target=spin, daemon=True)
-    th.start()
-    time.sleep(0.3)
-
-    pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
-    rtt_ns: list[int] = []
-    timeouts = 0
-    total = warmup + samples
-    for i in range(total):
-        ev.clear()
-        with lock:
-            expect_seq = i
-            got.pop(i, None)
-        t0 = time.perf_counter_ns()
-        header = struct.pack("<IQ", i, t0)
-        msg = ByteMultiArray()
-        msg.data = header + pad
-        pub_ping.publish(msg)
-        if not ev.wait(timeout=timeout_s):
-            timeouts += 1
-            continue
-        with lock:
-            t1 = got.get(i)
-        if t1 is None:
-            timeouts += 1
-            continue
-        if i >= warmup:
-            rtt_ns.append(t1 - t0)
-
-    spin_stop.set()
-    th.join(timeout=1.0)
-    node.destroy_node()
-    rclpy.shutdown()
+def _chain_a_case(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    rtt_ns: list[int],
+    timeouts: int,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     stats = percentiles_us(rtt_ns)
-    return {
+    payload = {
         "name": f"ros_{qos_kind}",
         "impl": "rclpy ByteMultiArray ping-pong (not DimosROS library QoS rewrite)",
         "qos": qos_kind,
@@ -462,6 +425,286 @@ def run_chain_a_same_process(
         **stats,
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def run_chain_a_same_process(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+) -> dict[str, Any]:
+    import rclpy
+    from std_msgs.msg import ByteMultiArray
+
+    qos = _chain_a_qos(qos_kind)
+    _rclpy_ensure_init()
+    node = None
+    spin_stop = threading.Event()
+    th: threading.Thread | None = None
+    try:
+        node = rclpy.create_node("hzj_bench_pingpong")
+        ping_name = f"{topic_prefix}/ping"
+        pong_name = f"{topic_prefix}/pong"
+
+        lock = threading.Lock()
+        got: dict[int, int] = {}
+        ev = threading.Event()
+        expect_seq = -1
+
+        pub_pong = node.create_publisher(ByteMultiArray, pong_name, qos)
+        pub_ping = node.create_publisher(ByteMultiArray, ping_name, qos)
+
+        def on_ping(msg: ByteMultiArray) -> None:
+            pub_pong.publish(msg)
+
+        def on_pong(msg: ByteMultiArray) -> None:
+            now = time.perf_counter_ns()
+            blob = _blob_from_byte_multiarray(msg.data)
+            if len(blob) < 12:
+                return
+            seq, _t0 = struct.unpack_from("<IQ", blob, 0)
+            with lock:
+                if seq == expect_seq:
+                    got[seq] = now
+                    ev.set()
+
+        node.create_subscription(ByteMultiArray, ping_name, on_ping, qos)
+        node.create_subscription(ByteMultiArray, pong_name, on_pong, qos)
+
+        def spin() -> None:
+            while not spin_stop.is_set() and rclpy.ok():
+                rclpy.spin_once(node, timeout_sec=0.01)
+
+        th = threading.Thread(target=spin, daemon=True)
+        th.start()
+        time.sleep(0.3)
+
+        pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
+        rtt_ns: list[int] = []
+        timeouts = 0
+        total = warmup + samples
+        for i in range(total):
+            ev.clear()
+            with lock:
+                expect_seq = i
+                got.pop(i, None)
+            t0 = time.perf_counter_ns()
+            header = struct.pack("<IQ", i, t0)
+            msg = ByteMultiArray()
+            msg.data = _byte_multiarray_data(header + pad)
+            pub_ping.publish(msg)
+            if not ev.wait(timeout=timeout_s):
+                timeouts += 1
+                continue
+            with lock:
+                t1 = got.get(i)
+            if t1 is None:
+                timeouts += 1
+                continue
+            if i >= warmup:
+                rtt_ns.append(t1 - t0)
+
+        return _chain_a_case(
+            qos_kind=qos_kind,
+            msg_size=msg_size,
+            warmup=warmup,
+            samples=samples,
+            timeout_s=timeout_s,
+            rtt_ns=rtt_ns,
+            timeouts=timeouts,
+        )
+    finally:
+        spin_stop.set()
+        if th is not None:
+            th.join(timeout=1.0)
+        if node is not None:
+            node.destroy_node()
+        _rclpy_ensure_shutdown()
+
+
+def responder_chain_a(*, qos_kind: str, topic_prefix: str) -> None:
+    """Echo process for Chain A same-host (two OS processes, one machine)."""
+    import rclpy
+    from std_msgs.msg import ByteMultiArray
+
+    qos = _chain_a_qos(qos_kind)
+    _rclpy_ensure_init()
+    node = rclpy.create_node(f"hzj_bench_a_responder_{os.getpid()}")
+    ping_name = f"{topic_prefix}/ping"
+    pong_name = f"{topic_prefix}/pong"
+    pub_pong = node.create_publisher(ByteMultiArray, pong_name, qos)
+
+    def on_ping(msg: ByteMultiArray) -> None:
+        pub_pong.publish(msg)
+
+    node.create_subscription(ByteMultiArray, ping_name, on_ping, qos)
+    print("RESPONDER_READY", flush=True)
+    try:
+        while rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.01)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        _rclpy_ensure_shutdown()
+
+
+def _chain_a_client_only(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+) -> dict[str, Any]:
+    import rclpy
+    from std_msgs.msg import ByteMultiArray
+
+    qos = _chain_a_qos(qos_kind)
+    _rclpy_ensure_init()
+    node = None
+    spin_stop = threading.Event()
+    th: threading.Thread | None = None
+    try:
+        node = rclpy.create_node(f"hzj_bench_a_client_{os.getpid()}")
+        ping_name = f"{topic_prefix}/ping"
+        pong_name = f"{topic_prefix}/pong"
+
+        lock = threading.Lock()
+        got: dict[int, int] = {}
+        ev = threading.Event()
+        expect_seq = -1
+
+        pub_ping = node.create_publisher(ByteMultiArray, ping_name, qos)
+
+        def on_pong(msg: ByteMultiArray) -> None:
+            now = time.perf_counter_ns()
+            blob = _blob_from_byte_multiarray(msg.data)
+            if len(blob) < 12:
+                return
+            seq, _t0 = struct.unpack_from("<IQ", blob, 0)
+            with lock:
+                if seq == expect_seq:
+                    got[seq] = now
+                    ev.set()
+
+        node.create_subscription(ByteMultiArray, pong_name, on_pong, qos)
+
+        def spin() -> None:
+            while not spin_stop.is_set() and rclpy.ok():
+                rclpy.spin_once(node, timeout_sec=0.01)
+
+        th = threading.Thread(target=spin, daemon=True)
+        th.start()
+        # Discovery between two Fast-DDS participants; do not assume SHM.
+        time.sleep(1.2)
+
+        pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
+        rtt_ns: list[int] = []
+        timeouts = 0
+        total = warmup + samples
+        for i in range(total):
+            ev.clear()
+            with lock:
+                expect_seq = i
+                got.pop(i, None)
+            t0 = time.perf_counter_ns()
+            header = struct.pack("<IQ", i, t0)
+            msg = ByteMultiArray()
+            msg.data = _byte_multiarray_data(header + pad)
+            pub_ping.publish(msg)
+            if not ev.wait(timeout=timeout_s):
+                timeouts += 1
+                continue
+            with lock:
+                t1 = got.get(i)
+            if t1 is None:
+                timeouts += 1
+                continue
+            if i >= warmup:
+                rtt_ns.append(t1 - t0)
+
+        return _chain_a_case(
+            qos_kind=qos_kind,
+            msg_size=msg_size,
+            warmup=warmup,
+            samples=samples,
+            timeout_s=timeout_s,
+            rtt_ns=rtt_ns,
+            timeouts=timeouts,
+        )
+    finally:
+        spin_stop.set()
+        if th is not None:
+            th.join(timeout=1.0)
+        if node is not None:
+            node.destroy_node()
+        _rclpy_ensure_shutdown()
+
+
+def run_chain_a_same_host(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+) -> dict[str, Any]:
+    """Two OS processes; still one host. Responder is this file with --role responder."""
+    env = os.environ.copy()
+    resp = subprocess.Popen(
+        [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "--chain",
+            "A",
+            "--role",
+            "responder",
+            "--topology",
+            "same-host",
+            "--qos",
+            qos_kind,
+            "--topic-prefix",
+            topic_prefix,
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        time.sleep(1.2)
+        if resp.poll() is not None:
+            out = resp.stdout.read() if resp.stdout else ""
+            raise RuntimeError(f"responder exited early: {out[-2000:]}")
+        result = _chain_a_client_only(
+            qos_kind=qos_kind,
+            msg_size=msg_size,
+            warmup=warmup,
+            samples=samples,
+            timeout_s=timeout_s,
+            topic_prefix=topic_prefix,
+        )
+        result["responder_pid"] = resp.pid
+        result["transport_label"] = (
+            "same-host two processes; Fast-DDS default transports "
+            "(fastdds.xml does not force UDP-only or SHM-only; do not invent SHM)"
+        )
+        return result
+    finally:
+        resp.terminate()
+        try:
+            resp.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            resp.kill()
 
 
 def parse_sizes(text: str) -> list[int]:
@@ -525,15 +768,18 @@ def main() -> int:
     prefix = args.topic_prefix or f"hzj_bench_{os.getpid()}"
 
     if args.role == "responder":
-        if args.chain != "B":
-            print("responder is implemented for Chain B only", file=sys.stderr)
-            return 2
-        responder_chain_b(
-            qos_kind=qos_list[0],
-            topic_prefix=prefix,
-            domain_id=args.domain_id,
-        )
-        return 0
+        if args.chain == "B":
+            responder_chain_b(
+                qos_kind=qos_list[0],
+                topic_prefix=prefix,
+                domain_id=args.domain_id,
+            )
+            return 0
+        if args.chain == "A":
+            responder_chain_a(qos_kind=qos_list[0], topic_prefix=prefix)
+            return 0
+        print(f"responder is not implemented for chain={args.chain}", file=sys.stderr)
+        return 2
 
     cases: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -571,6 +817,17 @@ def main() -> int:
                 elif args.chain == "A" and args.topology == "same-process":
                     cases.append(
                         run_chain_a_same_process(
+                            qos_kind=qos_kind,
+                            msg_size=size,
+                            warmup=args.warmup,
+                            samples=args.samples,
+                            timeout_s=args.timeout,
+                            topic_prefix=case_prefix,
+                        )
+                    )
+                elif args.chain == "A" and args.topology == "same-host":
+                    cases.append(
+                        run_chain_a_same_host(
                             qos_kind=qos_kind,
                             msg_size=size,
                             warmup=args.warmup,
