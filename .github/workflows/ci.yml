@@ -76,6 +76,8 @@ jobs:
           test -f scripts/bench/run_chain_a.sh
           test -f scripts/bench/pingpong.py
           test -f scripts/bench/docker_chain_a.sh
+          test -f scripts/bench/run_large_packet.sh
+          test -f scripts/bench/write_delta.py
           test -f docs/artifacts/bench/README.md
           test -f docs/artifacts/bench/2026-09-10/README.md
           test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/summary.md

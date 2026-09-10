@@ -96,6 +96,14 @@ ICEORYX=off TOPOLOGY=same-host ./scripts/bench/run_chain_b.sh
 
 DimOS 默认 `addopts` 会排除 `tool`，checkout 上跑官方命令时 runner 会加 `-o addopts=` 再写 `-m tool`。
 
+大包（飞书 / 雷达量级，约 100KiB–1MiB）另跑，不要和 64B–64KiB 默认表混在一起：
+
+```bash
+BENCH_DATE=<UTC>-iter2-large-baseline ./scripts/bench/run_large_packet.sh
+```
+
+精确 payload 字节数、100 ms 间隔（目标 10 Hz）、拓扑标签写在产物 `raw.json` / `summary.md`。链 A 与链 B **分目录、分表**。这 **不是** 实机 / 飞书现场 / 跨机根因。
+
 ## 明确不写的东西
 
 - 不把这些数字写成「谁更快」或根因

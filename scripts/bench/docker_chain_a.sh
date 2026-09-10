@@ -88,6 +88,11 @@ run_in_image() {
     -e TOPOLOGY="${topology}" \
     -e BENCH_SIZES="${BENCH_SIZES:-}" \
     -e BENCH_SAMPLES="${BENCH_SAMPLES:-}" \
+    -e BENCH_WARMUP="${BENCH_WARMUP:-}" \
+    -e BENCH_TIMEOUT="${BENCH_TIMEOUT:-}" \
+    -e BENCH_INTERVAL_MS="${BENCH_INTERVAL_MS:-}" \
+    -e BENCH_ROS_MSG="${BENCH_ROS_MSG:-}" \
+    -e BENCH_SKIP_PYTEST="${BENCH_SKIP_PYTEST:-}" \
     -w /work \
     "${IMAGE}" \
     bash -lc "

@@ -22,6 +22,14 @@ if [[ "${BENCH_SKIP_PIP:-}" != "1" && -f "${SCRIPT_DIR}/requirements-chain-b.txt
     bench_log "pip install requirements-chain-b.txt failed (continuing)"
 fi
 
+BRIDGE_RC=0
+CHECKOUT_RC=0
+if [[ "${BENCH_SKIP_PYTEST:-}" == "1" ]]; then
+  printf '%s\n' "BENCH_SKIP_PYTEST=1 — official pytest -m tool -k dds not run (large-packet ping-pong only)." \
+    >"${OUT_DIR}/pytest_dimos_bridge_attempt.txt"
+  printf '%s\n' "BENCH_SKIP_PYTEST=1" >"${OUT_DIR}/pytest_topsun_dimos_stdout.txt"
+  bench_log "BENCH_SKIP_PYTEST=1 — skipping pytest"
+else
 # Official in-tree path first (expected to fail on dimos_bridge stubs).
 BRIDGE_PYTEST_LOG="${OUT_DIR}/pytest_dimos_bridge_attempt.txt"
 set +e
@@ -38,6 +46,7 @@ set +e
 BRIDGE_RC=$?
 set -e
 bench_log "in-tree dimos_bridge pytest -m tool -k dds exit=${BRIDGE_RC} (stubs often ImportError)"
+fi
 
 RESOLVE_JSON="${OUT_DIR}/dimos_resolve.json"
 python3 "${SCRIPT_DIR}/resolve_dimos.py" --json >"${RESOLVE_JSON}" || true
@@ -68,6 +77,7 @@ fi
 export PYTHONPATH="${SCRIPT_DIR}:${DIMOS_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 export TOPSUN_DIMOS="${DIMOS_ROOT}"
 
+if [[ "${BENCH_SKIP_PYTEST:-}" != "1" ]]; then
 # Official checkout pytest (throughput / drain-time; not p50).
 # -p hzj_dds_compat: host Pydantic 2.13 + DDSConfig forward-ref; does not edit DimOS.
 CHECKOUT_LOG="${OUT_DIR}/pytest_topsun_dimos_stdout.txt"
@@ -85,13 +95,14 @@ set +e
 CHECKOUT_RC=$?
 set -e
 bench_log "topsun_dimos pytest -m tool -k dds exit=${CHECKOUT_RC}"
+fi
 
 PING_ARGS=(
-  --chain B
-  --topology "${TOPOLOGY}"
-  --dimos-root "${DIMOS_ROOT}"
-  --domain-id 0
-  --out "${OUT_DIR}/raw.json"
+    --chain B
+    --topology "${TOPOLOGY}"
+    --dimos-root "${DIMOS_ROOT}"
+    --domain-id 0
+    --out "${OUT_DIR}/raw.json"
 )
 if [[ "${ICEORYX:-default}" == "off" ]]; then
   PING_ARGS+=(--iceoryx off)
@@ -101,6 +112,15 @@ if [[ -n "${BENCH_SIZES:-}" ]]; then
 fi
 if [[ -n "${BENCH_SAMPLES:-}" ]]; then
   PING_ARGS+=(--samples "${BENCH_SAMPLES}")
+fi
+if [[ -n "${BENCH_WARMUP:-}" ]]; then
+  PING_ARGS+=(--warmup "${BENCH_WARMUP}")
+fi
+if [[ -n "${BENCH_TIMEOUT:-}" ]]; then
+  PING_ARGS+=(--timeout "${BENCH_TIMEOUT}")
+fi
+if [[ -n "${BENCH_INTERVAL_MS:-}" ]]; then
+  PING_ARGS+=(--interval-ms "${BENCH_INTERVAL_MS}")
 fi
 
 set +e
@@ -123,8 +143,11 @@ Did not source config/env/chain_a.sh.
 in-tree dimos_bridge pytest exit=${BRIDGE_RC}; checkout pytest exit=${CHECKOUT_RC}.
 Pytest harness = throughput + drain-after-publish, NOT per-message percentiles.
 Percentiles come only from scripts/bench/pingpong.py.
+BENCH_SIZES=${BENCH_SIZES:-default}. BENCH_INTERVAL_MS=${BENCH_INTERVAL_MS:-0}.
+same-host without RouDi is localhost UDP, not SHM.
 DimOS source: ${DIMOS_SRC} @ ${DIMOS_SHA}
 Pinned copy SHA in dimos_bridge/SOURCE.md: a5259958db23c8ea6648544ed138eab19726ce93
+Not real-robot / Feishu-field / cross-host proof.
 EOF
 )
 
