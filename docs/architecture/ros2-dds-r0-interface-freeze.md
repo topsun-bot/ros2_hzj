@@ -3,12 +3,14 @@
 > **Repo note.** This copy lives in independent repo [`topsun-bot/ros2_hzj`](https://github.com/topsun-bot/ros2_hzj), not in `topsun_dimos`. Frozen tables, domain IDs, QoS, and the dual-chain contract are unchanged.
 >
 > **R1 path update.** Public RMW / Fast-DDS trees are now vendored as plain copies under [`vendor/`](../../vendor/) (see [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)). DimOS dual-chain files are whole-file copies under [`dimos_bridge/`](../../dimos_bridge/) (relative paths preserved; source SHA in [`dimos_bridge/SOURCE.md`](../../dimos_bridge/SOURCE.md)). Chain A `fastdds.xml` lives at [`config/fastdds.xml`](../../config/fastdds.xml) as a **contract seed** — `topsun_dimos` `main` still has no `fastdds.xml` / `docker/navigation/`. Paths that still say `dimos/` without the `dimos_bridge/` prefix refer to the DimOS monorepo, not a claim that the whole monorepo is here.
+>
+> **R2 path update (Cyclone vendor + R1–R5 structure).** Chain B public trees are also plain copies: [`vendor/rmw_cyclonedds`](../../vendor/rmw_cyclonedds/) and [`vendor/CycloneDDS`](../../vendor/CycloneDDS/). Structural extracts (env helpers, XML seed, Dockerfile split, topic constants, bench howto) live under [`config/env/`](../../config/env/), [`config/fastdds.zh.md`](../../config/fastdds.zh.md), [`docker/ros/`](../../docker/ros/), [`dimos_bridge/dimos/protocol/dds_topics.py`](../../dimos_bridge/dimos/protocol/dds_topics.py), [`docs/usage/benchmark-dds.md`](../usage/benchmark-dds.md). Copied DimOS modules are **behavior-unchanged**. Vendoring Cyclone is **not** a latency root-cause claim.
 
-Status: **R0 approved — documentation only.** This file freezes the dual-chain map and the behavior-unchanged interface subset. It does not change runtime code, Dockerfiles, env defaults, topics, QoS, or dependencies.
+Status: **R0 approved — documentation only.** This file freezes the dual-chain map and the behavior-unchanged interface subset. Frozen tables (domains, topics, QoS) are unchanged. Structural helpers do not silently rewrite DimOS runtime defaults.
 
 LCM is the default DimOS transport on Linux (`GlobalConfig.default_transport` in `topsun_dimos` `dimos/core/global_config.py`). **LCM is out of scope for this DDS refactor.** Do not treat LCM paths as in-scope work, latency root cause, or behavior-unchanged surface.
 
-R1+ work (env extract, externalize `fastdds.xml`, Dockerfile split, topic constants, middleware patches) is **Hold**. Eval / latency / security workstreams are also **Hold** for this repo.
+R1–R5 **structure** (env extract, `fastdds.xml` seed, Dockerfile split, topic constants, bench docs) is landed in this repo without changing copied-module behavior. Middleware behavior patches, vendor builds, and eval / latency **numbers** remain **Hold**.
 
 ---
 
@@ -65,7 +67,7 @@ Cited R0 evidence (not present on current `topsun_dimos` `main`; see [Live-tree 
 
 Live-tree ROS Docker that *does* exist in `topsun_dimos`: `docker/ros/Dockerfile` installs ROS 2 Humble (`ROS_DISTRO=humble`) plus `foxglove-bridge`, `joy`, `teleop-twist-joy`, and Nav2 packages. It does **not** set `RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, or `FASTRTPS_DEFAULT_PROFILES_FILE`. Humble's distro default RMW is Fast DDS (`rmw_fastrtps_cpp`); that is a ROS distro fact, not a value encoded in `topsun_dimos` or in this repository.
 
-This repo (`ros2_hzj`) now vendors public ROS 2 / rmw / Fast-DDS trees as **plain directory copies** under `vendor/` (R1). It still does **not** invent a custom RMW. Use distro or in-tree `rmw_fastrtps_cpp` for Chain A. CycloneDDS itself is **not** vendored this round (Chain B = system / Unitree-side).
+This repo (`ros2_hzj`) vendors public ROS 2 / rmw / Fast-DDS **and** CycloneDDS / `rmw_cyclonedds` as **plain directory copies** under `vendor/` (see [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)). It still does **not** invent a custom RMW. Use distro or in-tree `rmw_fastrtps_cpp` for Chain A and `rmw_cyclonedds_cpp` / native Cyclone for Chain B. Vendoring a tree is not a measured latency result.
 
 ### Chain B — DimOS native DDS / Unitree Cyclone
 
@@ -130,7 +132,7 @@ Go2 ROS bindings (verified in `topsun_dimos`):
 
 This measures **Chain B** (native Cyclone `DDS` pubsub), not Chain A Fast-DDS.
 
-The command below is a **`topsun_dimos` tree recipe**. It is **not** runnable in `ros2_hzj` (this R0 seed has no DimOS pytest tree). Eval / latency work is **Hold** for this repo.
+The command below is a **`topsun_dimos` tree recipe**. This repo now has the benchmark **sources** under `dimos_bridge/` plus a howto at [`docs/usage/benchmark-dds.md`](../usage/benchmark-dds.md). Full DimOS extras are still required; this repo does **not** record percentile scores. Eval / latency **numbers** remain **Hold**.
 
 ```bash
 cd <topsun_dimos> && uv sync --extra dds
@@ -149,15 +151,15 @@ The nav Fast-DDS path (Chain A) needs a **separate same-domain-42 application pi
 
 | Item | R0 status |
 |------|-----------|
-| Env extract (`RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, `FASTRTPS_DEFAULT_PROFILES_FILE`) | Hold (R1+). Vendor dump does **not** implement extract; placeholder XML is at `config/fastdds.xml`. |
-| Externalize `fastdds.xml` | Hold (R1+). Contract seed path: [`config/fastdds.xml`](../../config/fastdds.xml) (not extracted from DimOS main). |
-| Dockerfile split / nav-image changes | Hold (R1+) |
-| Topic-constant refactor | Hold (R1+) |
-| Patches to middleware behavior (RMW, Fast-DDS, Cyclone, QoS, domains) | **Out of scope — no patches in R0** |
+| Env extract (`RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, `FASTRTPS_DEFAULT_PROFILES_FILE`) | **Structure landed** at [`config/env/`](../../config/env/) (explicit source/apply only; DimOS defaults unchanged). |
+| Externalize `fastdds.xml` | **Contract seed** at [`config/fastdds.xml`](../../config/fastdds.xml) + [`config/fastdds.zh.md`](../../config/fastdds.zh.md) (not extracted from DimOS main). |
+| Dockerfile split / nav-image changes | **Split landed** at [`docker/ros/`](../../docker/ros/) (install semantics unchanged). Nav image still **absent**. |
+| Topic-constant refactor | **Constants only** at [`config/topics.yaml`](../../config/topics.yaml) / [`dds_topics.py`](../../dimos_bridge/dimos/protocol/dds_topics.py). Publishers not rewired. |
+| Patches to middleware behavior (RMW, Fast-DDS, Cyclone, QoS, domains) | **Out of scope — no patches** |
 | LCM transports, LCM topics, LCM benchmarks | **Out of scope** |
 | `ZenohTransport` (`dimos/core/transport.py` in `topsun_dimos`) | Stub only (`class ZenohTransport(PubSubTransport[T]): ...`) — **not a usable path** |
-| Public ROS 2 / rmw / Fast-DDS **submodule / subtree remote** in `ros2_hzj` | **Still forbidden.** R1 vendors **plain copies** under `vendor/` instead. |
-| Custom RMW | **Out of scope** (R0 and R1) |
+| Public ROS 2 / rmw / Fast-DDS / Cyclone **submodule / subtree remote** in `ros2_hzj` | **Still forbidden.** Vendor trees are **plain copies** under `vendor/`. |
+| Custom RMW | **Out of scope** |
 
 ---
 
