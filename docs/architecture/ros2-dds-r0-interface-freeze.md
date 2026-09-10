@@ -1,6 +1,8 @@
 # ROS 2 / DDS R0 interface freeze
 
-> **Repo note.** This copy lives in independent repo [`topsun-bot/ros2_hzj`](https://github.com/topsun-bot/ros2_hzj), not in `topsun_dimos`. Paths under `dimos/`, `docker/`, and DimOS `docs/` below refer to [`topsun-bot/topsun_dimos`](https://github.com/topsun-bot/topsun_dimos) (R0 source: PR [#122](https://github.com/topsun-bot/topsun_dimos/pull/122)). They are **not** present in this repository. Frozen tables, domain IDs, QoS, and the dual-chain contract are unchanged.
+> **Repo note.** This copy lives in independent repo [`topsun-bot/ros2_hzj`](https://github.com/topsun-bot/ros2_hzj), not in `topsun_dimos`. Frozen tables, domain IDs, QoS, and the dual-chain contract are unchanged.
+>
+> **R1 path update.** Public RMW / Fast-DDS trees are now vendored as plain copies under [`vendor/`](../../vendor/) (see [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)). DimOS dual-chain files are whole-file copies under [`dimos_bridge/`](../../dimos_bridge/) (relative paths preserved; source SHA in [`dimos_bridge/SOURCE.md`](../../dimos_bridge/SOURCE.md)). Chain A `fastdds.xml` lives at [`config/fastdds.xml`](../../config/fastdds.xml) as a **contract seed** — `topsun_dimos` `main` still has no `fastdds.xml` / `docker/navigation/`. Paths that still say `dimos/` without the `dimos_bridge/` prefix refer to the DimOS monorepo, not a claim that the whole monorepo is here.
 
 Status: **R0 approved — documentation only.** This file freezes the dual-chain map and the behavior-unchanged interface subset. It does not change runtime code, Dockerfiles, env defaults, topics, QoS, or dependencies.
 
@@ -63,7 +65,7 @@ Cited R0 evidence (not present on current `topsun_dimos` `main`; see [Live-tree 
 
 Live-tree ROS Docker that *does* exist in `topsun_dimos`: `docker/ros/Dockerfile` installs ROS 2 Humble (`ROS_DISTRO=humble`) plus `foxglove-bridge`, `joy`, `teleop-twist-joy`, and Nav2 packages. It does **not** set `RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, or `FASTRTPS_DEFAULT_PROFILES_FILE`. Humble's distro default RMW is Fast DDS (`rmw_fastrtps_cpp`); that is a ROS distro fact, not a value encoded in `topsun_dimos` or in this repository.
 
-This repo (`ros2_hzj`) does **not** vendor public ROS 2 / rmw / Fast-DDS trees and does **not** invent a custom RMW.
+This repo (`ros2_hzj`) now vendors public ROS 2 / rmw / Fast-DDS trees as **plain directory copies** under `vendor/` (R1). It still does **not** invent a custom RMW. Use distro or in-tree `rmw_fastrtps_cpp` for Chain A. CycloneDDS itself is **not** vendored this round (Chain B = system / Unitree-side).
 
 ### Chain B — DimOS native DDS / Unitree Cyclone
 
@@ -147,21 +149,21 @@ The nav Fast-DDS path (Chain A) needs a **separate same-domain-42 application pi
 
 | Item | R0 status |
 |------|-----------|
-| Env extract (`RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, `FASTRTPS_DEFAULT_PROFILES_FILE`) | Hold (R1+) |
-| Externalize `fastdds.xml` | Hold (R1+) |
+| Env extract (`RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, `FASTRTPS_DEFAULT_PROFILES_FILE`) | Hold (R1+). Vendor dump does **not** implement extract; placeholder XML is at `config/fastdds.xml`. |
+| Externalize `fastdds.xml` | Hold (R1+). Contract seed path: [`config/fastdds.xml`](../../config/fastdds.xml) (not extracted from DimOS main). |
 | Dockerfile split / nav-image changes | Hold (R1+) |
 | Topic-constant refactor | Hold (R1+) |
 | Patches to middleware behavior (RMW, Fast-DDS, Cyclone, QoS, domains) | **Out of scope — no patches in R0** |
 | LCM transports, LCM topics, LCM benchmarks | **Out of scope** |
 | `ZenohTransport` (`dimos/core/transport.py` in `topsun_dimos`) | Stub only (`class ZenohTransport(PubSubTransport[T]): ...`) — **not a usable path** |
-| Public ROS 2 / rmw / Fast-DDS subtree or submodule in `ros2_hzj` | **Out of scope — do not vendor** |
-| Custom RMW | **Out of scope for R0** |
+| Public ROS 2 / rmw / Fast-DDS **submodule / subtree remote** in `ros2_hzj` | **Still forbidden.** R1 vendors **plain copies** under `vendor/` instead. |
+| Custom RMW | **Out of scope** (R0 and R1) |
 
 ---
 
 ## Live-tree drift
 
-R0 cited paths were verified against current `topsun_dimos` `main`. Follow that live tree; do not assume the cited nav-image files exist there, and do not assume any of them exist in `ros2_hzj`.
+R0 cited paths were verified against current `topsun_dimos` `main`. Follow that live tree; do not assume the cited nav-image files exist there. Dual-chain Python/Docker that **does** exist on DimOS main is copied under `dimos_bridge/` (not the whole monorepo).
 
 | Cited / assumed path | Current `topsun_dimos` `main` |
 |----------------------|-------------------------------|

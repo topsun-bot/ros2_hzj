@@ -7,7 +7,7 @@ on:
 
 jobs:
   docs:
-    name: R0 docs exist
+    name: R0 docs + R1 vendor seed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +20,32 @@ jobs:
           test -f docs/usage/transports/index.md
           test -f README.md
           test -f LICENSE
+
+      - name: R1 vendor and DimOS dump paths exist
+        run: |
+          set -euo pipefail
+          # Plain copies only — fail if someone turned these into gitlinks/submodules.
+          test -d vendor/rmw
+          test -d vendor/rmw_implementation
+          test -d vendor/rmw_fastrtps
+          test -d vendor/Fast-DDS
+          test -f vendor/rmw/package.xml || test -f vendor/rmw/rmw/package.xml
+          test -f vendor/rmw_fastrtps/rmw_fastrtps_cpp/package.xml
+          test -f vendor/Fast-DDS/CMakeLists.txt
+          test -f vendor/Fast-DDS/package.xml
+          test ! -e vendor/rmw/.git
+          test ! -e vendor/Fast-DDS/.git
+          test ! -f .gitmodules
+          test -f vendor/VERSIONS.md
+          test -d dimos_bridge/dimos/protocol/pubsub/impl
+          test -f dimos_bridge/dimos/protocol/pubsub/impl/ddspubsub.py
+          test -f dimos_bridge/dimos/protocol/pubsub/impl/rospubsub.py
+          test -f dimos_bridge/dimos/protocol/service/ddsservice.py
+          test -f dimos_bridge/dimos/core/transport.py
+          test -f dimos_bridge/docker/ros/Dockerfile
+          test -f config/fastdds.xml
+          test -f dimos_bridge/SOURCE.md
+          # Do not build Fast-DDS in this job.
 
       - name: In-repo markdown relative links
         run: |
@@ -35,6 +61,9 @@ jobs:
               Path("docs/architecture/ros2-dds-r0-interface-freeze.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
+              Path("vendor/VERSIONS.md"),
+              Path("vendor/README.md"),
+              Path("dimos_bridge/SOURCE.md"),
           ]
           link_re = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
           missing = []
