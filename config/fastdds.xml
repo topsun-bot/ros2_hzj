@@ -25,14 +25,32 @@
   iter2 (one knob): default participant UDP socket buffers 2 MiB.
   Linux default ~212 KiB is smaller than a 1 MiB sample; ping-pong is
   bidirectional so send and listen are the same knob. Not a second change.
+
+  iter3 (one knob): user SHM transport sized for 1 MiB samples.
+  Humble Fast-DDS 2.6 default maxMessageSize is 65500 and builtin SHM
+  segment_size is 512 KiB — both smaller than 100 KiB / 1 MiB. Keep
+  builtin UDP (iter2 buffers). Not SHM-only. Not a second buffer knob.
 -->
 <profiles xmlns="http://www.eprosima.com">
+    <transport_descriptors>
+        <transport_descriptor>
+            <transport_id>shm_large_same_host</transport_id>
+            <type>SHM</type>
+            <maxMessageSize>2097152</maxMessageSize>
+            <segment_size>4194304</segment_size>
+        </transport_descriptor>
+    </transport_descriptors>
+
     <participant profile_name="ros2_hzj_chain_a_contract_seed" is_default_profile="true">
         <domainId>42</domainId>
         <rtps>
             <name>ros2_hzj_chain_a_contract_seed</name>
             <sendSocketBufferSize>2097152</sendSocketBufferSize>
             <listenSocketBufferSize>2097152</listenSocketBufferSize>
+            <userTransports>
+                <transport_id>shm_large_same_host</transport_id>
+            </userTransports>
+            <useBuiltinTransports>true</useBuiltinTransports>
         </rtps>
     </participant>
 

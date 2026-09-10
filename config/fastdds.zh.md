@@ -29,6 +29,8 @@ source config/env/chain_a.sh
 
 iter2 在默认 participant 上加了 **一对** UDP socket buffer（send/listen 各 2 MiB）。这是大包 RTT 的**一个**旋钮，假设写在 `docs/artifacts/bench/2026-09-10-iter2-after/change.md`。不是现网证明。
 
+iter3 在同一默认 participant 上加了 **一个** user SHM transport（`maxMessageSize` 2 MiB，`segment_size` 4 MiB）。Humble Fast-DDS 2.6 默认 `maxMessageSize` 是 65500、内置 SHM `segment_size` 是 512 KiB，都小于 100 KiB / 1 MiB 样本。builtin UDP 与 iter2 buffer **保持**；不是 SHM-only，也不是第二个 buffer 旋钮。假设写在 `docs/artifacts/bench/2026-09-10-iter3/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么
