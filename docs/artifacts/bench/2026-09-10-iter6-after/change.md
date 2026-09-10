@@ -1,8 +1,8 @@
-# iter6 change — shm_midsize port_queue_capacity 64 (HF)
+# iter6 change — shm_midsize port_queue_capacity 64 (HF) — **not kept**
 
-**One change.** Config-only. Ask a human to merge; this run does not merge.
+**One change** was applied, remasured, then **reverted**. Ask a human to merge; this run does not merge.
 
-Applied **after** [`../2026-09-10-iter6-imu-baseline/`](../2026-09-10-iter6-imu-baseline/README.md) existed on this branch (Step A SHA `da24788`).
+Applied **after** [`../2026-09-10-iter6-imu-baseline/`](../2026-09-10-iter6-imu-baseline/README.md) existed (Step A SHA `da24788`). Remasure SHA while the probe was on: `2d904a5`. Landed `config/fastdds.xml` is the iter5 seed again.
 
 ## Hypothesis
 
@@ -15,15 +15,9 @@ Step A (no new knob; iter5 seed) recorded Chain A IMU-scale 64 B / 5 ms / 200 Hz
 
 same-host BestEffort p50 is **~1.64×** same-process. Do **not** tune same-process as primary.
 
-Humble Fast-DDS 2.6 `SharedMemTransportDescriptor::shm_default_port_queue_capacity` is **512**. That listening port is sized for bursty mid-size / 1 MiB fragment fan-out. IMU ping-pong is **one-in-flight** (closed-loop). A 512-deep ring is colder than a queue that only needs a handful of descriptors.
+Humble Fast-DDS 2.6 `port_queue_capacity` default is **512**. That listening port is sized for bursty mid-size / 1 MiB fragment fan-out. IMU ping-pong is **one-in-flight**. Prediction: 64-deep still holds a 1 MiB ~16-fragment burst both ways, and a shorter ring could cut same-host 64 B RTT/jitter.
 
-**Prediction:** set `port_queue_capacity` to **64** on the existing `shm_midsize` transport (the only user SHM). 64 still holds a 1 MiB ~16-fragment burst both ways (32) with slack, so this is an HF-sized queue, not a 1 MiB eraser. `maxMessageSize` 280000 / `segment_size` 2 MiB stay. Builtin UDP+SHM stay. iter2 sockets and iter3/4 `send_buffers` 32 / `dynamic=false` stay. Exclusive / oversized SHM stays discarded.
-
-This is **one knob** (SHM port queue depth on the accepted mid-size transport). Not a second SHM. Not exclusive SHM. Not a socket-buffer or send-buffer-pool change.
-
-This does **not** prove a Feishu / real-robot / cross-host root cause.
-
-## Exact diff (behavior)
+## Exact diff (behavior, while probed)
 
 In `config/fastdds.xml` only, inside the existing `shm_midsize` descriptor:
 
@@ -31,22 +25,9 @@ In `config/fastdds.xml` only, inside the existing `shm_midsize` descriptor:
 <port_queue_capacity>64</port_queue_capacity>
 ```
 
-`config/fastdds.zh.md` notes the knob.
+`maxMessageSize` 280000 / `segment_size` 2 MiB / builtin / sockets / `send_buffers` 32 / `dynamic=false` stayed. Exclusive / oversized SHM stayed discarded.
 
-## What was NOT changed
-
-- DimOS `ddspubsub` / `rospubsub` / ping-pong QoS, sizes, gap, sample counts
-- `config/env/chain_a.sh` (still RMW=`rmw_fastrtps_cpp`, domain 42)
-- No `RMW_FASTRTPS_USE_QOS_FROM_XML`, no `historyMemoryPolicy`, no `publishMode`
-- iter2 `sendSocketBufferSize` / `listenSocketBufferSize` 2 MiB
-- iter3/4 `preallocated_number=32` / `dynamic=false`
-- iter5 `maxMessageSize=280000` / `segment_size=2097152` / `useBuiltinTransports=true`
-- Exclusive / oversized SHM (still discarded)
-- Chain B Cyclone URI / iceoryx
-- Cross-host UDP (still blocked; single VM)
-- 《3》90%/LLM scoring, 《4》Mac/preprod hero, 《5》Promptfoo, 《6》CVE audit
-
-## Remeasure command (same as Step A, Chain A only)
+## Remeasure (same as Step A)
 
 ```bash
 BENCH_DATE=2026-09-10-iter6-after \
@@ -55,6 +36,28 @@ BENCH_DATE=2026-09-10-iter6-after \
   ./scripts/bench/run_imu_hf.sh
 ```
 
-Like-to-like vs `docs/artifacts/bench/2026-09-10-iter6-imu-baseline/` Chain A only: size `64`, gap 5 ms, 400 samples, `uint8_multiarray`. Primary table: **same-host**. Same-process is an honesty check only. Deltas in [`delta.md`](delta.md). Do not put Chain A and Chain B in one table.
+XMLPARSER: pingpong stderr empty (Humble accepted `port_queue_capacity`).
 
-Spot-check (not a second treatment): same-host large-packet 1 MiB BestEffort/Reliable must stay 80/80 and within noise of iter5 if remasured. Document the tradeoff if not.
+## Result — not kept
+
+| case (same-host, 64 B / 200 Hz) | baseline | after (queue 64) |
+|---------------------------------|----------|------------------|
+| BestEffort p50 | 964.82 µs | 998.78 µs (**+3.52%**) |
+| BestEffort p99 | 1271.9 µs | 1272.2 µs (+0.03%) |
+| BestEffort max | 1360 µs | **2729 µs** (worse tail) |
+| Reliable p50 | 948.04 µs | 947.46 µs (−0.06%) |
+| loss | 0/400 | 0/400 |
+
+same-process honesty moved +1.5–3.8% p50 (do not tune). The booked same-host BestEffort p50 did **not** improve. A 64 B one-in-flight copy already uses `alloc_buffer(total_bytes)`; shrinking the port ring does not cut the Python/rclpy IPC tax.
+
+**Reverted.** Landed XML has no `port_queue_capacity` override (Humble default 512). iter5 mid-size SHM + sockets + send_buffers stay. 1 MiB / mid-size gains are **not** erased (no landed XML change vs iter5). Exclusive / oversized SHM stays discarded.
+
+This does **not** prove a Feishu / real-robot / cross-host root cause.
+
+## What was NOT changed (landed tree)
+
+- DimOS `ddspubsub` / `rospubsub` / ping-pong QoS, sizes, gap, sample counts
+- `config/env/chain_a.sh`
+- No `RMW_FASTRTPS_USE_QOS_FROM_XML`
+- iter2 sockets, iter3/4 send_buffers, iter5 `shm_midsize` 280000 / 2 MiB
+- Chain B; cross-host UDP; 《3》《4》《5》《6》
