@@ -12,7 +12,7 @@
 
 ## 整文件 / 整目录拷贝（真实 DimOS 源码）
 
-- `docker/ros/`（`Dockerfile`、`install-nix.sh`）
+- `docker/ros/`（历史路径；`install-nix.sh` 仍是 DimOS 拷贝。`Dockerfile` 现为兼容包装，安装语义见仓库根 [`docker/ros/`](../docker/ros/)，包列表未改）
 - `dimos/protocol/pubsub/impl/ddspubsub.py`
 - `dimos/protocol/pubsub/impl/rospubsub.py`
 - `dimos/protocol/pubsub/impl/rospubsub_conversion.py`

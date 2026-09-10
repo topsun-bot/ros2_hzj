@@ -1,0 +1,57 @@
+# R0 冻结 topic / QoS 常量（R4）。
+# 与 dimos_bridge/dimos/protocol/dds_topics.py 对齐。
+# 只是契约表，尚未接到 publisher。不要把本文件当运行时配置加载器（除非自己写）。
+#
+# 来源：docs/architecture/ros2-dds-r0-interface-freeze.md §2
+# QoS 是链 A 导航 Fast-DDS 契约，不是 DimosROS/RawROS 库默认（RELIABLE/KEEP_LAST/VOLATILE/depth=5000）。
+
+discovery:
+  chain_a_ros_domain_id: 42
+  chain_b_cyclone_domain_id: 0
+
+nav_path:
+  - id: foxglove_teleop_to_cmd_vel
+    topic: /foxglove_teleop
+    maps_to: /cmd_vel
+    type: geometry_msgs/Twist
+    dest_type: geometry_msgs/TwistStamped
+    qos:
+      reliability: BEST_EFFORT
+      durability: VOLATILE
+      history: KEEP_LAST
+      depth: 1
+  - id: goal_pose
+    topic: /goal_pose
+    type: geometry_msgs/PoseStamped
+    qos:
+      reliability: RELIABLE
+      durability: VOLATILE
+      history: KEEP_LAST
+      depth: 5
+  - id: way_point
+    topic: /way_point
+    type: geometry_msgs/PointStamped
+    qos:
+      reliability: RELIABLE
+      durability: VOLATILE
+      history: KEEP_LAST
+      depth: 5
+  - id: joy
+    topic: /joy
+    type: sensor_msgs/Joy
+    qos: null  # 冻结表未规定 QoS
+
+go2_ros_bridge:
+  # dimos/robot/unitree/go2/blueprints/smart/unitree_go2_ros.py
+  - stream: lidar
+    topic: lidar
+    type: sensor_msgs/PointCloud2
+  - stream: global_map
+    topic: global_map
+    type: sensor_msgs/PointCloud2
+  - stream: odom
+    topic: odom
+    type: geometry_msgs/PoseStamped
+  - stream: color_image
+    topic: color_image
+    type: sensor_msgs/Image

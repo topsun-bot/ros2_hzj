@@ -2,7 +2,7 @@
 
 > **Repo note.** This page is R0 reference copied from [`topsun-bot/topsun_dimos`](https://github.com/topsun-bot/topsun_dimos) (PR [#122](https://github.com/topsun-bot/topsun_dimos/pull/122)). The `.[dds]` extra, Nix recipe, and `uv` commands below belong to **DimOS** (Chain B / Cyclone).
 >
-> **R1.** `ros2_hzj` now vendors Chain A public trees under [`vendor/`](../../../vendor/) (`rmw`, `rmw_implementation`, `rmw_fastrtps`, `Fast-DDS`). CycloneDDS / `rmw_cyclonedds` are **not** vendored this round: treat them as a system / Unitree-side dependency. See the [R0 interface freeze](../../architecture/ros2-dds-r0-interface-freeze.md) for the dual-chain contract.
+> **R2.** `ros2_hzj` vendors **both** chains as plain copies under [`vendor/`](../../../vendor/): Fast-DDS (`rmw`, `rmw_implementation`, `rmw_fastrtps`, `Fast-DDS`) and Cyclone (`rmw_cyclonedds`, `CycloneDDS`). SHA 见 [`vendor/VERSIONS.md`](../../../vendor/VERSIONS.md)。CI **不**编译这些树。运行 Python `cyclonedds` 仍要本机 C 库（Nix / apt），与下面安装步骤相同。双链契约见 [R0 interface freeze](../../architecture/ros2-dds-r0-interface-freeze.md)。评测怎么跑见 [benchmark-dds.md](../benchmark-dds.md)（无伪造分数）。
 
 The `dds` extra (in `topsun_dimos`) provides DDS (Data Distribution Service) transport support via [Eclipse Cyclone DDS](https://cyclonedds.io/docs/cyclonedds-python/latest/). The Python package builds C extensions against the CycloneDDS C library, so the C library must be installed before the Python package.
 
