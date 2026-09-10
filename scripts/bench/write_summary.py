@@ -54,9 +54,18 @@ def main() -> int:
         f"- **Domain / RMW:** domain_id=`{data.get('domain_id', '')}` "
         f"RMW=`{data.get('rmw') or '(n/a)'}` ROS_DOMAIN_ID=`{data.get('ros_domain_id') or '(n/a)'}`",
         f"- **CYCLONEDDS_URI / iceoryx:** `{data.get('cyclonedds_uri') or '(unset)'}` / `{data.get('iceoryx', '')}`",
+        f"- **Payload sizes (bytes):** `{data.get('payload_sizes_bytes') or 'see cases'}`",
+        f"- **Inter-message gap:** `{data.get('inter_message_gap_ms', 0)}` ms"
+        + (
+            f" (target `{data.get('target_publish_hz')}` Hz)"
+            if data.get("target_publish_hz")
+            else " (closed-loop only)"
+        ),
+        f"- **Chain A ros_msg:** `{data.get('ros_msg') or '(n/a)'}`",
         "",
         "数字是 **ping-pong RTT**（本仓 `scripts/bench/pingpong.py` 里计时），"
-        "不是中间件根因，也不是和另一条链可比的对照表。",
+        "不是中间件根因，也不是和另一条链可比的对照表。"
+        " **不是** 飞书现场 / 实机 / 跨机根因证明。",
         "",
     ]
     if data.get("errors"):
@@ -69,20 +78,22 @@ def main() -> int:
     lines += [
         "## p50 / p95 / p99（微秒，RTT）",
         "",
-        "| case | msg size | samples | timeouts | p50 (µs) | p95 (µs) | p99 (µs) | min | max |",
-        "|------|----------|---------|----------|----------|----------|----------|-----|-----|",
+        "| case | payload (B) | gap (ms) | samples | timeouts | p50 (µs) | p95 (µs) | p99 (µs) | min | max |",
+        "|------|-------------|----------|---------|----------|----------|----------|----------|-----|-----|",
     ]
     for case in data.get("cases", []):
         if "error" in case:
             lines.append(
-                f"| `{case.get('name')}` | {case.get('msg_size_bytes', '')} B | "
+                f"| `{case.get('name')}` | {case.get('payload_len_bytes', case.get('msg_size_bytes', ''))} B | "
+                f"{case.get('inter_message_gap_ms', '')} | "
                 f"— | — | — | — | — | error | `{case['error']}` |"
             )
             continue
         lines.append(
-            "| `{name}` | {sz} B | {n} | {to} | {p50} | {p95} | {p99} | {mn} | {mx} |".format(
+            "| `{name}` | {sz} B | {gap} | {n} | {to} | {p50} | {p95} | {p99} | {mn} | {mx} |".format(
                 name=case.get("name", ""),
-                sz=case.get("msg_size_bytes", ""),
+                sz=case.get("payload_len_bytes", case.get("msg_size_bytes", "")),
+                gap=case.get("inter_message_gap_ms", data.get("inter_message_gap_ms", "")),
                 n=case.get("recorded_samples", 0),
                 to=case.get("timeouts", 0),
                 p50=_fmt(case.get("p50_us")),

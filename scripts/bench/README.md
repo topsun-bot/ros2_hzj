@@ -75,3 +75,29 @@ Each successful (or blocked) run writes:
   whether DimOS came from vendored `dimos_bridge` or a temporary checkout
 
 See [docs/usage/benchmark-dds.md](../../docs/usage/benchmark-dds.md).
+
+## Large-packet cases (iter2)
+
+Default sizes stay `64,1024,16384,65536`. Feishu / lidar-ish cases are **opt-in**:
+
+```bash
+# Exact payload lengths (bytes): 102400 (100 KiB), 262144 (256 KiB), 1048576 (1 MiB)
+# Inter-message gap: 100 ms (target 10 Hz). If RTT > 100 ms, effective rate is 1/RTT.
+# Chain A uses std_msgs/UInt8MultiArray (contiguous uint8). Humble ByteMultiArray
+# (one Python bytes per octet) is not viable at ≥100KiB.
+BENCH_DATE=2026-09-10-iter2-large-baseline \
+  LARGE_PACKET_CHAINS='A B' \
+  ./scripts/bench/run_large_packet.sh
+```
+
+That wrapper sets `BENCH_SIZES`, `BENCH_INTERVAL_MS=100`, `BENCH_SAMPLES=80`,
+`BENCH_WARMUP=10`, `BENCH_TIMEOUT=8`, `BENCH_ROS_MSG=uint8_multiarray`,
+`BENCH_SKIP_PYTEST=1`. Chain A runs in `osrf/ros:humble-desktop` unless
+`CHAIN_A_IMAGE` is set. Chain B `same-host` is localhost UDP (no RouDi), **not** SHM.
+
+Documented in each `raw.json` / `summary.md`: exact payload length, gap/Hz,
+topology label, chain. **Never** one mixed A-vs-B table. Cross-host UDP stays
+blocked on a single VM. These numbers are **not** real-robot or Feishu-field proof.
+
+`pingpong.py` flags: `--sizes`, `--interval-ms`, `--timeout`, `--warmup`, `--samples`,
+`--ros-msg uint8_multiarray`.

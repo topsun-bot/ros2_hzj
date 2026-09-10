@@ -102,6 +102,45 @@ def _make_probe_type() -> type:
     return BenchProbe
 
 
+def _payload_pattern(msg_size: int) -> list[int]:
+    """Reuse across samples so 100KiB–1MiB cases do not rebuild every ping."""
+    if msg_size <= 0:
+        return []
+    pat = list(range(256))
+    reps, rem = divmod(msg_size, 256)
+    return pat * reps + pat[:rem]
+
+
+def _wait_interval(last_pub_ns: int | None, interval_ms: float) -> None:
+    """Sleep so successive publishes honor a minimum inter-message gap."""
+    if last_pub_ns is None or interval_ms <= 0:
+        return
+    elapsed_ms = (time.perf_counter_ns() - last_pub_ns) / 1e6
+    remain = interval_ms - elapsed_ms
+    if remain > 0:
+        time.sleep(remain / 1000.0)
+
+
+def _case_pacing(interval_ms: float) -> dict[str, Any]:
+    if interval_ms > 0:
+        hz = 1000.0 / interval_ms
+        return {
+            "inter_message_gap_ms": interval_ms,
+            "target_publish_hz": hz,
+            "pacing": (
+                f"minimum inter-publish gap {interval_ms:g} ms "
+                f"(target {hz:.4g} Hz, lidar-ish); "
+                "if RTT exceeds the gap, the next ping waits for pong first "
+                "(closed-loop; effective rate is 1/RTT)"
+            ),
+        }
+    return {
+        "inter_message_gap_ms": 0.0,
+        "target_publish_hz": None,
+        "pacing": "closed-loop ping-pong (next publish after pong; no extra gap)",
+    }
+
+
 def run_chain_b_same_process(
     *,
     qos_kind: str,
@@ -111,6 +150,7 @@ def run_chain_b_same_process(
     timeout_s: float,
     topic_prefix: str,
     domain_id: int,
+    interval_ms: float = 0.0,
 ) -> dict[str, Any]:
     from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
 
@@ -142,16 +182,19 @@ def run_chain_b_same_process(
     bus.subscribe(pong_topic, on_pong)
     time.sleep(0.15)
 
-    payload = list(bytes(i % 256 for i in range(msg_size)))
+    payload = _payload_pattern(msg_size)
     rtt_ns: list[int] = []
     timeouts = 0
     total = warmup + samples
+    last_pub_ns: int | None = None
     for i in range(total):
+        _wait_interval(last_pub_ns, interval_ms)
         ev.clear()
         with lock:
             expect_seq = i
             got.pop(i, None)
         t0 = time.perf_counter_ns()
+        last_pub_ns = t0
         bus.publish(ping_topic, Probe(seq=i, t0_ns=t0, payload=payload))
         if not ev.wait(timeout=timeout_s):
             timeouts += 1
@@ -171,6 +214,8 @@ def run_chain_b_same_process(
         "impl": "dimos.protocol.pubsub.impl.ddspubsub.DDS",
         "qos": qos_kind,
         "msg_size_bytes": msg_size,
+        "payload_len_bytes": msg_size,
+        "payload_field": "BenchProbe.payload (sequence[uint8]); plus seq uint32 + t0_ns uint64",
         "warmup": warmup,
         "requested_samples": samples,
         "recorded_samples": len(rtt_ns),
@@ -178,6 +223,7 @@ def run_chain_b_same_process(
         "timeout_s": timeout_s,
         "metric": "rtt",
         "units": "microseconds",
+        **_case_pacing(interval_ms),
         **stats,
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
@@ -193,6 +239,7 @@ def run_chain_b_same_host(
     topic_prefix: str,
     domain_id: int,
     dimos_root: str,
+    interval_ms: float = 0.0,
 ) -> dict[str, Any]:
     """Two OS processes; still one host. Responder is this file with --role responder."""
     env = os.environ.copy()
@@ -233,8 +280,12 @@ def run_chain_b_same_host(
             timeout_s=timeout_s,
             topic_prefix=topic_prefix,
             domain_id=domain_id,
+            interval_ms=interval_ms,
         )
         result["responder_pid"] = resp.pid
+        result["transport_label"] = (
+            "same-host two processes; no RouDi ⇒ localhost UDP, not SHM"
+        )
         return result
     finally:
         resp.terminate()
@@ -253,6 +304,7 @@ def _chain_b_client_only(
     timeout_s: float,
     topic_prefix: str,
     domain_id: int,
+    interval_ms: float = 0.0,
 ) -> dict[str, Any]:
     from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
 
@@ -279,16 +331,19 @@ def _chain_b_client_only(
     bus.subscribe(pong_topic, on_pong)
     time.sleep(0.5)
 
-    payload = list(bytes(i % 256 for i in range(msg_size)))
+    payload = _payload_pattern(msg_size)
     rtt_ns: list[int] = []
     timeouts = 0
     total = warmup + samples
+    last_pub_ns: int | None = None
     for i in range(total):
+        _wait_interval(last_pub_ns, interval_ms)
         ev.clear()
         with lock:
             expect_seq = i
             got.pop(i, None)
         t0 = time.perf_counter_ns()
+        last_pub_ns = t0
         bus.publish(ping_topic, Probe(seq=i, t0_ns=t0, payload=payload))
         if not ev.wait(timeout=timeout_s):
             timeouts += 1
@@ -308,6 +363,8 @@ def _chain_b_client_only(
         "impl": "dimos.protocol.pubsub.impl.ddspubsub.DDS",
         "qos": qos_kind,
         "msg_size_bytes": msg_size,
+        "payload_len_bytes": msg_size,
+        "payload_field": "BenchProbe.payload (sequence[uint8]); plus seq uint32 + t0_ns uint64",
         "warmup": warmup,
         "requested_samples": samples,
         "recorded_samples": len(rtt_ns),
@@ -315,6 +372,7 @@ def _chain_b_client_only(
         "timeout_s": timeout_s,
         "metric": "rtt",
         "units": "microseconds",
+        **_case_pacing(interval_ms),
         **stats,
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
@@ -357,6 +415,52 @@ def _blob_from_byte_multiarray(data: Any) -> bytes:
     if isinstance(first, (bytes, bytearray)):
         return b"".join(data)
     return bytes(data)
+
+
+def _chain_a_msg_cls(ros_msg: str) -> Any:
+    if ros_msg == "uint8_multiarray":
+        from std_msgs.msg import UInt8MultiArray
+
+        return UInt8MultiArray
+    from std_msgs.msg import ByteMultiArray
+
+    return ByteMultiArray
+
+
+def _chain_a_pack(ros_msg: str, blob: bytes) -> Any:
+    """Build a ROS 2 multiarray. uint8 path is required at ≥100KiB (lidar-ish).
+
+    Humble ByteMultiArray needs one Python ``bytes`` per octet and OOMs / dominates
+    RTT at Feishu / lidar sizes. UInt8MultiArray takes a contiguous ``array('B')``.
+    """
+    if ros_msg == "uint8_multiarray":
+        import array
+
+        from std_msgs.msg import UInt8MultiArray
+
+        msg = UInt8MultiArray()
+        msg.data = array.array("B", blob)
+        return msg
+    from std_msgs.msg import ByteMultiArray
+
+    msg = ByteMultiArray()
+    msg.data = _byte_multiarray_data(blob)
+    return msg
+
+
+def _chain_a_unpack(ros_msg: str, msg: Any) -> bytes:
+    if ros_msg == "uint8_multiarray":
+        return bytes(msg.data)
+    return _blob_from_byte_multiarray(msg.data)
+
+
+def _chain_a_impl_label(ros_msg: str) -> str:
+    if ros_msg == "uint8_multiarray":
+        return (
+            "rclpy UInt8MultiArray ping-pong (contiguous uint8; "
+            "lidar/PointCloud2-like; not DimosROS library QoS rewrite)"
+        )
+    return "rclpy ByteMultiArray ping-pong (not DimosROS library QoS rewrite)"
 
 
 def _rclpy_ensure_init() -> None:
@@ -408,13 +512,22 @@ def _chain_a_case(
     rtt_ns: list[int],
     timeouts: int,
     extra: dict[str, Any] | None = None,
+    interval_ms: float = 0.0,
+    ros_msg: str = "byte_multiarray",
 ) -> dict[str, Any]:
     stats = percentiles_us(rtt_ns)
     payload = {
         "name": f"ros_{qos_kind}",
-        "impl": "rclpy ByteMultiArray ping-pong (not DimosROS library QoS rewrite)",
+        "impl": _chain_a_impl_label(ros_msg),
+        "ros_msg": ros_msg,
         "qos": qos_kind,
         "msg_size_bytes": msg_size,
+        "payload_len_bytes": msg_size,
+        "payload_field": (
+            "UInt8MultiArray.data (uint8[]) including 12-byte seq+t0 header"
+            if ros_msg == "uint8_multiarray"
+            else "ByteMultiArray.data (byte[]) including 12-byte seq+t0 header"
+        ),
         "warmup": warmup,
         "requested_samples": samples,
         "recorded_samples": len(rtt_ns),
@@ -422,6 +535,7 @@ def _chain_a_case(
         "timeout_s": timeout_s,
         "metric": "rtt",
         "units": "microseconds",
+        **_case_pacing(interval_ms),
         **stats,
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
@@ -438,10 +552,12 @@ def run_chain_a_same_process(
     samples: int,
     timeout_s: float,
     topic_prefix: str,
+    interval_ms: float = 0.0,
+    ros_msg: str = "byte_multiarray",
 ) -> dict[str, Any]:
     import rclpy
-    from std_msgs.msg import ByteMultiArray
 
+    Msg = _chain_a_msg_cls(ros_msg)
     qos = _chain_a_qos(qos_kind)
     _rclpy_ensure_init()
     node = None
@@ -457,15 +573,15 @@ def run_chain_a_same_process(
         ev = threading.Event()
         expect_seq = -1
 
-        pub_pong = node.create_publisher(ByteMultiArray, pong_name, qos)
-        pub_ping = node.create_publisher(ByteMultiArray, ping_name, qos)
+        pub_pong = node.create_publisher(Msg, pong_name, qos)
+        pub_ping = node.create_publisher(Msg, ping_name, qos)
 
-        def on_ping(msg: ByteMultiArray) -> None:
+        def on_ping(msg: Any) -> None:
             pub_pong.publish(msg)
 
-        def on_pong(msg: ByteMultiArray) -> None:
+        def on_pong(msg: Any) -> None:
             now = time.perf_counter_ns()
-            blob = _blob_from_byte_multiarray(msg.data)
+            blob = _chain_a_unpack(ros_msg, msg)
             if len(blob) < 12:
                 return
             seq, _t0 = struct.unpack_from("<IQ", blob, 0)
@@ -474,8 +590,8 @@ def run_chain_a_same_process(
                     got[seq] = now
                     ev.set()
 
-        node.create_subscription(ByteMultiArray, ping_name, on_ping, qos)
-        node.create_subscription(ByteMultiArray, pong_name, on_pong, qos)
+        node.create_subscription(Msg, ping_name, on_ping, qos)
+        node.create_subscription(Msg, pong_name, on_pong, qos)
 
         def spin() -> None:
             while not spin_stop.is_set() and rclpy.ok():
@@ -489,16 +605,17 @@ def run_chain_a_same_process(
         rtt_ns: list[int] = []
         timeouts = 0
         total = warmup + samples
+        last_pub_ns: int | None = None
         for i in range(total):
+            _wait_interval(last_pub_ns, interval_ms)
             ev.clear()
             with lock:
                 expect_seq = i
                 got.pop(i, None)
             t0 = time.perf_counter_ns()
+            last_pub_ns = t0
             header = struct.pack("<IQ", i, t0)
-            msg = ByteMultiArray()
-            msg.data = _byte_multiarray_data(header + pad)
-            pub_ping.publish(msg)
+            pub_ping.publish(_chain_a_pack(ros_msg, header + pad))
             if not ev.wait(timeout=timeout_s):
                 timeouts += 1
                 continue
@@ -518,6 +635,8 @@ def run_chain_a_same_process(
             timeout_s=timeout_s,
             rtt_ns=rtt_ns,
             timeouts=timeouts,
+            interval_ms=interval_ms,
+            ros_msg=ros_msg,
         )
     finally:
         spin_stop.set()
@@ -528,22 +647,24 @@ def run_chain_a_same_process(
         _rclpy_ensure_shutdown()
 
 
-def responder_chain_a(*, qos_kind: str, topic_prefix: str) -> None:
+def responder_chain_a(
+    *, qos_kind: str, topic_prefix: str, ros_msg: str = "byte_multiarray"
+) -> None:
     """Echo process for Chain A same-host (two OS processes, one machine)."""
     import rclpy
-    from std_msgs.msg import ByteMultiArray
 
+    Msg = _chain_a_msg_cls(ros_msg)
     qos = _chain_a_qos(qos_kind)
     _rclpy_ensure_init()
     node = rclpy.create_node(f"hzj_bench_a_responder_{os.getpid()}")
     ping_name = f"{topic_prefix}/ping"
     pong_name = f"{topic_prefix}/pong"
-    pub_pong = node.create_publisher(ByteMultiArray, pong_name, qos)
+    pub_pong = node.create_publisher(Msg, pong_name, qos)
 
-    def on_ping(msg: ByteMultiArray) -> None:
+    def on_ping(msg: Any) -> None:
         pub_pong.publish(msg)
 
-    node.create_subscription(ByteMultiArray, ping_name, on_ping, qos)
+    node.create_subscription(Msg, ping_name, on_ping, qos)
     print("RESPONDER_READY", flush=True)
     try:
         while rclpy.ok():
@@ -563,10 +684,12 @@ def _chain_a_client_only(
     samples: int,
     timeout_s: float,
     topic_prefix: str,
+    interval_ms: float = 0.0,
+    ros_msg: str = "byte_multiarray",
 ) -> dict[str, Any]:
     import rclpy
-    from std_msgs.msg import ByteMultiArray
 
+    Msg = _chain_a_msg_cls(ros_msg)
     qos = _chain_a_qos(qos_kind)
     _rclpy_ensure_init()
     node = None
@@ -582,11 +705,11 @@ def _chain_a_client_only(
         ev = threading.Event()
         expect_seq = -1
 
-        pub_ping = node.create_publisher(ByteMultiArray, ping_name, qos)
+        pub_ping = node.create_publisher(Msg, ping_name, qos)
 
-        def on_pong(msg: ByteMultiArray) -> None:
+        def on_pong(msg: Any) -> None:
             now = time.perf_counter_ns()
-            blob = _blob_from_byte_multiarray(msg.data)
+            blob = _chain_a_unpack(ros_msg, msg)
             if len(blob) < 12:
                 return
             seq, _t0 = struct.unpack_from("<IQ", blob, 0)
@@ -595,7 +718,7 @@ def _chain_a_client_only(
                     got[seq] = now
                     ev.set()
 
-        node.create_subscription(ByteMultiArray, pong_name, on_pong, qos)
+        node.create_subscription(Msg, pong_name, on_pong, qos)
 
         def spin() -> None:
             while not spin_stop.is_set() and rclpy.ok():
@@ -610,16 +733,17 @@ def _chain_a_client_only(
         rtt_ns: list[int] = []
         timeouts = 0
         total = warmup + samples
+        last_pub_ns: int | None = None
         for i in range(total):
+            _wait_interval(last_pub_ns, interval_ms)
             ev.clear()
             with lock:
                 expect_seq = i
                 got.pop(i, None)
             t0 = time.perf_counter_ns()
+            last_pub_ns = t0
             header = struct.pack("<IQ", i, t0)
-            msg = ByteMultiArray()
-            msg.data = _byte_multiarray_data(header + pad)
-            pub_ping.publish(msg)
+            pub_ping.publish(_chain_a_pack(ros_msg, header + pad))
             if not ev.wait(timeout=timeout_s):
                 timeouts += 1
                 continue
@@ -639,6 +763,8 @@ def _chain_a_client_only(
             timeout_s=timeout_s,
             rtt_ns=rtt_ns,
             timeouts=timeouts,
+            interval_ms=interval_ms,
+            ros_msg=ros_msg,
         )
     finally:
         spin_stop.set()
@@ -657,6 +783,8 @@ def run_chain_a_same_host(
     samples: int,
     timeout_s: float,
     topic_prefix: str,
+    interval_ms: float = 0.0,
+    ros_msg: str = "byte_multiarray",
 ) -> dict[str, Any]:
     """Two OS processes; still one host. Responder is this file with --role responder."""
     env = os.environ.copy()
@@ -674,6 +802,8 @@ def run_chain_a_same_host(
             qos_kind,
             "--topic-prefix",
             topic_prefix,
+            "--ros-msg",
+            ros_msg,
         ],
         env=env,
         stdout=subprocess.PIPE,
@@ -692,6 +822,8 @@ def run_chain_a_same_host(
             samples=samples,
             timeout_s=timeout_s,
             topic_prefix=topic_prefix,
+            interval_ms=interval_ms,
+            ros_msg=ros_msg,
         )
         result["responder_pid"] = resp.pid
         result["transport_label"] = (
@@ -733,6 +865,18 @@ def main() -> int:
     p.add_argument("--warmup", type=int, default=50)
     p.add_argument("--samples", type=int, default=400)
     p.add_argument("--timeout", type=float, default=1.0)
+    p.add_argument(
+        "--interval-ms",
+        type=float,
+        default=0.0,
+        help="minimum inter-publish gap in milliseconds (0 = closed-loop only)",
+    )
+    p.add_argument(
+        "--ros-msg",
+        choices=("byte_multiarray", "uint8_multiarray"),
+        default="byte_multiarray",
+        help="Chain A payload type. Use uint8_multiarray for ≥100KiB (lidar-ish).",
+    )
     p.add_argument("--domain-id", type=int, default=0)
     p.add_argument("--topic-prefix", default="")
     p.add_argument("--dimos-root", default=os.environ.get("TOPSUN_DIMOS", ""))
@@ -776,7 +920,11 @@ def main() -> int:
             )
             return 0
         if args.chain == "A":
-            responder_chain_a(qos_kind=qos_list[0], topic_prefix=prefix)
+            responder_chain_a(
+                qos_kind=qos_list[0],
+                topic_prefix=prefix,
+                ros_msg=args.ros_msg,
+            )
             return 0
         print(f"responder is not implemented for chain={args.chain}", file=sys.stderr)
         return 2
@@ -797,6 +945,7 @@ def main() -> int:
                             timeout_s=args.timeout,
                             topic_prefix=case_prefix,
                             domain_id=args.domain_id,
+                            interval_ms=args.interval_ms,
                         )
                     )
                 elif args.chain == "B" and args.topology == "same-host":
@@ -812,6 +961,7 @@ def main() -> int:
                             topic_prefix=case_prefix,
                             domain_id=args.domain_id,
                             dimos_root=args.dimos_root,
+                            interval_ms=args.interval_ms,
                         )
                     )
                 elif args.chain == "A" and args.topology == "same-process":
@@ -823,6 +973,8 @@ def main() -> int:
                             samples=args.samples,
                             timeout_s=args.timeout,
                             topic_prefix=case_prefix,
+                            interval_ms=args.interval_ms,
+                            ros_msg=args.ros_msg,
                         )
                     )
                 elif args.chain == "A" and args.topology == "same-host":
@@ -834,6 +986,8 @@ def main() -> int:
                             samples=args.samples,
                             timeout_s=args.timeout,
                             topic_prefix=case_prefix,
+                            interval_ms=args.interval_ms,
+                            ros_msg=args.ros_msg,
                         )
                     )
                 else:
@@ -864,9 +1018,16 @@ def main() -> int:
         "iceoryx": args.iceoryx,
         "metric": "round-trip time (ping-pong in scripts/bench/pingpong.py)",
         "units": "microseconds",
+        "payload_sizes_bytes": sizes,
+        "inter_message_gap_ms": args.interval_ms,
+        "target_publish_hz": (
+            (1000.0 / args.interval_ms) if args.interval_ms > 0 else None
+        ),
+        "ros_msg": args.ros_msg if args.chain == "A" else None,
         "note": (
             "Per-message RTT from a thin wrapper. Not a root-cause claim. "
             "Do not compare Chain A and Chain B in one table. "
+            "Not real-robot, Feishu-field, or cross-host proof. "
             "Upstream pytest -m tool -k dds reports throughput / drain time, not these percentiles."
         ),
         "errors": errors,

@@ -21,12 +21,18 @@
   <topic><historyQos>，不能写在 <qos><history>。
   2026-09-10 基线日志：Invalid element ... Name: history → loadXMLFile 失败。
   iter1 只改这个 schema 落点；kind/depth 与冻结表相同。
+
+  iter2 (one knob): default participant UDP socket buffers 2 MiB.
+  Linux default ~212 KiB is smaller than a 1 MiB sample; ping-pong is
+  bidirectional so send and listen are the same knob. Not a second change.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <participant profile_name="ros2_hzj_chain_a_contract_seed" is_default_profile="true">
         <domainId>42</domainId>
         <rtps>
             <name>ros2_hzj_chain_a_contract_seed</name>
+            <sendSocketBufferSize>2097152</sendSocketBufferSize>
+            <listenSocketBufferSize>2097152</listenSocketBufferSize>
         </rtps>
     </participant>
 

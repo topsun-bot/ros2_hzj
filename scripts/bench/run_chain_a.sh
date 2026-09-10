@@ -136,33 +136,42 @@ PY
 fi
 
 # ROS is present — try dimos_bridge first, then checkout for DimosROS Image types.
-RESOLVE_JSON="${OUT_DIR}/dimos_resolve.json"
-python3 "${SCRIPT_DIR}/resolve_dimos.py" --json >"${RESOLVE_JSON}" || true
-DIMOS_ROOT="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("root",""))' "${RESOLVE_JSON}")"
-DIMOS_SRC="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("source","unknown"))' "${RESOLVE_JSON}")"
-DIMOS_SHA="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("git_sha") or "")' "${RESOLVE_JSON}")"
+DIMOS_ROOT=""
+DIMOS_SRC="not used (large-packet ping-pong / pytest skipped or ROS-only)"
+DIMOS_SHA=""
+if [[ "${BENCH_SKIP_PYTEST:-}" == "1" ]]; then
+  PYTEST_RC=0
+  printf '%s\n' "BENCH_SKIP_PYTEST=1 — official ROS pytest not run (large-packet ping-pong only)." \
+    >"${OUT_DIR}/pytest_ros_stdout.txt"
+else
+  RESOLVE_JSON="${OUT_DIR}/dimos_resolve.json"
+  python3 "${SCRIPT_DIR}/resolve_dimos.py" --json >"${RESOLVE_JSON}" || true
+  DIMOS_ROOT="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("root",""))' "${RESOLVE_JSON}")"
+  DIMOS_SRC="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("source","unknown"))' "${RESOLVE_JSON}")"
+  DIMOS_SHA="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("git_sha") or "")' "${RESOLVE_JSON}")"
 
-BENCH_ROOT="${DIMOS_ROOT:-${ROS2_HZJ_ROOT}/dimos_bridge}"
-BENCH_FILE="dimos/protocol/pubsub/benchmark/test_benchmark.py"
-if [[ "${BENCH_ROOT}" == "${ROS2_HZJ_ROOT}/dimos_bridge" ]]; then
-  BENCH_FILE="dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py"
-  BENCH_ROOT="${ROS2_HZJ_ROOT}"
+  BENCH_ROOT="${DIMOS_ROOT:-${ROS2_HZJ_ROOT}/dimos_bridge}"
+  BENCH_FILE="dimos/protocol/pubsub/benchmark/test_benchmark.py"
+  if [[ "${BENCH_ROOT}" == "${ROS2_HZJ_ROOT}/dimos_bridge" ]]; then
+    BENCH_FILE="dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py"
+    BENCH_ROOT="${ROS2_HZJ_ROOT}"
+  fi
+
+  PYTEST_LOG="${OUT_DIR}/pytest_ros_stdout.txt"
+  set +e
+  (
+    cd "${BENCH_ROOT}"
+    export PYTHONPATH="${DIMOS_ROOT:-${ROS2_HZJ_ROOT}/dimos_bridge}${PYTHONPATH:+:$PYTHONPATH}"
+    python3 -m pytest \
+      "${BENCH_FILE}" \
+      -o addopts= \
+      -m tool -k 'ros or RawROS or DimosROS' -v \
+      --tb=short \
+      --junitxml="${OUT_DIR}/pytest_ros_junit.xml"
+  ) >"${PYTEST_LOG}" 2>&1
+  PYTEST_RC=$?
+  set -e
 fi
-
-PYTEST_LOG="${OUT_DIR}/pytest_ros_stdout.txt"
-set +e
-(
-  cd "${BENCH_ROOT}"
-  export PYTHONPATH="${DIMOS_ROOT:-${ROS2_HZJ_ROOT}/dimos_bridge}${PYTHONPATH:+:$PYTHONPATH}"
-  python3 -m pytest \
-    "${BENCH_FILE}" \
-    -o addopts= \
-    -m tool -k 'ros or RawROS or DimosROS' -v \
-    --tb=short \
-    --junitxml="${OUT_DIR}/pytest_ros_junit.xml"
-) >"${PYTEST_LOG}" 2>&1
-PYTEST_RC=$?
-set -e
 
 set +e
 python3 "${SCRIPT_DIR}/pingpong.py" \
@@ -171,6 +180,10 @@ python3 "${SCRIPT_DIR}/pingpong.py" \
   --out "${OUT_DIR}/raw.json" \
   ${BENCH_SIZES:+--sizes "${BENCH_SIZES}"} \
   ${BENCH_SAMPLES:+--samples "${BENCH_SAMPLES}"} \
+  ${BENCH_WARMUP:+--warmup "${BENCH_WARMUP}"} \
+  ${BENCH_TIMEOUT:+--timeout "${BENCH_TIMEOUT}"} \
+  ${BENCH_INTERVAL_MS:+--interval-ms "${BENCH_INTERVAL_MS}"} \
+  ${BENCH_ROS_MSG:+--ros-msg "${BENCH_ROS_MSG}"} \
   >"${OUT_DIR}/pingpong_stdout.txt" 2>"${OUT_DIR}/pingpong_stderr.txt"
 PING_RC=$?
 set -e
@@ -194,7 +207,7 @@ python3 "${SCRIPT_DIR}/collect_env.py" \
   --rmw "${RMW_IMPLEMENTATION}" \
   --ros-domain-id "${ROS_DOMAIN_ID}" \
   --ros-distro "${ROS_DISTRO:-}" \
-  --notes "Sourced chain_a.sh (RMW=rmw_fastrtps_cpp, ROS_DOMAIN_ID=42). ROS setup=${ROS_SETUP}. pytest exit=${PYTEST_RC}. pingpong exit=${PING_RC}. Topology=${TOPOLOGY}. Fast-DDS transports are whatever the Humble rmw_fastrtps_cpp default plus config/fastdds.xml use — fastdds.xml does not force UDP-only or SHM-only; do not invent SHM. Do not compare with Chain B."
+  --notes "Sourced chain_a.sh (RMW=rmw_fastrtps_cpp, ROS_DOMAIN_ID=42). ROS setup=${ROS_SETUP}. pytest exit=${PYTEST_RC}. pingpong exit=${PING_RC}. Topology=${TOPOLOGY}. BENCH_SIZES=${BENCH_SIZES:-default}. BENCH_INTERVAL_MS=${BENCH_INTERVAL_MS:-0}. BENCH_ROS_MSG=${BENCH_ROS_MSG:-byte_multiarray}. Fast-DDS transports are whatever the Humble rmw_fastrtps_cpp default plus config/fastdds.xml use — fastdds.xml does not force UDP-only or SHM-only; do not invent SHM. Do not compare with Chain B. Not real-robot / Feishu-field / cross-host proof."
 
 python3 "${SCRIPT_DIR}/write_summary.py" \
   --raw "${OUT_DIR}/raw.json" \
