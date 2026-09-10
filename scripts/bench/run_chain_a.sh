@@ -54,8 +54,11 @@ ROS_SETUP=""
 for cand in /opt/ros/humble/setup.bash /opt/ros/jazzy/setup.bash /opt/ros/${ROS_DISTRO:-humble}/setup.bash; do
   if [[ -f "${cand}" ]]; then
     ROS_SETUP="${cand}"
+    # Humble setup.bash reads AMENT_TRACE_SETUP_FILES unset; nounset must be off.
+    set +u
     # shellcheck disable=SC1090
     source "${cand}"
+    set -u
     break
   fi
 done

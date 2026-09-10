@@ -39,7 +39,7 @@ Install Docker Engine, then from the repository root:
   docker run --rm --net=host \\
     -v "${ROS2_HZJ_ROOT}:/work" -w /work \\
     ros2_hzj/ros:humble \\
-    bash -lc 'source /opt/ros/humble/setup.bash
+    bash -lc 'set +u; source /opt/ros/humble/setup.bash; set -u
               source /work/config/env/chain_a.sh
               export PYTHONPATH=/work/dimos_bridge:\${PYTHONPATH:-}
               # Official ROS pytest filter (needs a DimOS tree with rclpy extras):
@@ -92,7 +92,10 @@ run_in_image() {
     "${IMAGE}" \
     bash -lc "
       set -euo pipefail
+      # Humble setup.bash reads AMENT_TRACE_SETUP_FILES unset; nounset must be off.
+      set +u
       source /opt/ros/humble/setup.bash
+      set -u
       source /work/config/env/chain_a.sh
       export PYTHONPATH=/work/dimos_bridge:\${PYTHONPATH:-}
       # pytest is not in the DimOS docker/ros package list; install only in this
