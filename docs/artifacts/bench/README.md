@@ -11,8 +11,8 @@ UTC 日期子目录各放一次基线。链 A 与链 B **分目录**；`same-pro
 | [`2026-09-10-iter3/`](2026-09-10-iter3/README.md) | iter3：只改默认 participant send-buffer 池（32 / dynamic）。重测链 A 大包同拓扑；[`delta.md`](2026-09-10-iter3/delta.md) 只对照 iter2-after 同链同尺寸。same-host 1 MiB 为主；same-process 只作诚实对照。链 B 未重跑。 |
 | [`2026-09-10-iter4/`](2026-09-10-iter4/README.md) | iter4：同一 send-buffer 池保持 32，`dynamic` 改为 false。重测链 A 大包同拓扑；[`delta.md`](2026-09-10-iter4/delta.md) 只对照 iter3 同链同尺寸（主表）；相对 iter2-after 的 mid-size 诚实对照写在 delta 里。same-host Reliable 100/256 KiB 为主；1 MiB 须留在 iter3 噪声内。链 B 未重跑。 |
 | [`2026-09-10-iter5/`](2026-09-10-iter5/README.md) | iter5：additive 中包 SHM（`maxMessageSize` 280000 / `segment_size` 2 MiB），builtin UDP+SHM 保留。重测链 A 大包同拓扑；[`delta.md`](2026-09-10-iter5/delta.md) 主对照 iter4；mid-size 另对照 iter2-after。same-host BestEffort 256 KiB 为主；1 MiB 未回吐。链 B 未重跑。 |
-| [`2026-09-10-iter6-imu-baseline/`](2026-09-10-iter6-imu-baseline/README.md) | iter6 Step A：高频小包 64 B / 5 ms（目标 200 Hz IMU-ish）。链 A `same-process` + `same-host` **分表**。无新 transport knob。**不是**飞书现场 / 实机 / 跨机证明。 |
-| [`2026-09-10-iter6-after/`](2026-09-10-iter6-after/README.md) | iter6 Step B：探测 `shm_midsize` `port_queue_capacity` 64。重测链 A IMU 同拓扑；[`delta.md`](2026-09-10-iter6-after/delta.md) 只对照 Step A。same-host BestEffort **未改善，未保留**。落地 XML 仍是 iter5 种子。链 B 未重跑。 |
+| [`2026-09-10-iter6-imu-baseline/`](2026-09-10-iter6-imu-baseline/README.md) | iter6 Step A：先钉 IMU **64 B / 200 Hz**（5 ms）。主指标 **jitter**（RTT p95/p99 + 到达间隔），不是 p50。链 A `same-process` + `same-host` **分表**。无新 transport knob。**不是**飞书现场 / 实机 / 跨机证明。 |
+| [`2026-09-10-iter6-after/`](2026-09-10-iter6-after/README.md) | iter6 Step B：探测 `shm_midsize` `port_queue_capacity` 64。重测链 A IMU 同拓扑；[`delta.md`](2026-09-10-iter6-after/delta.md) 只对照 Step A，**jitter 门**。same-host BestEffort p95/到达间隔 **变差，未保留**。1 MiB 赢面未擦。落地 XML 仍是 iter5 种子。链 B 未重跑。 |
 
 生成方式见 [`scripts/bench/README.md`](../../../scripts/bench/README.md) 与 [`docs/usage/benchmark-dds.md`](../../usage/benchmark-dds.md)。
 

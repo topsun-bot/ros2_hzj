@@ -1,7 +1,7 @@
 # Environment — A / `same-process`
 
 - **STATUS:** `ok`
-- **UTC:** `2026-09-10T21:56:21Z`
+- **UTC:** `2026-09-10T22:04:58Z`
 - **Topology (required label):** `same-process`
 - **Chain:** `A`
 - **hostname:** `cursor`
@@ -21,7 +21,7 @@
 - **numpy:** `1.21.5`
 - **pydantic:** `not-installed`
 - **rclpy:** `3.3.21`
-- **git SHA ros2_hzj:** `2d904a598c8a6f8a1a3fdbd19dc3d34bdf5fed41`
+- **git SHA ros2_hzj:** `2b8f66681d06f6a6dee5369688d181d641d2948d`
 - **DimOS deps source:** `not used (large-packet ping-pong / pytest skipped or ROS-only)`
 - **DimOS tree:** `(none)`
 - **DimOS git SHA:** `(n/a)`

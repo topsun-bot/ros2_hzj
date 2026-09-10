@@ -1,6 +1,6 @@
 # iter6 Step A — IMU-scale HF baseline notes
 
-**Step A only. No new transport / config knob.** `config/fastdds.xml` is the iter5-accepted seed (mid-size SHM + prior socket / send_buffers). This directory records a **new suite**, not a treatment.
+**Step A only. No new transport / config knob.** IMU **64 B / 200 Hz** is fixed before any knob. Primary success metric is **jitter** (RTT p95/p99 + inter-message interval variance), not p50/mean. `config/fastdds.xml` is the iter5-accepted seed (mid-size SHM + prior socket / send_buffers). This directory records a **new suite**, not a treatment.
 
 这些数字 **不是** 飞书现场、实机、或跨机根因证明。
 

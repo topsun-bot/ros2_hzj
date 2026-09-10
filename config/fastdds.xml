@@ -55,11 +55,12 @@
   segment). send_buffers 32 / dynamic=false stay.
 
   iter6 probe (not kept): shm_midsize port_queue_capacity 512 → 64.
-  IMU Step A same-host BestEffort 64 B / 200 Hz p50 965 → 999 µs
-  (+3.5%, noise / slight worse) and max 1360 → 2729 µs. Reliable
-  flat. Exclusive / oversized SHM stays discarded. Landed XML is
-  still the iter5 seed (280000 / 2 MiB, builtin on, sockets,
-  send_buffers 32 / dynamic=false).
+  Step A nailed 64 B / 200 Hz first. Gate is jitter, not p50:
+  same-host BestEffort RTT p95 1205 → 1234 µs (+2.4%) and arrival
+  |I−5 ms| p95 488 → 568 µs. Exclusive / oversized SHM stays
+  discarded. 1 MiB gains stay (no landed XML change vs iter5).
+  Landed XML is still the iter5 seed (280000 / 2 MiB, builtin on,
+  sockets, send_buffers 32 / dynamic=false).
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>

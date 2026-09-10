@@ -11,7 +11,8 @@ Shared facts. Per-topology files: [`chain_a_same_process/environment.md`](chain_
 - **image:** `osrf/ros:humble-desktop` digest `sha256:fb07245b32187d74350be25323d8ad2f8ca5c25c325759911a1eff2267a49c1e` (same as iter5 / iter4 / iter3 / iter2-after)
 - **Command:** `BENCH_DATE=2026-09-10-iter6-imu-baseline CHAIN_A_IMAGE=osrf/ros:humble-desktop IMU_HF_CHAINS=A ./scripts/bench/run_imu_hf.sh`
 - **Payload / gap / samples:** **64 B**; **5 ms** (target **200 Hz**, IMU-ish); 400 samples + 40 warmup; timeout 1 s
-- **git SHA ros2_hzj (at remasure):** `29131446f7636a4822eee55f84e24d1f4d82122a` (suite only; `config/fastdds.xml` still the iter5-accepted seed)
+- **Primary metric:** jitter (RTT p95/p99 + inter-message interval). Do not claim success from p50/mean. **64 B / 200 Hz** nailed before any knob.
+- **git SHA ros2_hzj (at remasure):** `2b8f666` (jitter fields in `pingpong.py`; `config/fastdds.xml` still the iter5-accepted seed; no Step B knob)
 - **Knobs (unchanged from iter5):** additive user SHM `maxMessageSize=280000` / `segment_size=2 MiB`; builtin UDP+SHM; iter2 2 MiB sockets; iter3/4 `send_buffers` 32 / `dynamic=false`. **No new knob in Step A.**
 - **XMLPARSER:** pingpong stderr empty (no parse errors)
 

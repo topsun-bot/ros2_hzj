@@ -141,9 +141,10 @@ That wrapper sets `BENCH_SIZES=64`, `BENCH_INTERVAL_MS=5`, `BENCH_SAMPLES=400`,
 and must stay in **separate** tables.
 
 Documented in each `raw.json` / `summary.md`: exact payload length, gap/Hz,
-topology label, chain, timeouts/loss. **Never** one mixed A-vs-B table. Cross-host
-UDP stays blocked on a single VM. These numbers are **not** real-robot or
-Feishu-field proof.
+topology label, chain, timeouts/loss, **and jitter** (RTT p95/p99 +
+inter-message interval variance / `|I − gap|`). Do **not** claim success from
+p50/mean alone. **Never** one mixed A-vs-B table. Cross-host UDP stays blocked
+on a single VM. These numbers are **not** real-robot or Feishu-field proof.
 
 `pingpong.py` flags: `--sizes`, `--interval-ms`, `--timeout`, `--warmup`, `--samples`,
 `--ros-msg uint8_multiarray`.
