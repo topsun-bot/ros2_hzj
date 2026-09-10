@@ -1,0 +1,34 @@
+# `fastdds.xml` 是契约种子（R2）
+
+本目录的 [`fastdds.xml`](fastdds.xml) **不是**从 `topsun_dimos` `main` 抽出来的现网配置。DimOS main（`a5259958db23c8ea6648544ed138eab19726ce93`）没有 `fastdds.xml`，也没有 `docker/navigation/`，也没有 `FASTRTPS_DEFAULT_PROFILES_FILE`。
+
+它只做一件事：把 R0 冻结表里的**链 A**落成可引用路径，方便后续对照，而不是假装已经在跑导航镜像。
+
+## 冻结表对齐
+
+| 项 | 值 |
+|----|----|
+| 链 | A — nav FastDDS |
+| RMW | `rmw_fastrtps_cpp` |
+| 域 | `ROS_DOMAIN_ID=42`（XML 里 `<domainId>42</domainId>` 与之一致） |
+| topic QoS 种子 | `/foxglove_teleop`→`/cmd_vel`：BEST_EFFORT / KEEP_LAST / depth=1；`/goal_pose`、`/way_point`：RELIABLE / VOLATILE / KEEP_LAST / depth=5 |
+| `/joy` | 只冻结名字，XML 不编造 QoS |
+
+完整表见 [`docs/architecture/ros2-dds-r0-interface-freeze.md`](../docs/architecture/ros2-dds-r0-interface-freeze.md)。常量模块：[`topics.yaml`](topics.yaml)、[`dimos_bridge/dimos/protocol/dds_topics.py`](../dimos_bridge/dimos/protocol/dds_topics.py)。
+
+## 怎么指向它
+
+不要改 DimOS 拷贝代码去硬编码路径。操作员显式：
+
+```bash
+source config/env/chain_a.sh
+# 导出 FASTRTPS_DEFAULT_PROFILES_FILE=<repo>/config/fastdds.xml
+```
+
+未 source 时，Humble 仍用发行版默认 RMW / 域 0——这是现状，不是本文件的静默生效。
+
+## 不是什么
+
+- 不是自定义 RMW
+- 不是链 B（Cyclone 域 0）的配置
+- 不是已测时延根因
