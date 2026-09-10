@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+install/
+log/
+.DS_Store
+*.bag
+*.db3
+.idea/
+.vscode/
