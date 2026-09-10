@@ -1,0 +1,15 @@
+{
+  "status": "blocked",
+  "chain": "A",
+  "topology": "same-process",
+  "domain_id": 42,
+  "rmw": "rmw_fastrtps_cpp",
+  "ros_domain_id": "42",
+  "metric": "round-trip time",
+  "units": "microseconds",
+  "error": "missing: python3-rclpy / ROS 2 rclpy,ros2 CLI, /opt/ros/humble/setup.bash (host is not Humble; see docker/ros/)",
+  "cases": [],
+  "errors": [
+    "missing: python3-rclpy / ROS 2 rclpy,ros2 CLI, /opt/ros/humble/setup.bash (host is not Humble; see docker/ros/)"
+  ]
+}

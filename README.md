@@ -33,7 +33,8 @@ DimOS 已拷文件**保持原样**（不做功能重构）。默认 DimOS 传输
 | [`config/env/`](config/env/) | R1 双链环境变量（文档 + helper，不静默改默认） |
 | [`config/topics.yaml`](config/topics.yaml) | R4 冻结 topic/QoS 常量（镜像 Python 模块） |
 | [`docker/ros/`](docker/ros/) | R3 Dockerfile 拆分（base / runtime）；原路径仍是兼容包装 |
-| [`docs/`](docs/) | R0 冻结、transports、[评测怎么跑](docs/usage/benchmark-dds.md) |
+| [`docs/`](docs/) | R0 冻结、transports、[评测怎么跑](docs/usage/benchmark-dds.md)、[bench 产物](docs/artifacts/bench/README.md) |
+| [`scripts/bench/`](scripts/bench/README.md) | 双链 bench runner（pytest 命令 + ping-pong 分位；不改中间件） |
 
 `dimos_bridge/` 下真实拷贝包括：`docker/ros/`、`ddspubsub.py` / `rospubsub*.py`、`ddsservice.py`、pubsub `spec`/`patterns`/`encoders`、`benchmark/`、`transport.py`、Foxglove 桥、Go2 ROS blueprint、G1 `dds_sdk.py`、`scripts/run_greeter_dds_lite.py`。清单见 [`dimos_bridge/SOURCE.md`](dimos_bridge/SOURCE.md)。
 

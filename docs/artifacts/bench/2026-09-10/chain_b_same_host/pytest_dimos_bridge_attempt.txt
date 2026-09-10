@@ -1,0 +1,26 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /workspace
+collecting ... collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+_ ERROR collecting dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py _
+ImportError while importing test module '/workspace/dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py:24: in <module>
+    from dimos.protocol.pubsub.benchmark.testdata import testcases
+dimos_bridge/dimos/protocol/pubsub/benchmark/testdata.py:22: in <module>
+    from dimos.msgs.sensor_msgs.Image import Image, ImageFormat
+dimos_bridge/dimos/msgs/sensor_msgs/Image.py:9: in <module>
+    raise ImportError(
+E   ImportError: dimos_bridge stub: module 'dimos.msgs.sensor_msgs.Image' is not vendored in ros2_hzj. See topsun_dimos @ a5259958db23c8ea6648544ed138eab19726ce93
+- generated xml file: /workspace/docs/artifacts/bench/2026-09-10/chain_b_same_host/pytest_dimos_bridge_junit.xml -
+=========================== short test summary info ============================
+ERROR dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.13s ===============================

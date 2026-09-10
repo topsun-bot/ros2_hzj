@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Bench-only Cyclone URI: loopback UDP, SharedMemory off.
+  NOT a production / nav / Unitree profile. Do not copy into DimOS defaults.
+  Used by scripts/bench/pingpong.py --iceoryx off (same-host UDP).
+-->
+<CycloneDDS>
+  <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="lo" presence="required" />
+      </Interfaces>
+      <AllowMulticast>false</AllowMulticast>
+    </General>
+    <SharedMemory>
+      <Enable>false</Enable>
+    </SharedMemory>
+  </Domain>
+</CycloneDDS>

@@ -1,0 +1,628 @@
+#!/usr/bin/env python3
+"""Thin ping-pong RTT wrapper. Does not change ddspubsub / rospubsub.
+
+Measures round-trip times in *this script only* (request topic → echo →
+reply topic). Production DimOS / vendor code is import-only.
+
+Chain B uses ``dimos.protocol.pubsub.impl.ddspubsub.DDS`` (Cyclone, domain 0)
+when that import works. Chain A uses rclpy + std_msgs/ByteMultiArray when ROS
+is present.
+
+Topology is an explicit CLI flag. Never mix Chain A and Chain B in one file.
+"""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+import json
+import os
+from pathlib import Path
+import statistics
+import struct
+import subprocess
+import sys
+import threading
+import time
+from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
+
+
+def percentiles_us(samples_ns: list[int]) -> dict[str, float]:
+    if not samples_ns:
+        return {"p50_us": float("nan"), "p95_us": float("nan"), "p99_us": float("nan")}
+    xs = sorted(samples_ns)
+    def pct(p: float) -> float:
+        if len(xs) == 1:
+            return xs[0] / 1000.0
+        k = (len(xs) - 1) * (p / 100.0)
+        lo = int(k)
+        hi = min(lo + 1, len(xs) - 1)
+        frac = k - lo
+        return (xs[lo] * (1.0 - frac) + xs[hi] * frac) / 1000.0
+
+    return {
+        "p50_us": pct(50),
+        "p95_us": pct(95),
+        "p99_us": pct(99),
+        "min_us": xs[0] / 1000.0,
+        "max_us": xs[-1] / 1000.0,
+        "mean_us": (sum(xs) / len(xs)) / 1000.0,
+        "stdev_us": (statistics.pstdev(xs) / 1000.0) if len(xs) > 1 else 0.0,
+    }
+
+
+def _rebuild_dds_config() -> None:
+    """Pydantic 2.13 needs Qos imported before DDSConfig is instantiated.
+
+    DimOS ``DDSConfig.qos`` is a forward ref (Qos imported under TYPE_CHECKING).
+    This is a bench-host shim only — it does not edit ddsservice.py.
+    """
+    from cyclonedds.qos import Qos as _Qos
+    import dimos.protocol.service.ddsservice as ddsvc
+
+    ddsvc.Qos = _Qos  # runtime name for the TYPE_CHECKING forward ref
+    ddsvc.DDSConfig.model_rebuild()
+
+
+def _qos_cyclone(kind: str) -> Any:
+    from cyclonedds.qos import Policy, Qos
+
+    if kind == "high_throughput":
+        return Qos(
+            Policy.Reliability.BestEffort,
+            Policy.History.KeepLast(depth=1),
+            Policy.Durability.Volatile,
+        )
+    if kind == "reliable":
+        return Qos(
+            Policy.Reliability.Reliable(max_blocking_time=0),
+            Policy.History.KeepLast(depth=5000),
+            Policy.Durability.Volatile,
+        )
+    raise ValueError(kind)
+
+
+def _ensure_dimos_path(dimos_root: str | None) -> None:
+    if not dimos_root:
+        return
+    root = str(Path(dimos_root).resolve())
+    if root not in sys.path:
+        sys.path.insert(0, root)
+
+
+def _make_probe_type() -> type:
+    # IdlStruct types cannot be defined in __main__ (uint32 fails to resolve).
+    if str(SCRIPT_DIR) not in sys.path:
+        sys.path.insert(0, str(SCRIPT_DIR))
+    from probe_types import BenchProbe
+
+    return BenchProbe
+
+
+def run_chain_b_same_process(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+    domain_id: int,
+) -> dict[str, Any]:
+    from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
+
+    _rebuild_dds_config()
+    Probe = _make_probe_type()
+    qos = _qos_cyclone(qos_kind)
+    ping_topic = Topic(name=f"{topic_prefix}/ping", data_type=Probe)
+    pong_topic = Topic(name=f"{topic_prefix}/pong", data_type=Probe)
+
+    bus = DDS(qos=qos, domain_id=domain_id)
+    bus.start()
+
+    lock = threading.Lock()
+    got: dict[int, int] = {}
+    ev = threading.Event()
+    expect_seq = -1
+
+    def on_ping(message: Any, _topic: Any) -> None:
+        bus.publish(pong_topic, message)
+
+    def on_pong(message: Any, _topic: Any) -> None:
+        now = time.perf_counter_ns()
+        with lock:
+            if int(message.seq) == expect_seq:
+                got[int(message.seq)] = now
+                ev.set()
+
+    bus.subscribe(ping_topic, on_ping)
+    bus.subscribe(pong_topic, on_pong)
+    time.sleep(0.15)
+
+    payload = list(bytes(i % 256 for i in range(msg_size)))
+    rtt_ns: list[int] = []
+    timeouts = 0
+    total = warmup + samples
+    for i in range(total):
+        ev.clear()
+        with lock:
+            expect_seq = i
+            got.pop(i, None)
+        t0 = time.perf_counter_ns()
+        bus.publish(ping_topic, Probe(seq=i, t0_ns=t0, payload=payload))
+        if not ev.wait(timeout=timeout_s):
+            timeouts += 1
+            continue
+        with lock:
+            t1 = got.get(i)
+        if t1 is None:
+            timeouts += 1
+            continue
+        if i >= warmup:
+            rtt_ns.append(t1 - t0)
+
+    bus.stop()
+    stats = percentiles_us(rtt_ns)
+    return {
+        "name": f"dds_{qos_kind}",
+        "impl": "dimos.protocol.pubsub.impl.ddspubsub.DDS",
+        "qos": qos_kind,
+        "msg_size_bytes": msg_size,
+        "warmup": warmup,
+        "requested_samples": samples,
+        "recorded_samples": len(rtt_ns),
+        "timeouts": timeouts,
+        "timeout_s": timeout_s,
+        "metric": "rtt",
+        "units": "microseconds",
+        **stats,
+        "rtt_us": [n / 1000.0 for n in rtt_ns],
+    }
+
+
+def run_chain_b_same_host(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+    domain_id: int,
+    dimos_root: str,
+) -> dict[str, Any]:
+    """Two OS processes; still one host. Responder is this file with --role responder."""
+    env = os.environ.copy()
+    resp = subprocess.Popen(
+        [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "--chain",
+            "B",
+            "--role",
+            "responder",
+            "--topology",
+            "same-host",
+            "--qos",
+            qos_kind,
+            "--topic-prefix",
+            topic_prefix,
+            "--domain-id",
+            str(domain_id),
+            "--dimos-root",
+            dimos_root,
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        time.sleep(1.2)
+        if resp.poll() is not None:
+            out = resp.stdout.read() if resp.stdout else ""
+            raise RuntimeError(f"responder exited early: {out[-2000:]}")
+        result = _chain_b_client_only(
+            qos_kind=qos_kind,
+            msg_size=msg_size,
+            warmup=warmup,
+            samples=samples,
+            timeout_s=timeout_s,
+            topic_prefix=topic_prefix,
+            domain_id=domain_id,
+        )
+        result["responder_pid"] = resp.pid
+        return result
+    finally:
+        resp.terminate()
+        try:
+            resp.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            resp.kill()
+
+
+def _chain_b_client_only(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+    domain_id: int,
+) -> dict[str, Any]:
+    from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
+
+    _rebuild_dds_config()
+    Probe = _make_probe_type()
+    qos = _qos_cyclone(qos_kind)
+    ping_topic = Topic(name=f"{topic_prefix}/ping", data_type=Probe)
+    pong_topic = Topic(name=f"{topic_prefix}/pong", data_type=Probe)
+    bus = DDS(qos=qos, domain_id=domain_id)
+    bus.start()
+
+    lock = threading.Lock()
+    got: dict[int, int] = {}
+    ev = threading.Event()
+    expect_seq = -1
+
+    def on_pong(message: Any, _topic: Any) -> None:
+        now = time.perf_counter_ns()
+        with lock:
+            if int(message.seq) == expect_seq:
+                got[int(message.seq)] = now
+                ev.set()
+
+    bus.subscribe(pong_topic, on_pong)
+    time.sleep(0.5)
+
+    payload = list(bytes(i % 256 for i in range(msg_size)))
+    rtt_ns: list[int] = []
+    timeouts = 0
+    total = warmup + samples
+    for i in range(total):
+        ev.clear()
+        with lock:
+            expect_seq = i
+            got.pop(i, None)
+        t0 = time.perf_counter_ns()
+        bus.publish(ping_topic, Probe(seq=i, t0_ns=t0, payload=payload))
+        if not ev.wait(timeout=timeout_s):
+            timeouts += 1
+            continue
+        with lock:
+            t1 = got.get(i)
+        if t1 is None:
+            timeouts += 1
+            continue
+        if i >= warmup:
+            rtt_ns.append(t1 - t0)
+
+    bus.stop()
+    stats = percentiles_us(rtt_ns)
+    return {
+        "name": f"dds_{qos_kind}",
+        "impl": "dimos.protocol.pubsub.impl.ddspubsub.DDS",
+        "qos": qos_kind,
+        "msg_size_bytes": msg_size,
+        "warmup": warmup,
+        "requested_samples": samples,
+        "recorded_samples": len(rtt_ns),
+        "timeouts": timeouts,
+        "timeout_s": timeout_s,
+        "metric": "rtt",
+        "units": "microseconds",
+        **stats,
+        "rtt_us": [n / 1000.0 for n in rtt_ns],
+    }
+
+
+def responder_chain_b(*, qos_kind: str, topic_prefix: str, domain_id: int) -> None:
+    from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
+
+    _rebuild_dds_config()
+    Probe = _make_probe_type()
+    qos = _qos_cyclone(qos_kind)
+    ping_topic = Topic(name=f"{topic_prefix}/ping", data_type=Probe)
+    pong_topic = Topic(name=f"{topic_prefix}/pong", data_type=Probe)
+    bus = DDS(qos=qos, domain_id=domain_id)
+    bus.start()
+
+    def on_ping(message: Any, _topic: Any) -> None:
+        bus.publish(pong_topic, message)
+
+    bus.subscribe(ping_topic, on_ping)
+    print("RESPONDER_READY", flush=True)
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        bus.stop()
+
+
+def run_chain_a_same_process(
+    *,
+    qos_kind: str,
+    msg_size: int,
+    warmup: int,
+    samples: int,
+    timeout_s: float,
+    topic_prefix: str,
+) -> dict[str, Any]:
+    import rclpy
+    from rclpy.qos import (
+        QoSDurabilityPolicy,
+        QoSHistoryPolicy,
+        QoSProfile,
+        QoSReliabilityPolicy,
+    )
+    from std_msgs.msg import ByteMultiArray
+
+    if qos_kind == "high_throughput":
+        qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            durability=QoSDurabilityPolicy.VOLATILE,
+            depth=1,
+        )
+    else:
+        qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            durability=QoSDurabilityPolicy.VOLATILE,
+            depth=5000,
+        )
+
+    rclpy.init()
+    node = rclpy.create_node("hzj_bench_pingpong")
+    ping_name = f"{topic_prefix}/ping"
+    pong_name = f"{topic_prefix}/pong"
+
+    lock = threading.Lock()
+    got: dict[int, int] = {}
+    ev = threading.Event()
+    expect_seq = -1
+
+    pub_pong = node.create_publisher(ByteMultiArray, pong_name, qos)
+    pub_ping = node.create_publisher(ByteMultiArray, ping_name, qos)
+
+    def on_ping(msg: ByteMultiArray) -> None:
+        pub_pong.publish(msg)
+
+    def on_pong(msg: ByteMultiArray) -> None:
+        now = time.perf_counter_ns()
+        if len(msg.data) < 12:
+            return
+        seq, _t0 = struct.unpack_from("<IQ", bytes(msg.data), 0)
+        with lock:
+            if seq == expect_seq:
+                got[seq] = now
+                ev.set()
+
+    node.create_subscription(ByteMultiArray, ping_name, on_ping, qos)
+    node.create_subscription(ByteMultiArray, pong_name, on_pong, qos)
+
+    spin_stop = threading.Event()
+
+    def spin() -> None:
+        while not spin_stop.is_set() and rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.01)
+
+    th = threading.Thread(target=spin, daemon=True)
+    th.start()
+    time.sleep(0.3)
+
+    pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
+    rtt_ns: list[int] = []
+    timeouts = 0
+    total = warmup + samples
+    for i in range(total):
+        ev.clear()
+        with lock:
+            expect_seq = i
+            got.pop(i, None)
+        t0 = time.perf_counter_ns()
+        header = struct.pack("<IQ", i, t0)
+        msg = ByteMultiArray()
+        msg.data = header + pad
+        pub_ping.publish(msg)
+        if not ev.wait(timeout=timeout_s):
+            timeouts += 1
+            continue
+        with lock:
+            t1 = got.get(i)
+        if t1 is None:
+            timeouts += 1
+            continue
+        if i >= warmup:
+            rtt_ns.append(t1 - t0)
+
+    spin_stop.set()
+    th.join(timeout=1.0)
+    node.destroy_node()
+    rclpy.shutdown()
+    stats = percentiles_us(rtt_ns)
+    return {
+        "name": f"ros_{qos_kind}",
+        "impl": "rclpy ByteMultiArray ping-pong (not DimosROS library QoS rewrite)",
+        "qos": qos_kind,
+        "msg_size_bytes": msg_size,
+        "warmup": warmup,
+        "requested_samples": samples,
+        "recorded_samples": len(rtt_ns),
+        "timeouts": timeouts,
+        "timeout_s": timeout_s,
+        "metric": "rtt",
+        "units": "microseconds",
+        **stats,
+        "rtt_us": [n / 1000.0 for n in rtt_ns],
+    }
+
+
+def parse_sizes(text: str) -> list[int]:
+    return [int(x) for x in text.split(",") if x.strip()]
+
+
+@dataclass
+class RunSpec:
+    chain: str
+    topology: str
+    qos_list: list[str]
+    sizes: list[int]
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--chain", choices=("A", "B"), required=True)
+    p.add_argument(
+        "--topology",
+        choices=("same-process", "same-host", "cross-host-UDP"),
+        default="same-process",
+    )
+    p.add_argument("--role", choices=("client", "responder"), default="client")
+    p.add_argument("--qos", default="high_throughput,reliable")
+    p.add_argument("--sizes", default="64,1024,16384,65536")
+    p.add_argument("--warmup", type=int, default=50)
+    p.add_argument("--samples", type=int, default=400)
+    p.add_argument("--timeout", type=float, default=1.0)
+    p.add_argument("--domain-id", type=int, default=0)
+    p.add_argument("--topic-prefix", default="")
+    p.add_argument("--dimos-root", default=os.environ.get("TOPSUN_DIMOS", ""))
+    p.add_argument("--out", default="")
+    p.add_argument(
+        "--iceoryx",
+        choices=("default", "off"),
+        default="default",
+        help="off: set CYCLONEDDS_URI to scripts/bench/cyclonedds_udp_lo.xml",
+    )
+    args = p.parse_args()
+
+    if args.topology == "cross-host-UDP":
+        payload = {
+            "status": "blocked",
+            "chain": args.chain,
+            "topology": args.topology,
+            "error": "cross-host-UDP needs a second machine; this runner is single-host",
+        }
+        if args.out:
+            Path(args.out).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(payload, indent=2))
+        return 2
+
+    if args.iceoryx == "off":
+        uri = SCRIPT_DIR / "cyclonedds_udp_lo.xml"
+        os.environ["CYCLONEDDS_URI"] = f"file://{uri}"
+
+    _ensure_dimos_path(args.dimos_root or None)
+
+    qos_list = [x.strip() for x in args.qos.split(",") if x.strip()]
+    sizes = parse_sizes(args.sizes)
+    prefix = args.topic_prefix or f"hzj_bench_{os.getpid()}"
+
+    if args.role == "responder":
+        if args.chain != "B":
+            print("responder is implemented for Chain B only", file=sys.stderr)
+            return 2
+        responder_chain_b(
+            qos_kind=qos_list[0],
+            topic_prefix=prefix,
+            domain_id=args.domain_id,
+        )
+        return 0
+
+    cases: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for qos_kind in qos_list:
+        for size in sizes:
+            case_prefix = f"{prefix}_{qos_kind}_{size}"
+            try:
+                if args.chain == "B" and args.topology == "same-process":
+                    cases.append(
+                        run_chain_b_same_process(
+                            qos_kind=qos_kind,
+                            msg_size=size,
+                            warmup=args.warmup,
+                            samples=args.samples,
+                            timeout_s=args.timeout,
+                            topic_prefix=case_prefix,
+                            domain_id=args.domain_id,
+                        )
+                    )
+                elif args.chain == "B" and args.topology == "same-host":
+                    if not args.dimos_root:
+                        raise RuntimeError("same-host Chain B requires --dimos-root")
+                    cases.append(
+                        run_chain_b_same_host(
+                            qos_kind=qos_kind,
+                            msg_size=size,
+                            warmup=args.warmup,
+                            samples=args.samples,
+                            timeout_s=args.timeout,
+                            topic_prefix=case_prefix,
+                            domain_id=args.domain_id,
+                            dimos_root=args.dimos_root,
+                        )
+                    )
+                elif args.chain == "A" and args.topology == "same-process":
+                    cases.append(
+                        run_chain_a_same_process(
+                            qos_kind=qos_kind,
+                            msg_size=size,
+                            warmup=args.warmup,
+                            samples=args.samples,
+                            timeout_s=args.timeout,
+                            topic_prefix=case_prefix,
+                        )
+                    )
+                else:
+                    raise RuntimeError(
+                        f"unsupported combination chain={args.chain} topology={args.topology}"
+                    )
+            except Exception as exc:  # noqa: BLE001 — record and continue other cases
+                errors.append(f"{qos_kind}/{size}B: {type(exc).__name__}: {exc}")
+                cases.append(
+                    {
+                        "name": f"{'dds' if args.chain == 'B' else 'ros'}_{qos_kind}",
+                        "msg_size_bytes": size,
+                        "qos": qos_kind,
+                        "error": f"{type(exc).__name__}: {exc}",
+                    }
+                )
+
+    ok_cases = [c for c in cases if "error" not in c and c.get("recorded_samples", 0) > 0]
+    status = "ok" if ok_cases and not errors else ("partial" if ok_cases else "blocked")
+    payload = {
+        "status": status,
+        "chain": args.chain,
+        "topology": args.topology,
+        "domain_id": args.domain_id if args.chain == "B" else int(os.environ.get("ROS_DOMAIN_ID") or 0),
+        "rmw": os.environ.get("RMW_IMPLEMENTATION", ""),
+        "ros_domain_id": os.environ.get("ROS_DOMAIN_ID", ""),
+        "cyclonedds_uri": os.environ.get("CYCLONEDDS_URI", ""),
+        "iceoryx": args.iceoryx,
+        "metric": "round-trip time (ping-pong in scripts/bench/pingpong.py)",
+        "units": "microseconds",
+        "note": (
+            "Per-message RTT from a thin wrapper. Not a root-cause claim. "
+            "Do not compare Chain A and Chain B in one table. "
+            "Upstream pytest -m tool -k dds reports throughput / drain time, not these percentiles."
+        ),
+        "errors": errors,
+        "cases": cases,
+    }
+    text = json.dumps(payload, indent=2) + "\n"
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+    print(text)
+    return 0 if status in {"ok", "partial"} else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

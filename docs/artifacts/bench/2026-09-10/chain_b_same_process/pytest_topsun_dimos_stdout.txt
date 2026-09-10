@@ -1,0 +1,51 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /tmp/topsun_dimos
+configfile: pyproject.toml
+collecting ... collected 96 items / 72 deselected / 24 selected
+
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-64B] PASSED [  4%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-256B] PASSED [  8%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-1K] PASSED [ 12%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-4K] PASSED [ 16%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-16K] PASSED [ 20%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-64K] PASSED [ 25%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-256K] PASSED [ 29%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-512K] PASSED [ 33%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-1M] PASSED [ 37%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-2M] PASSED [ 41%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-5M] PASSED [ 45%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsHighThroughput-10M] PASSED [ 50%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-64B] PASSED [ 54%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-256B] PASSED [ 58%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-1K] PASSED [ 62%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-4K] PASSED [ 66%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-16K] PASSED [ 70%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-64K] PASSED [ 75%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-256K] PASSED [ 79%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-512K] PASSED [ 83%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-1M] PASSED [ 87%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-2M] PASSED [ 91%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-5M] PASSED [ 95%]
+dimos/protocol/pubsub/benchmark/test_benchmark.py::test_throughput[DdsReliable-10M] PASSED [100%]
+
+=============================== warnings summary ===============================
+../../home/ubuntu/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464
+  /home/ubuntu/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: asyncio_default_fixture_loop_scope
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+../../home/ubuntu/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464
+  /home/ubuntu/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+../../home/ubuntu/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464
+  /home/ubuntu/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: env
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/docs/artifacts/bench/2026-09-10/chain_b_same_process/pytest_topsun_dimos_junit.xml -
+================ 24 passed, 72 deselected, 3 warnings in 23.99s ================
