@@ -76,7 +76,7 @@ Each successful (or blocked) run writes:
 
 See [docs/usage/benchmark-dds.md](../../docs/usage/benchmark-dds.md).
 
-## Large-packet cases (iter2)
+## Large-packet cases (iter2 / iter3)
 
 Default sizes stay `64,1024,16384,65536`. Feishu / lidar-ish cases are **opt-in**:
 
@@ -87,6 +87,12 @@ Default sizes stay `64,1024,16384,65536`. Feishu / lidar-ish cases are **opt-in*
 # (one Python bytes per octet) is not viable at ≥100KiB.
 BENCH_DATE=2026-09-10-iter2-large-baseline \
   LARGE_PACKET_CHAINS='A B' \
+  ./scripts/bench/run_large_packet.sh
+
+# iter3 remasure (Chain A only; like-to-like vs iter2-after):
+BENCH_DATE=2026-09-10-iter3 \
+  CHAIN_A_IMAGE=osrf/ros:humble-desktop \
+  LARGE_PACKET_CHAINS=A \
   ./scripts/bench/run_large_packet.sh
 ```
 
