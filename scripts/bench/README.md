@@ -94,6 +94,12 @@ BENCH_DATE=2026-09-10-iter3 \
   CHAIN_A_IMAGE=osrf/ros:humble-desktop \
   LARGE_PACKET_CHAINS=A \
   ./scripts/bench/run_large_packet.sh
+
+# iter4 remasure (Chain A only; like-to-like vs iter3, honesty vs iter2-after):
+BENCH_DATE=2026-09-10-iter4 \
+  CHAIN_A_IMAGE=osrf/ros:humble-desktop \
+  LARGE_PACKET_CHAINS=A \
+  ./scripts/bench/run_large_packet.sh
 ```
 
 That wrapper sets `BENCH_SIZES`, `BENCH_INTERVAL_MS=100`, `BENCH_SAMPLES=80`,
