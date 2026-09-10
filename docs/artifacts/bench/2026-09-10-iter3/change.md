@@ -1,4 +1,4 @@
-# iter3 change — Fast-DDS default-participant large SHM transport
+# iter3 change — Fast-DDS default-participant send-buffer pool (32, dynamic)
 
 **One change.** Config-only. Ask a human to merge; this run does not merge.
 
@@ -17,47 +17,43 @@ iter2 set default-participant UDP socket buffers to 2 MiB. That recovered Chain 
 
 Same-process +4–8% from iter2 is **out of scope** (honesty check only; do not tune for it).
 
-iter2 working is evidence that 1 MiB same-host still traversed **fragmented localhost UDP**: Linux default socket buffers (~212 KiB) overflowed a ~16-fragment burst. Humble Fast-DDS 2.6 builtin transports also enable SHM, but the documented defaults cannot carry these payloads unfragmented:
+iter2 working is evidence that 1 MiB same-host still traverses **fragmented localhost UDP** (~64 KiB RTPS/UDP messages). Humble Fast-DDS 2.6.12 `SendBuffersAllocationAttributes` defaults are:
 
-- Transport `maxMessageSize` default **65500** (Fast-DDS 2.6 XML / TransportDescriptor). 100 KiB / 256 KiB / 1 MiB all exceed it.
-- Builtin SHM `segment_size` default **512 KiB**. Docs warn that a segment close to or smaller than the sample risks overwrite/loss. 1 MiB > 512 KiB.
+- `preallocated_number` **0** → initial guess from the number of threads that might send
+- `dynamic` **false** → if no send buffer is free, **wait** for one to return (latency vs alloc trade-off; see Fast-DDS 2.6 SendBuffersAllocationAttributes)
 
-So same-host 100 KiB–1 MiB cannot stay on a single SHM message; they fragment (~64 KiB) and, as iter2 showed, the 1 MiB burst used UDP.
+A 1 MiB sample is ~16 fragments; a 256 KiB sample is ~4. On this 4-logical-CPU VM the guessed pool can be smaller than a 1 MiB burst. Waiting for buffers inflates same-host 1 MiB RTT while 100/256 KiB (fewer fragments) stay cheap.
 
-**Prediction:** add **one** user SHM transport on the default participant (`is_default_profile="true"`) with `maxMessageSize` 2 MiB (2097152) and `segment_size` 4 MiB (4194304) — enough for one 1 MiB sample plus headers, and room so a bidirectional ping-pong write does not overwrite the segment. Same-host 1 MiB (and 100/256 KiB) BestEffort/Reliable RTT should drop if the data path can stay on SHM instead of fragmented UDP. Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`, so this participant knob can apply (unlike named foxglove / goal_pose profiles).
+**Not kept:** a user SHM transport with `maxMessageSize` 2 MiB / `segment_size` 4 MiB (additive, then exclusive). Humble default `maxMessageSize` is 65500 and builtin SHM `segment_size` is 512 KiB, so that was the first candidate. Exclusive SHM **regressed** same-host 1 MiB p50 by ~36% (BestEffort 3906 → 5314 µs; Reliable 3305 → 4497 µs). XMLPARSER accepted it; the data-path hypothesis was wrong. Reverted. Not a second knob.
 
-`maxMessageSize` and `segment_size` are **one knob** (the same oversized SHM transport). Setting only `maxMessageSize` would still leave the 512 KiB implicit segment too small for 1 MiB. Builtin UDP and the iter2 2 MiB socket buffers stay (`useBuiltinTransports` true). Not SHM-only. Not a second buffer / history / flow-controller change.
+**Prediction:** on the default participant (`is_default_profile="true"`), set the send-buffer pool to **32** preallocated buffers and `dynamic` **true** so a 1 MiB fragment burst never blocks on the pool. Same-host 1 MiB BestEffort/Reliable RTT should drop if the leftover cost was send-buffer wait. Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`, so this participant knob can apply (unlike named foxglove / goal_pose profiles).
 
-This does **not** prove a Feishu / real-robot / cross-host root cause. Same-host localhost is not that scene. Docker `--ipc=host` is already in `docker_chain_a.sh`; if SHM still fails over to UDP, deltas stay honest.
+`preallocated_number` and `dynamic` are **one knob** (the same send-buffer pool). Setting only `preallocated_number` could still wait if 32 is slightly short; `dynamic` true is the documented “do not block” half of that pool. Not a socket-buffer change (iter2 2 MiB stay). Not history / flow-controller / async-publish / SHM.
+
+This does **not** prove a Feishu / real-robot / cross-host root cause. Same-host localhost is not that scene.
 
 ## Exact diff (behavior)
 
-In `config/fastdds.xml` only:
-
-1. A `transport_descriptors` entry `shm_large_same_host` (`type` SHM):
+In `config/fastdds.xml` only, inside the default participant `<rtps>` (iter2 socket buffers unchanged):
 
 ```xml
-<maxMessageSize>2097152</maxMessageSize>
-<segment_size>4194304</segment_size>
+<allocation>
+    <send_buffers>
+        <preallocated_number>32</preallocated_number>
+        <dynamic>true</dynamic>
+    </send_buffers>
+</allocation>
 ```
 
-2. On the default participant `<rtps>`, reference it and keep builtin transports:
-
-```xml
-<userTransports>
-    <transport_id>shm_large_same_host</transport_id>
-</userTransports>
-<useBuiltinTransports>true</useBuiltinTransports>
-```
-
-No writer/reader QoS, domain, RMW, socket-buffer, history, or flow-controller change. `config/fastdds.zh.md` notes the knob.
+No writer/reader QoS, domain, RMW, transport, history, or flow-controller change. `config/fastdds.zh.md` notes the knob.
 
 ## What was NOT changed
 
 - DimOS `ddspubsub` / `rospubsub` / ping-pong QoS, sizes, gap, sample counts
 - `config/env/chain_a.sh` (still RMW=`rmw_fastrtps_cpp`, domain 42)
-- No `RMW_FASTRTPS_USE_QOS_FROM_XML`, no `historyMemoryPolicy`, no `publishMode`, no flow controller
+- No `RMW_FASTRTPS_USE_QOS_FROM_XML`, no `historyMemoryPolicy`, no `publishMode`
 - iter2 `sendSocketBufferSize` / `listenSocketBufferSize` 2 MiB (left as-is)
+- No SHM / `userTransports` / `useBuiltinTransports` (probe reverted)
 - Chain B Cyclone URI / iceoryx
 - Cross-host UDP (still blocked; single VM)
 - 《3》90%/LLM scoring, 《4》Mac/preprod hero, 《5》Promptfoo, 《6》CVE audit
