@@ -1,4 +1,4 @@
-# iter4 change — right-size Fast-DDS send-buffer pool (32 → 16)
+# iter4 change — restore default send-buffer prealloc, keep dynamic
 
 **One change.** Config-only. Ask a human to merge; this run does not merge.
 
@@ -17,13 +17,15 @@ iter3 kept the default-participant send-buffer pool at `preallocated_number=32`,
 
 Same-process mid-size +25–32% is **out of scope** (honesty check only; do not tune for it). SHM exclusive / `maxMessageSize` stays discarded.
 
-Humble Fast-DDS 2.6 `SendBuffersManager::init` allocates one contiguous slab for every preallocated `RTPSMessageGroup_t` (`common_buffer_`, ~2 × `maxMessageSize` ≈ 128 KiB each). 32 buffers ≈ 4 MiB; 16 buffers ≈ 2 MiB. A 1 MiB sample is ~16 × 64 KiB UDP/RTPS fragments — that is the number iter3 itself named. 32 is 2× that burst. Mid-size samples are ~2–4 fragments and still pay for the oversized slab.
+Humble Fast-DDS 2.6 `SendBuffersManager::init` allocates one contiguous slab for every preallocated `RTPSMessageGroup_t` (`common_buffer_`, ~2 × `maxMessageSize` ≈ 128 KiB each). Default `preallocated_number=0` guesses from send threads (`2 + receiver resources`, typically a handful). 32 buffers ≈ 4 MiB. Mid-size samples are ~2–4 × 64 KiB fragments and do not need a 1 MiB-sized slab.
 
-`get_buffer` is LIFO and does not consult `dynamic` unless the pool is empty, so `dynamic=true` is not the mid-size tax. The tax is `preallocated_number=32`.
+`get_buffer` only consults `dynamic` when the pool is empty. Mid-size at 10 Hz should not empty a default-sized pool. The 1 MiB leftover win is the no-wait half (`dynamic=true`): a fragment burst may grow a buffer instead of blocking.
 
-**Prediction:** on the default participant (`is_default_profile="true"`), set `preallocated_number` to **16** and keep `dynamic` **true**. Same-host 100 KiB and/or 256 KiB p50 should move back toward iter2-after. Same-host 1 MiB BestEffort/Reliable should stay within noise of iter3 (16 still covers one 1 MiB fragment burst; `dynamic=true` still avoids a wait if the pool is briefly short). Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`, so this participant knob can apply.
+**Not kept:** `preallocated_number` 32 → 16 (same `dynamic=true`). Same-host BestEffort 100/256 KiB p50 moved the wrong way vs iter3 (~+7–8%); Reliable mid-size only nudged (−2–5%) and stayed far from iter2-after. 16 is still ~4× the default guess. Discarded. Not a second knob.
 
-`preallocated_number` retune is **one knob** (the same send-buffer pool iter3 introduced). Not a socket-buffer change (iter2 2 MiB stay). Not history / flow-controller / async-publish / SHM.
+**Prediction:** on the default participant (`is_default_profile="true"`), set `preallocated_number` to **0** (documented default guess) and keep `dynamic` **true**. Same-host 100 KiB and/or 256 KiB p50 should move back toward iter2-after (same pool size as before the 32-slab). Same-host 1 MiB BestEffort/Reliable should stay near iter3 if the leftover cost was wait-on-empty rather than the 32-slab itself; warmup (10) absorbs first-growth allocs. Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`, so this participant knob can apply.
+
+This is **one knob** (the same send-buffer pool iter3 introduced): drop the oversized prealloc, keep the no-wait half. Not a socket-buffer change (iter2 2 MiB stay). Not history / flow-controller / async-publish / SHM.
 
 This does **not** prove a Feishu / real-robot / cross-host root cause. Same-host localhost is not that scene.
 
@@ -32,7 +34,7 @@ This does **not** prove a Feishu / real-robot / cross-host root cause. Same-host
 In `config/fastdds.xml` only, inside the default participant `<allocation><send_buffers>` (iter2 socket buffers and iter3 `dynamic=true` unchanged):
 
 ```xml
-<preallocated_number>16</preallocated_number>
+<preallocated_number>0</preallocated_number>
 ```
 
 was `32`. No writer/reader QoS, domain, RMW, transport, history, or flow-controller change. `config/fastdds.zh.md` notes the knob.

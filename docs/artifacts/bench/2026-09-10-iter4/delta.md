@@ -6,4 +6,4 @@ Like-to-like remasure is **pending**. This file is a placeholder so in-repo link
 
 这些对照数字 **不是** 飞书现场、实机、或跨机根因证明。
 
-Change under test: default-participant RTPS send-buffer pool `preallocated_number` 32 → 16, `dynamic=true` kept. See [`change.md`](change.md).
+Change under test: default-participant RTPS send-buffer pool `preallocated_number` 32 → 0 (default guess), `dynamic=true` kept. See [`change.md`](change.md).

@@ -2,7 +2,7 @@
 
 Hostname class: `cursor-cloud-vm`。Chain A inside `osrf/ros:humble-desktop` (same image class as iter3).
 
-**One change:** default-participant RTPS send-buffer pool right-sized 32 → 16 (`dynamic` stays true) in `config/fastdds.xml`. See [`change.md`](change.md). Like-to-like deltas vs [`../2026-09-10-iter3/`](../2026-09-10-iter3/README.md): [`delta.md`](delta.md) (written after remasure).
+**One change:** default-participant RTPS send-buffer `preallocated_number` 32 → 0 (`dynamic` stays true) in `config/fastdds.xml`. See [`change.md`](change.md). Like-to-like deltas vs [`../2026-09-10-iter3/`](../2026-09-10-iter3/README.md): [`delta.md`](delta.md) (written after remasure).
 
 **不要**和链 B 混表。**不是** 飞书现场 / 实机 / 跨机根因。
 
