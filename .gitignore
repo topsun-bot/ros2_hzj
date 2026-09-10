@@ -29,6 +29,16 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 
+# Python packaging / tests
+*.egg-info/
+.eggs/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.tox/
+
 # IDE / OS
 .DS_Store
 .idea/

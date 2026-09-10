@@ -1,6 +1,6 @@
 # Transports
 
-> **Repo note.** This page is R0 reference copied from [`topsun-bot/topsun_dimos`](https://github.com/topsun-bot/topsun_dimos) (PR [#122](https://github.com/topsun-bot/topsun_dimos/pull/122)). Examples, assets, CI snippets, and `dimos.*` imports below belong to DimOS — they are **not** in `ros2_hzj`. This repository is an independent ROS 2 / DDS workstream. Dual-chain contract: [R0 interface freeze](../../architecture/ros2-dds-r0-interface-freeze.md). DimOS default transport is LCM (out of DDS scope here).
+> **Repo note.** This page is R0 reference copied from [`topsun-bot/topsun_dimos`](https://github.com/topsun-bot/topsun_dimos) (PR [#122](https://github.com/topsun-bot/topsun_dimos/pull/122)). Examples, assets, CI snippets, and most `dimos.*` imports below still belong to the DimOS monorepo. A dual-chain **subset** is now under [`dimos_bridge/`](../../../dimos_bridge/) (R1 dump; not the whole tree). Dual-chain contract: [R0 interface freeze](../../architecture/ros2-dds-r0-interface-freeze.md). DimOS default transport is LCM (out of DDS scope here).
 
 Transports connect **module streams** across **process boundaries** and/or **networks**.
 

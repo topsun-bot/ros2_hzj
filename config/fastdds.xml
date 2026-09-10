@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CONTRACT SEED / 契约种子 — 不是从 topsun_dimos main 提取的配置。
+
+  已在 topsun_dimos @ a5259958db23c8ea6648544ed138eab19726ce93 (main) 搜索：
+    fastdds.xml, FASTRTPS_DEFAULT_PROFILES_FILE, ROS_DOMAIN_ID, rmw_fastrtps,
+    docker/navigation/
+  结论：main 上均不存在。R0 冻结仍把链 A 记为：
+    RMW = rmw_fastrtps_cpp
+    ROS_DOMAIN_ID = 42
+    FASTRTPS_DEFAULT_PROFILES_FILE 指向 fastdds.xml
+
+  本文件只兑现「把契约落成可引用路径」，不是现网 XML，也不是自定义 RMW。
+  域 ID 仍以环境变量 ROS_DOMAIN_ID=42 为准（R1 env 抽出尚未做）。
+  参见 docs/architecture/ros2-dds-r0-interface-freeze.md
+-->
+<profiles xmlns="http://www.eprosima.com">
+    <participant profile_name="ros2_hzj_chain_a_contract_seed" is_default_profile="true">
+        <domainId>42</domainId>
+        <rtps>
+            <name>ros2_hzj_chain_a_contract_seed</name>
+        </rtps>
+    </participant>
+</profiles>
