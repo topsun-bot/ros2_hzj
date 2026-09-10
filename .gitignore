@@ -1,12 +1,36 @@
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
 venv/
+.env
+.env.*
+!.env.example
+
+# ROS 2 / colcon
 build/
 install/
 log/
-.DS_Store
+COLCON_IGNORE
+AMENT_IGNORE
+.colcon/
+compile_commands.json
+
+# ROS bags / recordings
 *.bag
 *.db3
+*.mcap
+
+# C / C++ / ament noise
+*.o
+*.so
+*.a
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# IDE / OS
+.DS_Store
 .idea/
 .vscode/
+.cache/

@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docs:
+    name: R0 docs exist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required R0 paths exist
+        run: |
+          set -euo pipefail
+          test -f docs/architecture/ros2-dds-r0-interface-freeze.md
+          test -f docs/usage/transports/dds.md
+          test -f docs/usage/transports/index.md
+          test -f README.md
+          test -f LICENSE
+
+      - name: In-repo markdown relative links
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          root = Path(".").resolve()
+          files = [
+              Path("README.md"),
+              Path("docs/architecture/ros2-dds-r0-interface-freeze.md"),
+              Path("docs/usage/transports/dds.md"),
+              Path("docs/usage/transports/index.md"),
+          ]
+          link_re = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+          missing = []
+          checked = 0
+          for path in files:
+              text = path.read_text(encoding="utf-8")
+              for raw in link_re.findall(text):
+                  target = raw.split("#", 1)[0].strip()
+                  if not target:
+                      continue
+                  if target.startswith(("http://", "https://", "mailto:")):
+                      continue
+                  if target.startswith("<"):
+                      continue
+                  # DimOS site-root, runtime, and figure paths are not in this repo.
+                  if target.startswith("/") or "dimos/" in target:
+                      continue
+                  if "/assets/" in f"/{target}" or target.startswith("assets/"):
+                      continue
+                  dest = (path.parent / target).resolve()
+                  checked += 1
+                  if not dest.exists():
+                      missing.append(f"{path}: {target}")
+
+          print(f"checked {checked} in-repo relative links")
+          if missing:
+              print("missing:")
+              for item in missing:
+                  print(f"  {item}")
+              sys.exit(1)
+          PY
