@@ -1,8 +1,15 @@
 # 双链 pubsub benchmark 怎么跑（R5）
 
-本文只说明**命令与前置条件**。这里**没有**时延分数，也不把 vendor 落盘或某条 RMW 写成根因。
+本文说明**命令、前置条件、以及本仓已落盘的基线产物路径**。vendor 落盘或某条 RMW **不能**当成根因。
 
-冻结表把评测标成 hypothesis，直到记下 p50 / p95 / p99。链 A 与链 B **不是**同一次 ping-pong，数字不能直接对比。
+冻结表把评测标成 hypothesis，直到记下 p50 / p95 / p99。链 A 与链 B **不是**同一次 ping-pong，数字不能直接对比；也不要把 `same-process` / `same-host` / `cross-host-UDP` 混在一张表里。
+
+可复现入口（仓库根）：[`scripts/bench/`](../../scripts/bench/README.md)。
+
+- 链 B：`./scripts/bench/run_chain_b.sh` → 文档里的 `pytest -m tool -k dds`，再加一层 **不改** `ddspubsub` 的 ping-pong 包分位
+- 链 A：先 `source config/env/chain_a.sh`，再 `./scripts/bench/run_chain_a.sh`；本机没有 Humble 时看 `STATUS: blocked` 和 [`scripts/bench/docker_chain_a.sh`](../../scripts/bench/docker_chain_a.sh)
+
+已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)（按 UTC 日期分子目录；链 A / 链 B 分文件）。
 
 源码在本仓：[`dimos_bridge/dimos/protocol/pubsub/benchmark/`](../../dimos_bridge/dimos/protocol/pubsub/benchmark/)。  
 这是从 `topsun_dimos` 整目录拷来的；默认传输仍是 LCM（**不在**本仓 DDS 范围）。完整 DimOS 依赖（`uv` extra、消息类型、非 stub 模块）仍在上游仓。本仓缺那些依赖时，下列命令会在 import 处失败——那是环境问题，不是「已经测过」。
@@ -55,8 +62,43 @@ pytest dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py -m tool -k
 
 若误用 `chain_b.sh`（`rmw_cyclonedds_cpp` + 域 0）再跑 ROS bench，那是链 B 的 ROS 侧，不是链 A。
 
+## 产物与怎么重跑
+
+每个成功（或明确 blocked）的 run 应有：
+
+| 文件 | 内容 |
+|------|------|
+| `summary.md` | p50 / p95 / p99（微秒，RTT）或 blocked 原因；case 名；消息大小 |
+| `raw.json` | ping-pong 样本；以及 pytest junit/stdout（若跑过） |
+| `environment.md` | OS、CPU、hostname class、`ROS_DISTRO`、RMW、`ROS_DOMAIN_ID`、cyclonedds 版本、包版本、`ros2_hzj` git SHA、DimOS 来自 vendored `dimos_bridge` 还是临时 `topsun_dimos` checkout |
+| **Topology** | 每个 run **只标一个**：`same-process` / `same-host` / `cross-host-UDP` |
+
+上游 `test_benchmark.py` 的 Latency 列是「发完再等收齐」的 drain time，**不是** per-message p50。分位数只来自 [`scripts/bench/pingpong.py`](../../scripts/bench/pingpong.py)。
+
+`dimos_bridge` 里 LCM / `logging_config` / `Image` 等仍是 ImportError stub 时，runner 可以 **只读 clone** `topsun-bot/topsun_dimos`（不 submodule、不往那边 push）去跑 `dimos/protocol/pubsub/benchmark/`，再把**结果**拷回本仓 `docs/artifacts/bench/`。
+
+重跑：
+
+```bash
+# 链 B（Cyclone / 域 0；不要 source chain_a.sh）
+./scripts/bench/run_chain_b.sh
+# 可选同机两进程（localhost UDP / SHM，仍标 same-host，单独目录）：
+TOPOLOGY=same-host ./scripts/bench/run_chain_b.sh
+ICEORYX=off TOPOLOGY=same-host ./scripts/bench/run_chain_b.sh
+
+# 链 A（需要 Humble + rmw_fastrtps_cpp）
+source /opt/ros/humble/setup.bash
+source config/env/chain_a.sh
+./scripts/bench/run_chain_a.sh
+# 或操作员稍后：
+./scripts/bench/docker_chain_a.sh
+```
+
+DimOS 默认 `addopts` 会排除 `tool`，checkout 上跑官方命令时 runner 会加 `-o addopts=` 再写 `-m tool`。
+
 ## 明确不写的东西
 
-- 无 p50 / p95 / p99，无「谁更快」
+- 不把这些数字写成「谁更快」或根因
 - vendor SHA 不能当性能证据
 - 不要拿链 B 的 `-k dds` 去解释 Foxglove / `/cmd_vel` / `ROSTransport` 的时延
+- 不要把链 A 和链 B 放进同一张对照表假装可比

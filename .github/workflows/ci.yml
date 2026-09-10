@@ -71,6 +71,12 @@ jobs:
           test -f docker/ros/install-runtime.sh
           test -f docker/ros/NOTES.md
           test -f docs/usage/benchmark-dds.md
+          test -f scripts/bench/README.md
+          test -f scripts/bench/run_chain_b.sh
+          test -f scripts/bench/run_chain_a.sh
+          test -f scripts/bench/pingpong.py
+          test -f scripts/bench/docker_chain_a.sh
+          test -f docs/artifacts/bench/README.md
           grep -q 'domainId>42' config/fastdds.xml
           grep -q 'rmw_fastrtps_cpp' config/env/chain_a.sh
           grep -q 'ROS_DOMAIN_ID=42' config/env/chain_a.sh
@@ -136,6 +142,8 @@ jobs:
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
               Path("docs/usage/benchmark-dds.md"),
+              Path("scripts/bench/README.md"),
+              Path("docs/artifacts/bench/README.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),
