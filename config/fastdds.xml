@@ -42,14 +42,15 @@
   did not recover mid-size; 0 erased the 1 MiB win. Not SHM, not
   a second socket-buffer knob.
 
-  iter5 (one knob): builtin SHM segment_size 512 KiB → 768 KiB.
-  Humble implicit SHM segment is 512 KiB. 256 KiB BestEffort
-  (~4 × 64 KiB fragments plus a reassembly copy) sits on that
-  ceiling; 100 KiB fits; 1 MiB overflows to the already-tuned
-  UDP path. Recreate builtin UDP+SHM so the segment can be set
-  (useBuiltinTransports false). UDP descriptor keeps iter2 2 MiB
-  sockets. SHM maxMessageSize stays 65500 (not the discarded
-  iter3 2 MiB / 4 MiB probe). send_buffers 32 / dynamic=false stay.
+  iter5 (one knob): UDP-only default participant (no builtin SHM).
+  Humble implicit SHM segment is 512 KiB. A 768 KiB SHM probe
+  recovered same-host BestEffort 256 KiB (1653 → 1309 µs) but
+  erased 1 MiB BestEffort (80/80 → 1/80) — Fast-DDS prefers SHM
+  for same-host and does not fall back to UDP when the segment
+  is short. Discarded. UDP-only keeps mid-size on the already-
+  tuned localhost UDP path (iter2 2 MiB sockets) without a 512
+  KiB SHM ceiling. send_buffers 32 / dynamic=false stay. Not
+  the discarded iter3 unfragmented SHM probe.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>
@@ -58,11 +59,6 @@
             <type>UDPv4</type>
             <sendBufferSize>2097152</sendBufferSize>
             <receiveBufferSize>2097152</receiveBufferSize>
-        </transport_descriptor>
-        <transport_descriptor>
-            <transport_id>shm_768k</transport_id>
-            <type>SHM</type>
-            <segment_size>786432</segment_size>
         </transport_descriptor>
     </transport_descriptors>
 
@@ -75,7 +71,6 @@
             <useBuiltinTransports>false</useBuiltinTransports>
             <userTransports>
                 <transport_id>udp_v4_2m</transport_id>
-                <transport_id>shm_768k</transport_id>
             </userTransports>
             <allocation>
                 <send_buffers>

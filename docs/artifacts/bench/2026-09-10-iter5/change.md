@@ -1,4 +1,4 @@
-# iter5 change — builtin SHM segment_size 512 KiB → 768 KiB
+# iter5 change — UDP-only default participant (no builtin SHM)
 
 **One change.** Config-only. Ask a human to merge; this run does not merge.
 
@@ -18,29 +18,30 @@ iter4 kept `preallocated_number=32`, `dynamic=false`. That recovered about half 
 
 Same-process is **out of scope**. Shrinking the 32-slab (16 / 0) stays discarded. iter3 SHM with `maxMessageSize` 2 MiB / `segment_size` 4 MiB stays discarded.
 
-Humble Fast-DDS **2.6.12** builtin SHM uses `shm_implicit_segment_size` **512 KiB** when `segment_size` is 0. Same-host mid-size can take that path (fragmented ~64 KiB RTPS messages). 256 KiB BestEffort is ~4 fragments plus a reassembly copy — that pair sits on the 512 KiB ceiling. 100 KiB (~2 fragments) fits. 1 MiB (~16 fragments) overflows the 512 KiB segment and stays on the already-tuned localhost UDP path (iter2 sockets + iter3/4 send-buffer pool). That matches “only BestEffort 256 KiB still on the books.”
+Humble Fast-DDS **2.6.12** builtin transports are UDPv4 + SHM. Implicit SHM `segment_size` is **512 KiB**. Same-host mid-size can take SHM (fragmented ~64 KiB RTPS messages). 256 KiB BestEffort is ~4 fragments plus a reassembly copy — that pair sits on the 512 KiB ceiling. 1 MiB (~16 fragments) does not fit; with builtin transports it already uses the tuned UDP path.
 
-XML cannot set builtin SHM `segment_size` in place. Recreating builtin UDP+SHM (`useBuiltinTransports=false` + two user transports) is how the one segment knob is applied. The UDP descriptor copies iter2’s 2 MiB `sendBufferSize` / `receiveBufferSize` so disabling builtin does not spit those back. SHM `maxMessageSize` stays the Humble default **65500** (still fragmented). 768 KiB (786432) is enough for 256+256 KiB + headers and still smaller than a 1 MiB fragment burst, so 1 MiB should remain UDP.
+**Not kept:** recreate builtin UDP+SHM with `segment_size=768 KiB` (maxMessageSize still 65500). Same-host BestEffort 256 KiB moved 1653 → 1309 µs, but BestEffort 1 MiB went **80/80 → 1/80** and Reliable 1 MiB p50 2917 → 24190 µs. Fast-DDS prefers SHM for same-host and does **not** fall back to UDP when the segment is short. Prefer not regressing 1 MiB. Discarded. Not a second knob.
 
-**Prediction:** same-host BestEffort 256 KiB (and 100 KiB) p50 moves toward iter2-after if the leftover cost was SHM-segment wait. Same-host 1 MiB BestEffort/Reliable stays within noise of iter4 (or better). Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`.
+**Prediction:** set `useBuiltinTransports=false` and attach only a UDPv4 user transport with the iter2 2 MiB socket buffers. Mid-size same-host BestEffort leaves the 512 KiB SHM ceiling and rides the already-tuned localhost UDP path. 1 MiB was already on that path and should stay within noise of iter4. Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`.
 
-This is **one knob** (SHM `segment_size`). Not a socket-buffer change. Not a send-buffer-pool change. Not the discarded unfragmented-SHM probe.
+This is **one knob** (UDP-only / no SHM). Not a socket-buffer change (2 MiB stay on the descriptor). Not a send-buffer-pool change. Not the discarded 768 KiB or unfragmented-SHM probes.
 
 This does **not** prove a Feishu / real-robot / cross-host root cause.
 
 ## Exact diff (behavior)
 
-In `config/fastdds.xml` only: add UDP+SHM user transports that match builtin defaults except SHM `segment_size=786432`, and point the default participant at them with `useBuiltinTransports=false`.
+In `config/fastdds.xml` only: one UDPv4 user transport (iter2 2 MiB buffers) and `useBuiltinTransports=false` on the default participant.
 
 ```xml
 <transport_descriptor>
-    <transport_id>shm_768k</transport_id>
-    <type>SHM</type>
-    <segment_size>786432</segment_size>
+    <transport_id>udp_v4_2m</transport_id>
+    <type>UDPv4</type>
+    <sendBufferSize>2097152</sendBufferSize>
+    <receiveBufferSize>2097152</receiveBufferSize>
 </transport_descriptor>
 ```
 
-UDP descriptor is the iter2 2 MiB pair so the path stays equivalent. `preallocated_number=32` / `dynamic=false` stay. `config/fastdds.zh.md` notes the knob.
+`preallocated_number=32` / `dynamic=false` stay. `config/fastdds.zh.md` notes the knob.
 
 ## What was NOT changed
 
