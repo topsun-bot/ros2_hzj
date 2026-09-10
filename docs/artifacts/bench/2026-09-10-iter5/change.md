@@ -1,4 +1,4 @@
-# iter5 change — UDP-only default participant (no builtin SHM)
+# iter5 change — additive mid-size SHM (maxMessageSize 280000)
 
 **One change.** Config-only. Ask a human to merge; this run does not merge.
 
@@ -16,28 +16,30 @@ iter4 kept `preallocated_number=32`, `dynamic=false`. That recovered about half 
 | BestEffort 1 MiB | 2935 → 3002 µs (+2.3%, noise of iter3; **−23%** vs iter2-after — keep) |
 | Reliable 1 MiB | 3178 → 2917 µs (−8.2% — keep) |
 
-Same-process is **out of scope**. Shrinking the 32-slab (16 / 0) stays discarded. iter3 SHM with `maxMessageSize` 2 MiB / `segment_size` 4 MiB stays discarded.
+Same-process is **out of scope**. Shrinking the 32-slab (16 / 0) stays discarded.
 
-Humble Fast-DDS **2.6.12** builtin transports are UDPv4 + SHM. Implicit SHM `segment_size` is **512 KiB**. Same-host mid-size can take SHM (fragmented ~64 KiB RTPS messages). 256 KiB BestEffort is ~4 fragments plus a reassembly copy — that pair sits on the 512 KiB ceiling. 1 MiB (~16 fragments) does not fit; with builtin transports it already uses the tuned UDP path.
+Humble Fast-DDS **2.6.12** builtin SHM `segment_size` is **512 KiB** and `maxMessageSize` is **65500**. Same-host 256 KiB BestEffort is ~4 fragments plus a reassembly copy on that ceiling.
 
-**Not kept:** recreate builtin UDP+SHM with `segment_size=768 KiB` (maxMessageSize still 65500). Same-host BestEffort 256 KiB moved 1653 → 1309 µs, but BestEffort 1 MiB went **80/80 → 1/80** and Reliable 1 MiB p50 2917 → 24190 µs. Fast-DDS prefers SHM for same-host and does **not** fall back to UDP when the segment is short. Prefer not regressing 1 MiB. Discarded. Not a second knob.
+**Not kept:** exclusive UDP+SHM with `segment_size=768 KiB`. BestEffort 256 KiB 1653 → 1309 µs, but BestEffort 1 MiB **80/80 → 1/80**. Fast-DDS prefers SHM for same-host and does not fall back to UDP when the segment is short. Discarded.
 
-**Prediction:** set `useBuiltinTransports=false` and attach only a UDPv4 user transport with the iter2 2 MiB socket buffers. Mid-size same-host BestEffort leaves the 512 KiB SHM ceiling and rides the already-tuned localhost UDP path. 1 MiB was already on that path and should stay within noise of iter4. Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`.
+**Not kept:** UDP-only (`useBuiltinTransports=false`, no SHM). BestEffort 256 KiB stayed ~1645 µs (flat vs iter4). BestEffort 1 MiB **0/90**. Replacing builtin UDP dropped the iter2 socket-buffer path. Discarded. Prefer not regressing 1 MiB.
 
-This is **one knob** (UDP-only / no SHM). Not a socket-buffer change (2 MiB stay on the descriptor). Not a send-buffer-pool change. Not the discarded 768 KiB or unfragmented-SHM probes.
+**Prediction:** keep builtin transports (iter2 2 MiB sockets still apply) and add **one** user SHM with `maxMessageSize=280000` (100/256 KiB as a single RTPS message) and `segment_size=2097152`. 1 MiB (1048576 > 280000) stays fragmented on the builtin path. This is not the discarded iter3 probe (`maxMessageSize` 2 MiB / `segment_size` 4 MiB), which sent 1 MiB unfragmented and lost ~36%. Ping-pong loads `FASTRTPS_DEFAULT_PROFILES_FILE`.
+
+This is **one knob** (additive mid-size SHM). Not a socket-buffer change. Not a send-buffer-pool change.
 
 This does **not** prove a Feishu / real-robot / cross-host root cause.
 
 ## Exact diff (behavior)
 
-In `config/fastdds.xml` only: one UDPv4 user transport (iter2 2 MiB buffers) and `useBuiltinTransports=false` on the default participant.
+In `config/fastdds.xml` only: one additive SHM transport; `useBuiltinTransports` stays true.
 
 ```xml
 <transport_descriptor>
-    <transport_id>udp_v4_2m</transport_id>
-    <type>UDPv4</type>
-    <sendBufferSize>2097152</sendBufferSize>
-    <receiveBufferSize>2097152</receiveBufferSize>
+    <transport_id>shm_midsize</transport_id>
+    <type>SHM</type>
+    <maxMessageSize>280000</maxMessageSize>
+    <segment_size>2097152</segment_size>
 </transport_descriptor>
 ```
 
