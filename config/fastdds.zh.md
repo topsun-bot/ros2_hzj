@@ -35,6 +35,8 @@ iter4 保留 iter3 的 32 块 slab（这是 1 MiB 的赢面），把 `dynamic` �
 
 iter5 只加 **一条中包 SHM**（`maxMessageSize` 280000，`segment_size` 2 MiB），builtin UDP+SHM 保留。768 KiB 独占 SHM 挽回了 BestEffort 256 KiB，但 1 MiB BestEffort 80/80 → 1/80，未保留。UDP-only 中包不动、1 MiB 全丢，未保留。100/256 KiB 可以走这条 SHM 一条消息；1 MiB 大于 280000，仍走 builtin 分片路径。不是 iter3 那次不分片 1 MiB SHM（maxMessageSize 2 MiB / 段 4 MiB）。`send_buffers` 32 / `dynamic=false` 不动。假设写在 `docs/artifacts/bench/2026-09-10-iter5/change.md`。不是现网证明。
 
+iter6 只改 **同一条** `shm_midsize` 的 `port_queue_capacity`（Humble 默认 512 → **64**）。Step A IMU 基线（64 B / 5 ms / 200 Hz）里 same-host BestEffort p50 965 µs，same-process 589 µs，所以主表是 same-host。512 深的端口是给中包 / 1 MiB 分片突发的；64 B 闭包只有 1 条在途，64 深仍装得下 1 MiB 约 16 个分片的来回。`maxMessageSize` 280000 / `segment_size` 2 MiB / socket / send_buffers 不动。独占 / 过大 SHM 仍丢弃。假设写在 `docs/artifacts/bench/2026-09-10-iter6-after/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么

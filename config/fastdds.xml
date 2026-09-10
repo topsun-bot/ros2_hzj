@@ -53,6 +53,16 @@
   (sample > 280000) on the builtin path. Not the discarded iter3
   unfragmented 1 MiB SHM probe (maxMessageSize 2 MiB / 4 MiB
   segment). send_buffers 32 / dynamic=false stay.
+
+  iter6 (one knob): right-size shm_midsize port_queue_capacity
+  from Humble default 512 to 64. IMU-scale Step A (64 B / 5 ms /
+  200 Hz) showed same-host BestEffort p50 965 µs vs same-process
+  589 µs (primary = same-host). Default 512-deep SHM port is sized
+  for bursty mid-size / 1 MiB fragment fan-out. 64 B ping-pong is
+  one-in-flight; a 64-deep port still holds a 1 MiB ~16-fragment
+  burst both ways with slack, and is the HF-sized listening queue.
+  maxMessageSize 280000 / segment 2 MiB / sockets / send_buffers
+  stay. Exclusive / oversized SHM stays discarded.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>
@@ -61,6 +71,7 @@
             <type>SHM</type>
             <maxMessageSize>280000</maxMessageSize>
             <segment_size>2097152</segment_size>
+            <port_queue_capacity>64</port_queue_capacity>
         </transport_descriptor>
     </transport_descriptors>
 
