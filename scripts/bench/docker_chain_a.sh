@@ -82,6 +82,8 @@ run_in_image() {
   bench_log "container Chain A topology=${topology} image=${IMAGE}"
   ${DOCKER_BIN} run --rm --net=host \
     --ipc=host \
+    --user "$(id -u):$(id -g)" \
+    -e HOME=/tmp \
     -v "${ROS2_HZJ_ROOT}:/work" \
     -e TOPSUN_DIMOS="${TOPSUN_DIMOS:-}" \
     -e BENCH_DATE="${DATE}" \

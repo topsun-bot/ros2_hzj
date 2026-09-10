@@ -1,0 +1,1 @@
+BENCH_SKIP_PYTEST=1 — official pytest -m tool -k dds not run (large-packet ping-pong only).

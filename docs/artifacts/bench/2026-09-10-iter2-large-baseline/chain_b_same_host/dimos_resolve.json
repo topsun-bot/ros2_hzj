@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "root": "/tmp/topsun_dimos",
+  "source": "temporary topsun_dimos checkout",
+  "label": "TOPSUN_DIMOS",
+  "git_sha": "a5259958db23c8ea6648544ed138eab19726ce93",
+  "tried": [
+    {
+      "label": "TOPSUN_DIMOS",
+      "path": "/tmp/topsun_dimos",
+      "status": "ok",
+      "detail": "ok 0",
+      "git_sha": "a5259958db23c8ea6648544ed138eab19726ce93"
+    }
+  ],
+  "pinned_sha": "a5259958db23c8ea6648544ed138eab19726ce93"
+}

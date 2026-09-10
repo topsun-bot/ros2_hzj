@@ -100,6 +100,19 @@ jobs:
           test -f docs/artifacts/bench/2026-09-10-iter1/chain_a_same_host/environment.md
           grep -q 'historyQos' config/fastdds.xml
           grep -q 'same-process' docs/artifacts/bench/2026-09-10-iter1/chain_a_same_process/environment.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/environment.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_a_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_a_same_process/raw.json
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_a_same_host/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_b_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_b_same_host/summary.md
+          grep -q '102400' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
+          grep -q '1048576' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
+          grep -q '100 ms' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
+          grep -q 'localhost UDP' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
+          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
@@ -172,6 +185,8 @@ jobs:
               Path("docs/artifacts/bench/README.md"),
               Path("docs/artifacts/bench/2026-09-10/README.md"),
               Path("docs/artifacts/bench/2026-09-10-iter1/README.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),
