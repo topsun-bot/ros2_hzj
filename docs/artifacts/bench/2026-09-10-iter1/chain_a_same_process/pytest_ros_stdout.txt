@@ -1,0 +1,43 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /work
+plugins: launch-testing-ros-0.19.14, ament-flake8-0.12.15, launch-testing-1.0.14, ament-copyright-0.12.15, ament-lint-0.12.15, ament-xmllint-0.12.15, ament-pep257-0.12.15, colcon-core-0.21.1, cov-3.0.0
+collecting ... collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+________________________ ERROR collecting test session _________________________
+/usr/lib/python3/dist-packages/pluggy/hooks.py:286: in __call__
+    return self._hookexec(self, self.get_hookimpls(), kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:92: in _hookexec
+    return self._inner_hookexec(hook, methods, kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:83: in <lambda>
+    self._inner_hookexec = lambda hook, methods, kwargs: hook.multicall(
+/usr/lib/python3/dist-packages/_pytest/python.py:200: in pytest_collect_file
+    module: Module = ihook.pytest_pycollect_makemodule(path=path, parent=parent)
+/usr/lib/python3/dist-packages/pluggy/hooks.py:286: in __call__
+    return self._hookexec(self, self.get_hookimpls(), kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:92: in _hookexec
+    return self._inner_hookexec(hook, methods, kwargs)
+/usr/lib/python3/dist-packages/pluggy/manager.py:83: in <lambda>
+    self._inner_hookexec = lambda hook, methods, kwargs: hook.multicall(
+/opt/ros/humble/lib/python3.10/site-packages/launch_testing/pytest/hooks.py:193: in pytest_pycollect_makemodule
+    entrypoint = find_launch_test_entrypoint(path)
+/opt/ros/humble/lib/python3.10/site-packages/launch_testing/pytest/hooks.py:186: in find_launch_test_entrypoint
+    module = path.pyimport()
+/usr/lib/python3/dist-packages/py/_path/local.py:704: in pyimport
+    __import__(modname)
+/usr/lib/python3/dist-packages/_pytest/assertion/rewrite.py:170: in exec_module
+    exec(co, module.__dict__)
+dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py:24: in <module>
+    from dimos.protocol.pubsub.benchmark.testdata import testcases
+dimos_bridge/dimos/protocol/pubsub/benchmark/testdata.py:22: in <module>
+    from dimos.msgs.sensor_msgs.Image import Image, ImageFormat
+dimos_bridge/dimos/msgs/sensor_msgs/Image.py:9: in <module>
+    raise ImportError(
+E   ImportError: dimos_bridge stub: module 'dimos.msgs.sensor_msgs.Image' is not vendored in ros2_hzj. See topsun_dimos @ a5259958db23c8ea6648544ed138eab19726ce93
+- generated xml file: /work/docs/artifacts/bench/2026-09-10-iter1/chain_a_same_process/pytest_ros_junit.xml -
+=========================== short test summary info ============================
+ERROR  - ImportError: dimos_bridge stub: module 'dimos.msgs.sensor_msgs.Image...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.15s ===============================
