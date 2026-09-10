@@ -4,6 +4,8 @@ Like-to-like: **Chain A** `same-process` and `same-host` only. Same `run_large_p
 
 **Do not** put these numbers in a table with Chain B. **Do not** treat same-host localhost as a Feishu / real-robot / cross-host root cause.
 
+这些对照数字 **不是** 飞书现场、实机、或跨机根因证明。
+
 Change under test: default-participant UDP socket buffers 2 MiB in `config/fastdds.xml`. See [`change.md`](change.md).
 
 Δ = after − baseline. Negative = faster. Units: microseconds RTT.
