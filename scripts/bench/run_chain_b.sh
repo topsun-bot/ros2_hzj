@@ -60,10 +60,11 @@ if [[ -z "${DIMOS_ROOT}" ]]; then
   exit 1
 fi
 
-export PYTHONPATH="${DIMOS_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="${SCRIPT_DIR}:${DIMOS_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 export TOPSUN_DIMOS="${DIMOS_ROOT}"
 
 # Official checkout pytest (throughput / drain-time; not p50).
+# -p hzj_dds_compat: host Pydantic 2.13 + DDSConfig forward-ref; does not edit DimOS.
 CHECKOUT_LOG="${OUT_DIR}/pytest_topsun_dimos_stdout.txt"
 set +e
 (
@@ -71,6 +72,7 @@ set +e
   python3 -m pytest \
     dimos/protocol/pubsub/benchmark/test_benchmark.py \
     -o addopts= \
+    -p hzj_dds_compat \
     -m tool -k dds -v \
     --tb=short \
     --junitxml="${OUT_DIR}/pytest_topsun_dimos_junit.xml"

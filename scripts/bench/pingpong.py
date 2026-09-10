@@ -54,6 +54,19 @@ def percentiles_us(samples_ns: list[int]) -> dict[str, float]:
     }
 
 
+def _rebuild_dds_config() -> None:
+    """Pydantic 2.13 needs Qos imported before DDSConfig is instantiated.
+
+    DimOS ``DDSConfig.qos`` is a forward ref (Qos imported under TYPE_CHECKING).
+    This is a bench-host shim only — it does not edit ddsservice.py.
+    """
+    from cyclonedds.qos import Qos as _Qos
+    import dimos.protocol.service.ddsservice as ddsvc
+
+    ddsvc.Qos = _Qos  # runtime name for the TYPE_CHECKING forward ref
+    ddsvc.DDSConfig.model_rebuild()
+
+
 def _qos_cyclone(kind: str) -> Any:
     from cyclonedds.qos import Policy, Qos
 
@@ -80,25 +93,12 @@ def _ensure_dimos_path(dimos_root: str | None) -> None:
         sys.path.insert(0, root)
 
 
-_PROBE_TYPE: type | None = None
-
-
 def _make_probe_type() -> type:
-    global _PROBE_TYPE
-    if _PROBE_TYPE is not None:
-        return _PROBE_TYPE
-    from dataclasses import dataclass as dc
+    # IdlStruct types cannot be defined in __main__ (uint32 fails to resolve).
+    if str(SCRIPT_DIR) not in sys.path:
+        sys.path.insert(0, str(SCRIPT_DIR))
+    from probe_types import BenchProbe
 
-    from cyclonedds.idl import IdlStruct
-    from cyclonedds.idl.types import sequence, uint32, uint64, uint8
-
-    @dc
-    class BenchProbe(IdlStruct):  # type: ignore[misc]
-        seq: uint32  # type: ignore[valid-type]
-        t0_ns: uint64  # type: ignore[valid-type]
-        payload: sequence[uint8]  # type: ignore[valid-type]
-
-    _PROBE_TYPE = BenchProbe
     return BenchProbe
 
 
@@ -114,6 +114,7 @@ def run_chain_b_same_process(
 ) -> dict[str, Any]:
     from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
 
+    _rebuild_dds_config()
     Probe = _make_probe_type()
     qos = _qos_cyclone(qos_kind)
     ping_topic = Topic(name=f"{topic_prefix}/ping", data_type=Probe)
@@ -220,7 +221,7 @@ def run_chain_b_same_host(
         text=True,
     )
     try:
-        time.sleep(0.6)
+        time.sleep(1.2)
         if resp.poll() is not None:
             out = resp.stdout.read() if resp.stdout else ""
             raise RuntimeError(f"responder exited early: {out[-2000:]}")
@@ -255,6 +256,7 @@ def _chain_b_client_only(
 ) -> dict[str, Any]:
     from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
 
+    _rebuild_dds_config()
     Probe = _make_probe_type()
     qos = _qos_cyclone(qos_kind)
     ping_topic = Topic(name=f"{topic_prefix}/ping", data_type=Probe)
@@ -275,7 +277,7 @@ def _chain_b_client_only(
                 ev.set()
 
     bus.subscribe(pong_topic, on_pong)
-    time.sleep(0.25)
+    time.sleep(0.5)
 
     payload = list(bytes(i % 256 for i in range(msg_size)))
     rtt_ns: list[int] = []
@@ -321,6 +323,7 @@ def _chain_b_client_only(
 def responder_chain_b(*, qos_kind: str, topic_prefix: str, domain_id: int) -> None:
     from dimos.protocol.pubsub.impl.ddspubsub import DDS, Topic
 
+    _rebuild_dds_config()
     Probe = _make_probe_type()
     qos = _qos_cyclone(qos_kind)
     ping_topic = Topic(name=f"{topic_prefix}/ping", data_type=Probe)
