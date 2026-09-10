@@ -113,6 +113,16 @@ jobs:
           grep -q '100 ms' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
           grep -q 'localhost UDP' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
           grep -q '飞书' docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/README.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/change.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/delta.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/environment.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/chain_a_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/chain_a_same_host/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter2-after/chain_a_same_host/raw.json
+          grep -q 'sendSocketBufferSize' config/fastdds.xml
+          grep -q '2097152' config/fastdds.xml
+          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter2-after/delta.md
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
@@ -187,6 +197,9 @@ jobs:
               Path("docs/artifacts/bench/2026-09-10-iter1/README.md"),
               Path("docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md"),
               Path("docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter2-after/README.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter2-after/change.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter2-after/delta.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),
