@@ -27,6 +27,8 @@ source config/env/chain_a.sh
 
 未 source 时，Humble 仍用发行版默认 RMW / 域 0——这是现状，不是本文件的静默生效。
 
+iter2 在默认 participant 上加了 **一对** UDP socket buffer（send/listen 各 2 MiB）。这是大包 RTT 的**一个**旋钮，假设写在 `docs/artifacts/bench/2026-09-10-iter2-after/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么
