@@ -27,6 +27,8 @@ source config/env/chain_a.sh
 
 未 source 时，Humble 仍用发行版默认 RMW / 域 0——这是现状，不是本文件的静默生效。
 
+Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
+
 ## 不是什么
 
 - 不是自定义 RMW
