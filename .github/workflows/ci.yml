@@ -133,6 +133,17 @@ jobs:
           grep -q 'send_buffers' config/fastdds.xml
           grep -q 'preallocated_number' config/fastdds.xml
           grep -q '飞书' docs/artifacts/bench/2026-09-10-iter3/delta.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/README.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/change.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/delta.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/environment.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/chain_a_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/chain_a_same_host/summary.md
+          test -f docs/artifacts/bench/2026-09-10-iter4/chain_a_same_host/raw.json
+          grep -q 'send_buffers' config/fastdds.xml
+          grep -q 'preallocated_number' config/fastdds.xml
+          grep -q 'dynamic>false' config/fastdds.xml
+          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter4/delta.md
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
@@ -213,6 +224,10 @@ jobs:
               Path("docs/artifacts/bench/2026-09-10-iter3/README.md"),
               Path("docs/artifacts/bench/2026-09-10-iter3/change.md"),
               Path("docs/artifacts/bench/2026-09-10-iter3/delta.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter4/README.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter4/change.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter4/delta.md"),
+              Path("docs/artifacts/bench/2026-09-10-iter4/environment.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),

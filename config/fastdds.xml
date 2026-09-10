@@ -32,6 +32,15 @@
   (block when empty). 1 MiB / ~64 KiB ≈ 16 fragments. Not SHM,
   not a second socket-buffer knob. SHM maxMessageSize probe
   regressed same-host 1 MiB and was not kept.
+
+  iter4 (one knob): keep the iter3 32-buffer slab (that is the 1 MiB
+  win) and set dynamic=false. Humble Fast-DDS 2.6.12 get_buffer
+  allocates a new RTPSMessageGroup_t on the hot path when the pool
+  is empty and dynamic=true. Mid-size same-host Reliable was the
+  booked +23–24% tax; a grow is more expensive than a short wait
+  if 32 is usually enough. 16 and 0 probes (dynamic still true)
+  did not recover mid-size; 0 erased the 1 MiB win. Not SHM, not
+  a second socket-buffer knob.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <participant profile_name="ros2_hzj_chain_a_contract_seed" is_default_profile="true">
@@ -43,7 +52,7 @@
             <allocation>
                 <send_buffers>
                     <preallocated_number>32</preallocated_number>
-                    <dynamic>true</dynamic>
+                    <dynamic>false</dynamic>
                 </send_buffers>
             </allocation>
         </rtps>
