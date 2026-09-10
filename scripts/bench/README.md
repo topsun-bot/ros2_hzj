@@ -76,7 +76,7 @@ Each successful (or blocked) run writes:
 
 See [docs/usage/benchmark-dds.md](../../docs/usage/benchmark-dds.md).
 
-## Large-packet cases (iter2 / iter3 / iter4)
+## Large-packet cases (iter2 / iter3 / iter4 / iter5)
 
 Default sizes stay `64,1024,16384,65536`. Feishu / lidar-ish cases are **opt-in**:
 
@@ -97,6 +97,12 @@ BENCH_DATE=2026-09-10-iter3 \
 
 # iter4 remasure (Chain A only; like-to-like vs iter3, honesty vs iter2-after):
 BENCH_DATE=2026-09-10-iter4 \
+  CHAIN_A_IMAGE=osrf/ros:humble-desktop \
+  LARGE_PACKET_CHAINS=A \
+  ./scripts/bench/run_large_packet.sh
+
+# iter5 remasure (Chain A only; like-to-like vs iter4, honesty vs iter2-after):
+BENCH_DATE=2026-09-10-iter5 \
   CHAIN_A_IMAGE=osrf/ros:humble-desktop \
   LARGE_PACKET_CHAINS=A \
   ./scripts/bench/run_large_packet.sh
