@@ -124,12 +124,15 @@ def _wait_interval(last_pub_ns: int | None, interval_ms: float) -> None:
 def _case_pacing(interval_ms: float) -> dict[str, Any]:
     if interval_ms > 0:
         hz = 1000.0 / interval_ms
+        scale = (os.environ.get("BENCH_SCALE_LABEL") or "").strip()
+        scale_bit = f", {scale}" if scale else ""
         return {
             "inter_message_gap_ms": interval_ms,
             "target_publish_hz": hz,
+            "scale_label": scale or None,
             "pacing": (
                 f"minimum inter-publish gap {interval_ms:g} ms "
-                f"(target {hz:.4g} Hz, lidar-ish); "
+                f"(target {hz:.4g} Hz{scale_bit}); "
                 "if RTT exceeds the gap, the next ping waits for pong first "
                 "(closed-loop; effective rate is 1/RTT)"
             ),
@@ -1024,6 +1027,7 @@ def main() -> int:
             (1000.0 / args.interval_ms) if args.interval_ms > 0 else None
         ),
         "ros_msg": args.ros_msg if args.chain == "A" else None,
+        "scale_label": (os.environ.get("BENCH_SCALE_LABEL") or "").strip() or None,
         "note": (
             "Per-message RTT from a thin wrapper. Not a root-cause claim. "
             "Do not compare Chain A and Chain B in one table. "

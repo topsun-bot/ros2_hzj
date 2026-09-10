@@ -113,9 +113,37 @@ That wrapper sets `BENCH_SIZES`, `BENCH_INTERVAL_MS=100`, `BENCH_SAMPLES=80`,
 `BENCH_SKIP_PYTEST=1`. Chain A runs in `osrf/ros:humble-desktop` unless
 `CHAIN_A_IMAGE` is set. Chain B `same-host` is localhost UDP (no RouDi), **not** SHM.
 
+## High-frequency IMU-scale cases (iter6)
+
+Small-packet HF cases are **opt-in** and stay in their own date dirs (do **not**
+mix with the 100 KiB–1 MiB lidar tables):
+
+```bash
+# Exact payload: 64 B compact 6-axis IMU (ts + accel xyz + gyro xyz + seq).
+# Inter-message gap: 5 ms (target 200 Hz). If RTT > 5 ms, effective rate is 1/RTT.
+# Chain A uses std_msgs/UInt8MultiArray (same contiguous path as large-packet).
+BENCH_DATE=2026-09-10-iter6-imu-baseline \
+  CHAIN_A_IMAGE=osrf/ros:humble-desktop \
+  IMU_HF_CHAINS=A \
+  ./scripts/bench/run_imu_hf.sh
+
+# iter6 Step B remasure (Chain A only; like-to-like vs Step A):
+BENCH_DATE=2026-09-10-iter6-after \
+  CHAIN_A_IMAGE=osrf/ros:humble-desktop \
+  IMU_HF_CHAINS=A \
+  ./scripts/bench/run_imu_hf.sh
+```
+
+That wrapper sets `BENCH_SIZES=64`, `BENCH_INTERVAL_MS=5`, `BENCH_SAMPLES=400`,
+`BENCH_WARMUP=40`, `BENCH_TIMEOUT=1`, `BENCH_ROS_MSG=uint8_multiarray`,
+`BENCH_SCALE_LABEL=IMU-ish`, `BENCH_SKIP_PYTEST=1`. Chain A
+`same-process` + `same-host` at minimum. Chain B is optional (`IMU_HF_CHAINS='A B'`)
+and must stay in **separate** tables.
+
 Documented in each `raw.json` / `summary.md`: exact payload length, gap/Hz,
-topology label, chain. **Never** one mixed A-vs-B table. Cross-host UDP stays
-blocked on a single VM. These numbers are **not** real-robot or Feishu-field proof.
+topology label, chain, timeouts/loss. **Never** one mixed A-vs-B table. Cross-host
+UDP stays blocked on a single VM. These numbers are **not** real-robot or
+Feishu-field proof.
 
 `pingpong.py` flags: `--sizes`, `--interval-ms`, `--timeout`, `--warmup`, `--samples`,
 `--ros-msg uint8_multiarray`.

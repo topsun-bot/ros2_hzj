@@ -94,6 +94,7 @@ run_in_image() {
     -e BENCH_TIMEOUT="${BENCH_TIMEOUT:-}" \
     -e BENCH_INTERVAL_MS="${BENCH_INTERVAL_MS:-}" \
     -e BENCH_ROS_MSG="${BENCH_ROS_MSG:-}" \
+    -e BENCH_SCALE_LABEL="${BENCH_SCALE_LABEL:-}" \
     -e BENCH_SKIP_PYTEST="${BENCH_SKIP_PYTEST:-}" \
     -w /work \
     "${IMAGE}" \

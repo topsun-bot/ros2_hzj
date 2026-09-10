@@ -19,6 +19,7 @@ export BENCH_TIMEOUT="${BENCH_TIMEOUT:-8}"
 export BENCH_SKIP_PYTEST="${BENCH_SKIP_PYTEST:-1}"
 # Contiguous uint8 — Humble ByteMultiArray (1 Python bytes/octet) is not viable at ≥100KiB.
 export BENCH_ROS_MSG="${BENCH_ROS_MSG:-uint8_multiarray}"
+export BENCH_SCALE_LABEL="${BENCH_SCALE_LABEL:-lidar-ish}"
 
 CHAINS="${LARGE_PACKET_CHAINS:-A B}"
 # same-process + same-host only. cross-host-UDP is recorded blocked (single VM).
