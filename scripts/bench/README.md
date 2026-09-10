@@ -76,7 +76,7 @@ Each successful (or blocked) run writes:
 
 See [docs/usage/benchmark-dds.md](../../docs/usage/benchmark-dds.md).
 
-## Large-packet cases (iter2 / iter3)
+## Large-packet cases (iter2 / iter3 / iter4)
 
 Default sizes stay `64,1024,16384,65536`. Feishu / lidar-ish cases are **opt-in**:
 

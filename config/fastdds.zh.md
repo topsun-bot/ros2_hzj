@@ -31,7 +31,7 @@ iter2 在默认 participant 上加了 **一对** UDP socket buffer（send/listen
 
 iter3 在同一默认 participant 上加了 **一个** RTPS send-buffer 池（`preallocated_number` 32，`dynamic` true）。Humble Fast-DDS 2.6 默认 `preallocated_number=0`（按发送线程猜）、`dynamic=false`（池空就等）。1 MiB 大约 16 个 ~64 KiB 分片。不是 SHM，也不是第二个 socket-buffer 旋钮。SHM `maxMessageSize` 探测让 same-host 1 MiB 变慢，未保留。假设写在 `docs/artifacts/bench/2026-09-10-iter3/change.md`。不是现网证明。
 
-iter4 把同一个 send-buffer 池的 `preallocated_number` 从 32 **收成 0**（默认按发送线程猜，`dynamic` 仍为 true）。32（以及 16 探测）是账上 same-host 100/256 KiB p50 相对 iter2-after 变慢的税；中包大约 2–4 个分片，不需要按 1 MiB 预留整块 slab。1 MiB 不够就增长、不必空池死等。不是 SHM，也不是第二个 socket-buffer 旋钮。32→16 探测没挽回 same-host 中包，未保留。假设写在 `docs/artifacts/bench/2026-09-10-iter4/change.md`。不是现网证明。
+iter4 保留 iter3 的 32 块 slab（这是 1 MiB 的赢面），把 `dynamic` 改成 **false**。Humble Fast-DDS 2.6.12 在池空且 dynamic=true 时会在热路径 `new` 一块 buffer；中包 Reliable 账上 +23–24%。32 通常够用时，短等比现场分配便宜。16 / 0 且 dynamic=true 的探测没挽回 mid-size；0 还把 1 MiB 赢面吃掉了，未保留。不是 SHM，也不是第二个 socket-buffer 旋钮。假设写在 `docs/artifacts/bench/2026-09-10-iter4/change.md`。不是现网证明。
 
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
