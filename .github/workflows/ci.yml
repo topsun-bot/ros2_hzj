@@ -167,6 +167,7 @@ jobs:
           grep -q '64' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
           grep -q '200 Hz' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
           grep -q '5 ms' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
+          grep -q 'jitter' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
           grep -q '280000' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/NOTES.md
           grep -q '飞书' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/NOTES.md
           grep -q '飞书' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/environment.md
@@ -180,6 +181,7 @@ jobs:
           grep -q '64' docs/artifacts/bench/2026-09-10-iter6-after/README.md
           grep -q 'port_queue_capacity' docs/artifacts/bench/2026-09-10-iter6-after/change.md
           grep -q '飞书' docs/artifacts/bench/2026-09-10-iter6-after/delta.md
+          grep -q 'jitter' docs/artifacts/bench/2026-09-10-iter6-after/delta.md
           grep -q 'shm_midsize' config/fastdds.xml
           grep -q '280000' config/fastdds.xml
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
