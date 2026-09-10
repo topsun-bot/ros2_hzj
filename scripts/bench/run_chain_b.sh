@@ -17,6 +17,11 @@ bench_mkdir "${OUT_DIR}"
 bench_log "Chain B topology=${TOPOLOGY} artifacts=${OUT_DIR}"
 bench_log "Do not source chain_a.sh for native Cyclone DDS"
 
+if [[ "${BENCH_SKIP_PIP:-}" != "1" && -f "${SCRIPT_DIR}/requirements-chain-b.txt" ]]; then
+  python3 -m pip install --user -q -r "${SCRIPT_DIR}/requirements-chain-b.txt" || \
+    bench_log "pip install requirements-chain-b.txt failed (continuing)"
+fi
+
 # Official in-tree path first (expected to fail on dimos_bridge stubs).
 BRIDGE_PYTEST_LOG="${OUT_DIR}/pytest_dimos_bridge_attempt.txt"
 set +e

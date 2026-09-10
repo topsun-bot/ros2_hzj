@@ -31,6 +31,10 @@ That wrapper:
 4. Runs `pingpong.py` for per-message RTT p50 / p95 / p99 (the pytest harness
    is a throughput / drain-time bench, not per-message percentiles).
 
+Host pip extras for the checkout pytest path:
+`python3 -m pip install --user -r scripts/bench/requirements-chain-b.txt`
+(also installed automatically by `run_chain_b.sh` unless `BENCH_SKIP_PIP=1`).
+
 ### Chain A (ROS 2 Fast-DDS / domain 42)
 
 ```bash

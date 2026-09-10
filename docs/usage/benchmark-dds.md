@@ -9,7 +9,7 @@
 - 链 B：`./scripts/bench/run_chain_b.sh` → 文档里的 `pytest -m tool -k dds`，再加一层 **不改** `ddspubsub` 的 ping-pong 包分位
 - 链 A：先 `source config/env/chain_a.sh`，再 `./scripts/bench/run_chain_a.sh`；本机没有 Humble 时看 `STATUS: blocked` 和 [`scripts/bench/docker_chain_a.sh`](../../scripts/bench/docker_chain_a.sh)
 
-已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)（按 UTC 日期分子目录；链 A / 链 B 分文件）。
+已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)。本次基线：[`docs/artifacts/bench/2026-09-10/`](../../docs/artifacts/bench/2026-09-10/README.md)（链 A / 链 B 分文件；`same-process` 与 `same-host` 分文件）。
 
 源码在本仓：[`dimos_bridge/dimos/protocol/pubsub/benchmark/`](../../dimos_bridge/dimos/protocol/pubsub/benchmark/)。  
 这是从 `topsun_dimos` 整目录拷来的；默认传输仍是 LCM（**不在**本仓 DDS 范围）。完整 DimOS 依赖（`uv` extra、消息类型、非 stub 模块）仍在上游仓。本仓缺那些依赖时，下列命令会在 import 处失败——那是环境问题，不是「已经测过」。

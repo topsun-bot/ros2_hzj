@@ -1,0 +1,20 @@
+# Host packages used to run Chain B pytest + pingpong on this VM.
+# Does not change DimOS extras. Official DimOS path is still: uv sync --extra dds
+cyclonedds>=0.10.5
+pytest
+rich
+pydantic
+structlog
+colorlog
+numpy
+opencv-python-headless
+dimos-lcm
+reactivex
+lazy_loader
+plum-dispatch
+rerun-sdk>=0.20.0
+sortedcontainers==2.4.0
+python-dotenv
+rpyc
+pydantic-settings
+annotation-protocol

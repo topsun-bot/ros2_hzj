@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.134" timestamp="2026-09-10T16:35:43.495421+00:00" hostname="cursor"><testcase classname="" name="dimos_bridge.dimos.protocol.pubsub.benchmark.test_benchmark" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dimos_bridge/dimos/protocol/pubsub/benchmark/test_benchmark.py:24: in &lt;module&gt;
+    from dimos.protocol.pubsub.benchmark.testdata import testcases
+dimos_bridge/dimos/protocol/pubsub/benchmark/testdata.py:22: in &lt;module&gt;
+    from dimos.msgs.sensor_msgs.Image import Image, ImageFormat
+dimos_bridge/dimos/msgs/sensor_msgs/Image.py:9: in &lt;module&gt;
+    raise ImportError(
+E   ImportError: dimos_bridge stub: module 'dimos.msgs.sensor_msgs.Image' is not vendored in ros2_hzj. See topsun_dimos @ a5259958db23c8ea6648544ed138eab19726ce93</error></testcase></testsuite></testsuites>

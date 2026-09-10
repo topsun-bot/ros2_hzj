@@ -77,6 +77,13 @@ jobs:
           test -f scripts/bench/pingpong.py
           test -f scripts/bench/docker_chain_a.sh
           test -f docs/artifacts/bench/README.md
+          test -f docs/artifacts/bench/2026-09-10/README.md
+          test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/raw.json
+          test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
+          test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/environment.md
+          grep -q 'STATUS' docs/artifacts/bench/2026-09-10/chain_a_same_process/environment.md
+          grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
           grep -q 'domainId>42' config/fastdds.xml
           grep -q 'rmw_fastrtps_cpp' config/env/chain_a.sh
           grep -q 'ROS_DOMAIN_ID=42' config/env/chain_a.sh
@@ -144,6 +151,7 @@ jobs:
               Path("docs/usage/benchmark-dds.md"),
               Path("scripts/bench/README.md"),
               Path("docs/artifacts/bench/README.md"),
+              Path("docs/artifacts/bench/2026-09-10/README.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),
