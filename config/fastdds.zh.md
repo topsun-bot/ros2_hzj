@@ -33,6 +33,8 @@ iter3 在同一默认 participant 上加了 **一个** RTPS send-buffer 池（`p
 
 iter4 保留 iter3 的 32 块 slab（这是 1 MiB 的赢面），把 `dynamic` 改成 **false**。Humble Fast-DDS 2.6.12 在池空且 dynamic=true 时会在热路径 `new` 一块 buffer；中包 Reliable 账上 +23–24%。32 通常够用时，短等比现场分配便宜。16 / 0 且 dynamic=true 的探测没挽回 mid-size；0 还把 1 MiB 赢面吃掉了，未保留。不是 SHM，也不是第二个 socket-buffer 旋钮。假设写在 `docs/artifacts/bench/2026-09-10-iter4/change.md`。不是现网证明。
 
+iter5 只改 **builtin SHM `segment_size`**（512 KiB → 768 KiB）。Humble 默认隐式段是 512 KiB；256 KiB BestEffort（约 4 个 64 KiB 分片再加一份重组）顶在这个天花板上，100 KiB 还能放下，1 MiB 溢到已经调过的 UDP。关掉 `useBuiltinTransports` 才能写段大小；UDP 描述符保住 iter2 的 2 MiB socket。SHM `maxMessageSize` 仍是 65500，不是 iter3 那次 2 MiB / 4 MiB 探测。`send_buffers` 32 / `dynamic=false` 不动。假设写在 `docs/artifacts/bench/2026-09-10-iter5/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么

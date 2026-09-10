@@ -41,14 +41,42 @@
   if 32 is usually enough. 16 and 0 probes (dynamic still true)
   did not recover mid-size; 0 erased the 1 MiB win. Not SHM, not
   a second socket-buffer knob.
+
+  iter5 (one knob): builtin SHM segment_size 512 KiB → 768 KiB.
+  Humble implicit SHM segment is 512 KiB. 256 KiB BestEffort
+  (~4 × 64 KiB fragments plus a reassembly copy) sits on that
+  ceiling; 100 KiB fits; 1 MiB overflows to the already-tuned
+  UDP path. Recreate builtin UDP+SHM so the segment can be set
+  (useBuiltinTransports false). UDP descriptor keeps iter2 2 MiB
+  sockets. SHM maxMessageSize stays 65500 (not the discarded
+  iter3 2 MiB / 4 MiB probe). send_buffers 32 / dynamic=false stay.
 -->
 <profiles xmlns="http://www.eprosima.com">
+    <transport_descriptors>
+        <transport_descriptor>
+            <transport_id>udp_v4_2m</transport_id>
+            <type>UDPv4</type>
+            <sendBufferSize>2097152</sendBufferSize>
+            <receiveBufferSize>2097152</receiveBufferSize>
+        </transport_descriptor>
+        <transport_descriptor>
+            <transport_id>shm_768k</transport_id>
+            <type>SHM</type>
+            <segment_size>786432</segment_size>
+        </transport_descriptor>
+    </transport_descriptors>
+
     <participant profile_name="ros2_hzj_chain_a_contract_seed" is_default_profile="true">
         <domainId>42</domainId>
         <rtps>
             <name>ros2_hzj_chain_a_contract_seed</name>
             <sendSocketBufferSize>2097152</sendSocketBufferSize>
             <listenSocketBufferSize>2097152</listenSocketBufferSize>
+            <useBuiltinTransports>false</useBuiltinTransports>
+            <userTransports>
+                <transport_id>udp_v4_2m</transport_id>
+                <transport_id>shm_768k</transport_id>
+            </userTransports>
             <allocation>
                 <send_buffers>
                     <preallocated_number>32</preallocated_number>
