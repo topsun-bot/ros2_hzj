@@ -75,6 +75,9 @@ Each successful (or blocked) run writes:
   whether DimOS came from vendored `dimos_bridge` or a temporary checkout
 
 See [docs/usage/benchmark-dds.md](../../docs/usage/benchmark-dds.md).
+Current best config + booked same-host tables (no new knob):
+[docs/artifacts/bench/SCOREBOARD.md](../../docs/artifacts/bench/SCOREBOARD.md).
+Those numbers are **not** Feishu field proof.
 
 ## Large-packet cases (iter2 / iter3 / iter4 / iter5)
 
