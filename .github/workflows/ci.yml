@@ -16,6 +16,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f docs/architecture/ros2-dds-r0-interface-freeze.md
+          test -f docs/architecture/nitros-vs-dual-chain.md
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -153,6 +154,7 @@ jobs:
           files = [
               Path("README.md"),
               Path("docs/architecture/ros2-dds-r0-interface-freeze.md"),
+              Path("docs/architecture/nitros-vs-dual-chain.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
               Path("docs/usage/benchmark-dds.md"),

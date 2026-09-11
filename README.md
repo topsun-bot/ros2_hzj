@@ -77,6 +77,7 @@
 - IMU 尺度高频小包：64 B / 200 Hz 下以 **jitter**（RTT p95/p99 与到达间隔）为主指标，而不是 p50/均值（iter6）。
 - vendor 整树 vs 发行版 RMW：对照编译、中间件行为补丁仍 Hold；本仓没有自定义 RMW。
 - 缺件诚实记录：单机上 `cross-host-UDP` 必须标 blocked，而不是填假分位数。
+- 公开 Isaac NITROS（Humble 类型适配/协商、同进程 GPU 零拷贝）能帮 CPU↔加速器，**不能**代替跨机 UDP、域 42/0 隔离或 Fast-DDS XML 旋钮；Vendor Isaac = Hold。对照：[NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md)。
 
 # 总体计划（约一个月）
 
@@ -185,15 +186,13 @@ Humble 镜像（[`docker/ros/install-runtime.sh`](docker/ros/install-runtime.sh)
 |------|------|
 | [`docker/ros/Dockerfile`](docker/ros/Dockerfile) | Humble `base` → `runtime` 组装 |
 | [`install-base.sh`](docker/ros/install-base.sh) / [`install-runtime.sh`](docker/ros/install-runtime.sh) | 拆出的安装阶段（R3，安装语义不变） |
-| [`dimos_bridge/docker/ros/Dockerfile`](dimos_bridge/docker/ros/Dockerfile) | 历史路径兼容包装，同一套脚本 |
 
 ```bash
 # 必须从仓库根做 context
 docker build -f docker/ros/Dockerfile .
-docker build -f dimos_bridge/docker/ros/Dockerfile .
 ```
 
-两条命令应装同一组包。本拆分**没有**导航专用镜像，也没有写入域 42。不要把未核验的 DockerHub 宣传 tag 当成已发布制品。
+`dimos_bridge/docker/ros/Dockerfile` 历史包装**不在本树**。本拆分**没有**导航专用镜像，也没有写入域 42。不要把未核验的 DockerHub 宣传 tag 当成已发布制品。
 
 # 快速开始
 
@@ -267,7 +266,7 @@ source config/env/chain_a.sh
 
 ## 文档
 
-- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
+- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
 - [Bench 怎么跑](docs/usage/benchmark-dds.md) · [Bench 产物](docs/artifacts/bench/README.md)
 - [env helper](config/env/README.md) · [fastdds.xml 说明](config/fastdds.zh.md) · [vendor SHA](vendor/VERSIONS.md)
 
