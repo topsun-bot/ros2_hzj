@@ -37,6 +37,8 @@ iter5 只加 **一条中包 SHM**（`maxMessageSize` 280000，`segment_size` 2 M
 
 iter6 先钉 IMU **64 B / 200 Hz**（Step A，无新旋钮），再探测把同一条 `shm_midsize` 的 `port_queue_capacity` 从 512 收到 64。主指标是 **jitter**（RTT p95/p99 + 到达间隔），不是 p50。same-host BestEffort RTT p95 1205 → 1234 µs（+2.4%），到达 \|I−5 ms\| p95 488 → 568 µs。**未保留**。落地 XML 仍是 iter5 种子（280000 / 2 MiB，builtin 开，socket + send_buffers 不动）。1 MiB 赢面未擦。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-10-iter6-after/change.md`。不是现网证明。
 
+iter7 只改同一条 `shm_midsize` 的 `healthy_check_timeout_ms`（1000 → 10000）。Humble Fast-DDS 2.6 默认 1000 ms；SHM 端口监视线程超时后会拿 `empty_cv_mutex`。IMU 64 B / 200 Hz 单飞约 2 s。主指标是 **jitter**（RTT p95/p99 + 到达间隔），不是 p50。same-host BestEffort RTT p95 1205 → 1148 µs（−4.8%），到达 \|I−5 ms\| p95 488 → 375 µs。**保留**。中包 SHM 280000 / 2 MiB、socket 2 MiB、`send_buffers` 32 / `dynamic=false` 不动。不是 `port_queue_capacity`（已丢）。1 MiB 仍走 builtin 分片（样本 > 280000），same-host 点检未回吐 iter5。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-11-iter7/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么
