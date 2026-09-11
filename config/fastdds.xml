@@ -74,17 +74,14 @@
   280000); same-host 1 MiB spot stayed at iter5. Exclusive /
   oversized SHM stays discarded.
 
-  iter8 (one knob): default-participant SIMPLE discovery
-  leaseAnnouncement 3 s → 15 s. Humble Fast-DDS 2.6 default
-  leaseDuration_announcementperiod is {3,0}. After initial
-  announcements, PDP resend_participant_info_event_ fires on
-  that period. IMU same-host is ~5 s of 64 B / 5 ms traffic;
-  a 3 s SPDP write shares the SHM/UDP path and can land in
-  p95/p99 / arrival |I−5 ms|. 15 s stays under the default
-  20 s leaseDuration (not a second knob) so peers do not
-  expire. Not healthy_check / port_queue / sockets /
-  send_buffers / mid-size SHM size. Exclusive / oversized
-  SHM stays discarded.
+  iter8 probe (not kept): default-participant SIMPLE discovery
+  leaseAnnouncement 3 s → 15 s. Gate is jitter vs iter7, not
+  p50: same-host BestEffort RTT p95 1148 → 1104 µs on the
+  official run but arrival |I−5 ms| p95 375 → 448 µs; a
+  same-host repeat lost the RTT win (p95 1174) and widened
+  arrival to 526 µs. Reverted. Not healthy_check (kept) /
+  port_queue (discarded) / sockets / send_buffers / mid-size
+  SHM size. Exclusive / oversized SHM stays discarded.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>
@@ -113,14 +110,6 @@
                     <dynamic>false</dynamic>
                 </send_buffers>
             </allocation>
-            <builtin>
-                <discovery_config>
-                    <leaseAnnouncement>
-                        <sec>15</sec>
-                        <nanosec>0</nanosec>
-                    </leaseAnnouncement>
-                </discovery_config>
-            </builtin>
         </rtps>
     </participant>
 
