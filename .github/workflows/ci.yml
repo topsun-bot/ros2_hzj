@@ -78,6 +78,7 @@ jobs:
           test -f scripts/bench/docker_chain_a.sh
           test -f scripts/bench/run_large_packet.sh
           test -f scripts/bench/run_imu_hf.sh
+          test -f scripts/bench/run_cross_host_a.sh
           test -f scripts/bench/write_delta.py
           test -f docs/artifacts/bench/README.md
           test -f docs/artifacts/bench/2026-09-10/README.md
@@ -251,6 +252,17 @@ jobs:
           grep -q '5efbca3' docs/artifacts/bench/SCOREBOARD.md
           grep -q '2026-09-10-iter5' docs/artifacts/bench/SCOREBOARD.md
           grep -q '2026-09-11-iter7' docs/artifacts/bench/SCOREBOARD.md
+          test -f docs/artifacts/bench/2026-09-11-cross-host/README.md
+          test -f docs/artifacts/bench/2026-09-11-cross-host/summary.md
+          test -f docs/artifacts/bench/2026-09-11-cross-host/raw.json
+          test -f docs/artifacts/bench/2026-09-11-cross-host/environment.md
+          test -f docs/artifacts/bench/2026-09-11-cross-host/BLOCKED.txt
+          grep -q 'blocked' docs/artifacts/bench/2026-09-11-cross-host/README.md
+          grep -q 'blocked' docs/artifacts/bench/2026-09-11-cross-host/environment.md
+          grep -q '飞书' docs/artifacts/bench/2026-09-11-cross-host/README.md
+          grep -q 'Not Feishu field proof' docs/artifacts/bench/2026-09-11-cross-host/README.md
+          grep -q '2026-09-11-cross-host' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'run_cross_host_a.sh' docs/artifacts/bench/SCOREBOARD.md
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
@@ -359,6 +371,9 @@ jobs:
               Path("docs/artifacts/bench/2026-09-11-iter9/delta.md"),
               Path("docs/artifacts/bench/2026-09-11-iter9/environment.md"),
               Path("docs/artifacts/bench/SCOREBOARD.md"),
+              Path("docs/artifacts/bench/2026-09-11-cross-host/README.md"),
+              Path("docs/artifacts/bench/2026-09-11-cross-host/environment.md"),
+              Path("docs/artifacts/bench/2026-09-11-cross-host/summary.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),

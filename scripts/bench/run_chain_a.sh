@@ -40,6 +40,8 @@ write_cross_host_blocked() {
 }
 
 if [[ "${TOPOLOGY}" == "cross-host-UDP" ]]; then
+  # Single-host runner stays blocked. Two-machine recipe:
+  # scripts/bench/run_cross_host_a.sh (ROLE=responder on host B, ROLE=client on host A).
   write_cross_host_blocked
   exit 0
 fi

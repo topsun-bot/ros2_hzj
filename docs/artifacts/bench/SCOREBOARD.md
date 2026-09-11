@@ -137,4 +137,14 @@ same-process tables exist for honesty only. **Do not tune** for them.
 - Not a keep of leaseAnnouncement, WLP off, `port_queue_capacity` 64, exclusive SHM, or oversized SHM.
 - Not 《3》90%/LLM scoring, 《4》Mac/preprod, 《5》Promptfoo, or 《6》CVE.
 
+## Cross-host UDP baseline status
+
+**STATUS: blocked** on this SCOREBOARD host (single `cursor-cloud-vm`). No second machine, so **no p50 / p95 / p99**. Do not invent numbers.
+
+Recipe + runner (two real hosts later): [`scripts/bench/run_cross_host_a.sh`](../../../scripts/bench/run_cross_host_a.sh). How-to: [`scripts/bench/README.md`](../../../scripts/bench/README.md). Placeholder artifacts: [`2026-09-11-cross-host/`](2026-09-11-cross-host/README.md).
+
+This section is a **pointer only**. It does **not** change current best config, booked same-host tables, or the iter7 `fastdds.xml` seed.
+
+**不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
+
 Index of every dated run: [`README.md`](README.md). How to re-run: [`docs/usage/benchmark-dds.md`](../../usage/benchmark-dds.md), [`scripts/bench/README.md`](../../../scripts/bench/README.md).
