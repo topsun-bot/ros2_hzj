@@ -800,7 +800,7 @@ def run_chain_a_same_process(
 def responder_chain_a(
     *, qos_kind: str, topic_prefix: str, ros_msg: str = "byte_multiarray"
 ) -> None:
-    """Echo process for Chain A same-host (two OS processes, one machine)."""
+    """Echo process for Chain A same-host or cross-host-UDP (role=responder)."""
     import rclpy
 
     Msg = _chain_a_msg_cls(ros_msg)
@@ -836,6 +836,7 @@ def _chain_a_client_only(
     topic_prefix: str,
     interval_ms: float = 0.0,
     ros_msg: str = "byte_multiarray",
+    discover_s: float = 1.2,
 ) -> dict[str, Any]:
     import rclpy
 
@@ -877,7 +878,8 @@ def _chain_a_client_only(
         th = threading.Thread(target=spin, daemon=True)
         th.start()
         # Discovery between two Fast-DDS participants; do not assume SHM.
-        time.sleep(1.2)
+        # same-host default 1.2 s; cross-host UDP may pass a longer wait.
+        time.sleep(max(0.0, discover_s))
 
         pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
         rtt_ns: list[int] = []
@@ -1042,6 +1044,21 @@ def main() -> int:
     p.add_argument("--dimos-root", default=os.environ.get("TOPSUN_DIMOS", ""))
     p.add_argument("--out", default="")
     p.add_argument(
+        "--remote-peer",
+        default="",
+        help=(
+            "Other host identity for cross-host-UDP (hostname or address). "
+            "Required with --role client --topology cross-host-UDP; omit to record blocked. "
+            "Existing run_chain_a.sh / docker_chain_a.sh stay blocked without this flag."
+        ),
+    )
+    p.add_argument(
+        "--discover-s",
+        type=float,
+        default=1.2,
+        help="Seconds to wait for DDS discovery before first ping (same-host default 1.2).",
+    )
+    p.add_argument(
         "--iceoryx",
         choices=("default", "off"),
         default="default",
@@ -1049,7 +1066,13 @@ def main() -> int:
     )
     args = p.parse_args()
 
-    if args.topology == "cross-host-UDP":
+    # Default client path stays blocked so existing single-host runners do not invent
+    # percentiles. Two-machine recipe: --role responder, or --role client --remote-peer.
+    if (
+        args.topology == "cross-host-UDP"
+        and args.role != "responder"
+        and not str(args.remote_peer).strip()
+    ):
         payload = {
             "status": "blocked",
             "chain": args.chain,
@@ -1150,6 +1173,47 @@ def main() -> int:
                             ros_msg=args.ros_msg,
                         )
                     )
+                elif args.chain == "A" and args.topology == "cross-host-UDP":
+                    # Remote responder is already running on the other host
+                    # with the same --topic-prefix (do not append qos/size —
+                    # a single echo process cannot rematch per-case prefixes).
+                    # Do not spawn a local echo (that would be same-host).
+                    case = _chain_a_client_only(
+                        qos_kind=qos_kind,
+                        msg_size=size,
+                        warmup=args.warmup,
+                        samples=args.samples,
+                        timeout_s=args.timeout,
+                        topic_prefix=prefix,
+                        interval_ms=args.interval_ms,
+                        ros_msg=args.ros_msg,
+                        discover_s=args.discover_s,
+                    )
+                    case["transport_label"] = (
+                        "cross-host-UDP two machines; Fast-DDS builtin UDP "
+                        f"(remote_peer={args.remote_peer}; fastdds.xml unchanged; "
+                        "do not invent SHM)"
+                    )
+                    cases.append(case)
+                elif args.chain == "B" and args.topology == "cross-host-UDP":
+                    # Same client-only helper as same-host; peer is remote.
+                    # Shared --topic-prefix (not per-case). This gate's runner
+                    # is Chain A; documented only, not mixed in A tables.
+                    case = _chain_b_client_only(
+                        qos_kind=qos_kind,
+                        msg_size=size,
+                        warmup=args.warmup,
+                        samples=args.samples,
+                        timeout_s=args.timeout,
+                        topic_prefix=prefix,
+                        domain_id=args.domain_id,
+                        interval_ms=args.interval_ms,
+                    )
+                    case["transport_label"] = (
+                        "cross-host-UDP two machines; Cyclone UDP domain 0 "
+                        f"(remote_peer={args.remote_peer})"
+                    )
+                    cases.append(case)
                 else:
                     raise RuntimeError(
                         f"unsupported combination chain={args.chain} topology={args.topology}"
@@ -1184,6 +1248,8 @@ def main() -> int:
             (1000.0 / args.interval_ms) if args.interval_ms > 0 else None
         ),
         "ros_msg": args.ros_msg if args.chain == "A" else None,
+        "remote_peer": (args.remote_peer or "").strip() or None,
+        "discover_s": args.discover_s,
         "scale_label": (os.environ.get("BENCH_SCALE_LABEL") or "").strip() or None,
         "note": (
             "Per-message RTT from a thin wrapper. Not a root-cause claim. "

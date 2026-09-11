@@ -9,7 +9,7 @@
 - 链 B：`./scripts/bench/run_chain_b.sh` → 文档里的 `pytest -m tool -k dds`，再加一层 **不改** `ddspubsub` 的 ping-pong 包分位
 - 链 A：先 `source config/env/chain_a.sh`，再 `./scripts/bench/run_chain_a.sh`；本机没有 Humble 时用 [`scripts/bench/docker_chain_a.sh`](../../scripts/bench/docker_chain_a.sh)（`docker/ros/` Humble 镜像，运行时再 source 链 A）
 
-已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)。当前最佳配置与最佳实测表（iter10 记分板，无新旋钮）：[`docs/artifacts/bench/SCOREBOARD.md`](../../docs/artifacts/bench/SCOREBOARD.md)。**不是**飞书现场 / 实机 / 跨机根因。基线：[`docs/artifacts/bench/2026-09-10/`](../../docs/artifacts/bench/2026-09-10/README.md)。iter1（Humble-valid `fastdds.xml` History）：[`docs/artifacts/bench/2026-09-10-iter1/`](../../docs/artifacts/bench/2026-09-10-iter1/README.md)。iter2 大包：[`2026-09-10-iter2-large-baseline/`](../../docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md) 与 [`2026-09-10-iter2-after/`](../../docs/artifacts/bench/2026-09-10-iter2-after/README.md)。iter3（send-buffer 池）：[`2026-09-10-iter3/`](../../docs/artifacts/bench/2026-09-10-iter3/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter3/delta.md) 只对照 iter2-after 同链同拓扑同尺寸。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter4（池保持 32，`dynamic` 改为 false）：[`2026-09-10-iter4/`](../../docs/artifacts/bench/2026-09-10-iter4/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter4/delta.md) 主对照 iter3；mid-size 另对照 iter2-after。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter5（additive 中包 SHM）：[`2026-09-10-iter5/`](../../docs/artifacts/bench/2026-09-10-iter5/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter5/delta.md) 主对照 iter4；mid-size 另对照 iter2-after。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter6（IMU 高频小包）：[`2026-09-10-iter6-imu-baseline/`](../../docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md) 与 [`2026-09-10-iter6-after/`](../../docs/artifacts/bench/2026-09-10-iter6-after/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter6-after/delta.md) 只对照 Step A 同链同拓扑同尺寸。`port_queue_capacity` 64 **未保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter7（`healthy_check_timeout_ms` 10000）：[`2026-09-11-iter7/`](../../docs/artifacts/bench/2026-09-11-iter7/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-11-iter7/delta.md) 只对照 iter6-imu-baseline 同链同拓扑同尺寸。jitter 门 **保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter8（`leaseAnnouncement` 15 s）：[`2026-09-11-iter8/`](../../docs/artifacts/bench/2026-09-11-iter8/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-11-iter8/delta.md) 主对照 iter7 同链同拓扑同尺寸。`leaseAnnouncement` 15 s **未保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter9（`use_WriterLivelinessProtocol` false）：[`2026-09-11-iter9/`](../../docs/artifacts/bench/2026-09-11-iter9/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-11-iter9/delta.md) 主对照 iter7 同链同拓扑同尺寸。WLP off **未保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter10（记分板，无新旋钮）：[`SCOREBOARD.md`](../../docs/artifacts/bench/SCOREBOARD.md)。落地 XML 仍是 iter7 种子。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因。
+已记录的产物目录：[`docs/artifacts/bench/`](../../docs/artifacts/bench/README.md)。当前最佳配置与最佳实测表（iter10 记分板，无新旋钮）：[`docs/artifacts/bench/SCOREBOARD.md`](../../docs/artifacts/bench/SCOREBOARD.md)。**不是**飞书现场 / 实机 / 跨机根因。基线：[`docs/artifacts/bench/2026-09-10/`](../../docs/artifacts/bench/2026-09-10/README.md)。iter1（Humble-valid `fastdds.xml` History）：[`docs/artifacts/bench/2026-09-10-iter1/`](../../docs/artifacts/bench/2026-09-10-iter1/README.md)。iter2 大包：[`2026-09-10-iter2-large-baseline/`](../../docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md) 与 [`2026-09-10-iter2-after/`](../../docs/artifacts/bench/2026-09-10-iter2-after/README.md)。iter3（send-buffer 池）：[`2026-09-10-iter3/`](../../docs/artifacts/bench/2026-09-10-iter3/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter3/delta.md) 只对照 iter2-after 同链同拓扑同尺寸。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter4（池保持 32，`dynamic` 改为 false）：[`2026-09-10-iter4/`](../../docs/artifacts/bench/2026-09-10-iter4/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter4/delta.md) 主对照 iter3；mid-size 另对照 iter2-after。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter5（additive 中包 SHM）：[`2026-09-10-iter5/`](../../docs/artifacts/bench/2026-09-10-iter5/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter5/delta.md) 主对照 iter4；mid-size 另对照 iter2-after。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter6（IMU 高频小包）：[`2026-09-10-iter6-imu-baseline/`](../../docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md) 与 [`2026-09-10-iter6-after/`](../../docs/artifacts/bench/2026-09-10-iter6-after/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-10-iter6-after/delta.md) 只对照 Step A 同链同拓扑同尺寸。`port_queue_capacity` 64 **未保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter7（`healthy_check_timeout_ms` 10000）：[`2026-09-11-iter7/`](../../docs/artifacts/bench/2026-09-11-iter7/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-11-iter7/delta.md) 只对照 iter6-imu-baseline 同链同拓扑同尺寸。jitter 门 **保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter8（`leaseAnnouncement` 15 s）：[`2026-09-11-iter8/`](../../docs/artifacts/bench/2026-09-11-iter8/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-11-iter8/delta.md) 主对照 iter7 同链同拓扑同尺寸。`leaseAnnouncement` 15 s **未保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter9（`use_WriterLivelinessProtocol` false）：[`2026-09-11-iter9/`](../../docs/artifacts/bench/2026-09-11-iter9/README.md)（[`delta.md`](../../docs/artifacts/bench/2026-09-11-iter9/delta.md) 主对照 iter7 同链同拓扑同尺寸。WLP off **未保留**。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因）。iter10（记分板，无新旋钮）：[`SCOREBOARD.md`](../../docs/artifacts/bench/SCOREBOARD.md)。落地 XML 仍是 iter7 种子。**不要**合成 A/B 对照表。**不是**飞书现场 / 实机 / 跨机根因。跨机 UDP 配方（链 A，单机 blocked）：[`2026-09-11-cross-host/`](../../docs/artifacts/bench/2026-09-11-cross-host/README.md)、[`scripts/bench/run_cross_host_a.sh`](../../scripts/bench/run_cross_host_a.sh)。
 
 源码在本仓：[`dimos_bridge/dimos/protocol/pubsub/benchmark/`](../../dimos_bridge/dimos/protocol/pubsub/benchmark/)。  
 这是从 `topsun_dimos` 整目录拷来的；默认传输仍是 LCM（**不在**本仓 DDS 范围）。完整 DimOS 依赖（`uv` extra、消息类型、非 stub 模块）仍在上游仓。本仓缺那些依赖时，下列命令会在 import 处失败——那是环境问题，不是「已经测过」。
@@ -114,6 +114,33 @@ BENCH_DATE=<UTC>-iter9 ./scripts/bench/run_imu_hf.sh
 ```
 
 精确 payload 64 B、5 ms 间隔（目标 200 Hz）、拓扑标签、timeout/loss 写在产物 `raw.json` / `summary.md`。链 A 与链 B **分目录、分表**。这 **不是** 实机 / 飞书现场 / 跨机根因。
+
+## 跨机 UDP（链 A Fast-DDS / 域 42）
+
+两台真机。单机 / 同 VM 两容器仍是 `same-host`，不要标 `cross-host-UDP`。本云 VM 记 **STATUS: blocked**（[`2026-09-11-cross-host/`](../../docs/artifacts/bench/2026-09-11-cross-host/README.md)）。**不要**填假分位数。
+
+**不是**飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
+
+两端都 `source config/env/chain_a.sh`（`RMW_IMPLEMENTATION=rmw_fastrtps_cpp`，`ROS_DOMAIN_ID=42`，`FASTRTPS_DEFAULT_PROFILES_FILE` 指向现有 iter7 [`config/fastdds.xml`](../../config/fastdds.xml)）。**不要**改 XML。同 L2 或组播可达；防火墙放行域 42 的 Fast-DDS UDP（见 [`scripts/bench/README.md`](../../scripts/bench/README.md)）。一次一个 QoS。不要和链 B 混表。
+
+```bash
+# Host B（responder / echo，先启动）
+source /opt/ros/humble/setup.bash && source config/env/chain_a.sh
+ROLE=responder QOS=high_throughput BENCH_TOPIC_PREFIX=hzj_cross_host \
+  ./scripts/bench/run_cross_host_a.sh
+
+# Host A（client / pub，写 p50/p95/p99）
+source /opt/ros/humble/setup.bash && source config/env/chain_a.sh
+ROLE=client CROSS_HOST_PEER=<host-B> QOS=high_throughput \
+  BENCH_TOPIC_PREFIX=hzj_cross_host \
+  BENCH_DATE=$(date -u +%Y-%m-%d)-cross-host \
+  ./scripts/bench/run_cross_host_a.sh
+
+# 单机：只记 blocked
+./scripts/bench/run_cross_host_a.sh
+```
+
+产物：`docs/artifacts/bench/<UTC-date>-cross-host/{summary.md,raw.json,environment.md}`（environment 写两端主机）。链 B 只用文档里的 `pingpong.py --chain B` 角色，本闸门不跑、不混表。
 
 ## 明确不写的东西
 

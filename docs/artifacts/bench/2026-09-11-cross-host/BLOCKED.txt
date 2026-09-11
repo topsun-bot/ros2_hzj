@@ -1,0 +1,3 @@
+STATUS: blocked — cross-host-UDP needs a second machine; this runner is single-host (ROLE unset, CROSS_HOST_PEER='')
+
+不是飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.

@@ -169,3 +169,102 @@ on a single VM. These numbers are **not** real-robot or Feishu-field proof.
 
 `pingpong.py` flags: `--sizes`, `--interval-ms`, `--timeout`, `--warmup`, `--samples`,
 `--ros-msg uint8_multiarray`.
+
+## Cross-host UDP (Chain A Fast-DDS / domain 42)
+
+Two **real** machines. Same-host / two-container-on-one-VM is **not** this topology.
+This cloud VM records **STATUS: blocked** — see
+[docs/artifacts/bench/2026-09-11-cross-host/](../../docs/artifacts/bench/2026-09-11-cross-host/README.md).
+**不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
+
+Do **not** change [`config/fastdds.xml`](../../config/fastdds.xml). Point
+`FASTRTPS_DEFAULT_PROFILES_FILE` at the existing iter7 seed. One QoS per
+invocation (the responder binds that QoS and a shared `--topic-prefix`).
+Do **not** put these numbers in a table with Chain B or with `same-process` /
+`same-host`.
+
+### Network prerequisites
+
+- Both hosts on the same L2, or L3 with **multicast** reachability. This recipe
+  does **not** add `initialPeersList` (no new XML knobs). If multicast is
+  blocked, discovery will fail with the current seed.
+- Firewall: UDP both ways. Humble Fast-DDS SIMPLE discovery, `portBase=7400`,
+  `domainIDGain=250`, domain **42**:
+  - multicast metatraffic `7400 + 250*42 + 0` = **17900**
+  - unicast metatraffic `7400 + 250*42 + 10` = **17910**
+  - unicast user `7400 + 250*42 + 11` = **17911**
+  Allow at least that set (often `7400–19000/udp`). Multicast group `239.255.0.1`.
+- Same `ROS_DOMAIN_ID=42` on both. Domain 0 (Chain B) will not discover this run.
+- Ping / ICMP is optional; DDS uses UDP.
+
+### Env (both hosts)
+
+```bash
+source /opt/ros/humble/setup.bash
+source config/env/chain_a.sh
+# RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+# ROS_DOMAIN_ID=42
+# FASTRTPS_DEFAULT_PROFILES_FILE=<repo>/config/fastdds.xml
+```
+
+R0 freeze: Chain A domain **42**. Bench QoS names match `testdata.py`
+(`high_throughput` = BestEffort/KeepLast(1)/Volatile; `reliable` =
+Reliable/KeepLast(5000)/Volatile). That is **not** nav-path freeze QoS.
+
+### Exact commands
+
+```bash
+# Host B — responder / echo. Start first; leave running.
+source /opt/ros/humble/setup.bash
+source config/env/chain_a.sh
+ROLE=responder QOS=high_throughput \
+  BENCH_TOPIC_PREFIX=hzj_cross_host \
+  ./scripts/bench/run_cross_host_a.sh
+
+# Host A — client / pub. Writes p50/p95/p99 under
+# docs/artifacts/bench/<UTC-date>-cross-host/
+source /opt/ros/humble/setup.bash
+source config/env/chain_a.sh
+ROLE=client CROSS_HOST_PEER=<host-B-hostname-or-ip> \
+  QOS=high_throughput BENCH_TOPIC_PREFIX=hzj_cross_host \
+  BENCH_DATE=$(date -u +%Y-%m-%d)-cross-host \
+  ./scripts/bench/run_cross_host_a.sh
+
+# Repeat both sides with QOS=reliable (separate invocation; same artifact
+# dir will overwrite — use a suffix in BENCH_DATE if you need both).
+
+# Single VM / no peer: record blocked (no fake numbers)
+./scripts/bench/run_cross_host_a.sh
+```
+
+Equivalent `pingpong.py` (same env as above):
+
+```bash
+# Host B
+python3 scripts/bench/pingpong.py --chain A --topology cross-host-UDP \
+  --role responder --qos high_throughput --topic-prefix hzj_cross_host
+
+# Host A
+python3 scripts/bench/pingpong.py --chain A --topology cross-host-UDP \
+  --role client --remote-peer <host-B> --qos high_throughput \
+  --topic-prefix hzj_cross_host --discover-s 5 \
+  --out docs/artifacts/bench/<UTC-date>-cross-host/raw.json
+```
+
+Without `--remote-peer`, `pingpong.py --topology cross-host-UDP` still writes
+**blocked** so `run_chain_a.sh` / `docker_chain_a.sh` do not invent numbers.
+
+### Artifacts
+
+Under `docs/artifacts/bench/<UTC-date>-cross-host/`:
+
+- `summary.md` — p50 / p95 / p99 (or blocked)
+- `raw.json` — samples
+- `environment.md` — **both** hosts (client/pub + responder/echo)
+
+### Chain B (documented only; not run in this gate)
+
+Same `pingpong.py` roles with `--chain B` and `source config/env/chain_b.sh`
+(Cyclone domain **0**, do **not** source `chain_a.sh`). No `run_cross_host_b.sh`
+in this PR. If you ever measure B, keep it in a **separate** directory and
+**never** one A-vs-B table. This gate is Chain A Fast-DDS preferred.

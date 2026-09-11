@@ -122,6 +122,20 @@ def render(args: argparse.Namespace) -> str:
         lines[3:3] = [
             f"- **blocked reason:** {args.blocked_reason}",
         ]
+    if args.host_a or args.host_b:
+        host_block = [
+            "## Hosts (cross-host-UDP)",
+            "",
+            "| role | identity | notes |",
+            "|------|----------|-------|",
+            f"| client / pub (host A) | `{args.host_a or '(unset)'}` | {args.host_a_notes or '—'} |",
+            f"| responder / echo (host B) | `{args.host_b or '(unset)'}` | {args.host_b_notes or '—'} |",
+            "",
+            "**不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.",
+            "",
+        ]
+        # Insert before the closing Notes disclaimer (last 4 lines after notes body).
+        lines.extend(host_block)
     return "\n".join(lines)
 
 
@@ -145,6 +159,10 @@ def main() -> int:
     p.add_argument("--hostname-class", default="")
     p.add_argument("--blocked-reason", default="")
     p.add_argument("--notes", default="")
+    p.add_argument("--host-a", default="", help="client/pub host identity (cross-host)")
+    p.add_argument("--host-b", default="", help="responder/echo host identity (cross-host)")
+    p.add_argument("--host-a-notes", default="")
+    p.add_argument("--host-b-notes", default="")
     args = p.parse_args()
     text = render(args)
     out = Path(args.out)
