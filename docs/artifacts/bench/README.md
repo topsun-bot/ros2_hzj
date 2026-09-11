@@ -2,6 +2,8 @@
 
 UTC 日期子目录各放一次基线。链 A 与链 B **分目录**；`same-process` / `same-host` / `cross-host-UDP` **分目录**。
 
+当前最佳配置 + 最佳实测表（无新旋钮）：[`SCOREBOARD.md`](SCOREBOARD.md)。**不是**飞书现场 / 实机 / 跨机证明。
+
 | UTC 日期 | 说明 |
 |----------|------|
 | [`2026-09-10/`](2026-09-10/README.md) | cursor-cloud-vm：链 B `same-process` + `same-host` 有真实 p50/p95/p99；链 A `same-process` + `same-host` 在 Humble `docker/ros` 内有真实 p50/p95/p99；两条链的 `cross-host-UDP` 均为 `STATUS: blocked`（单机） |
@@ -16,6 +18,7 @@ UTC 日期子目录各放一次基线。链 A 与链 B **分目录**；`same-pro
 | [`2026-09-11-iter7/`](2026-09-11-iter7/README.md) | iter7：只改 `shm_midsize` `healthy_check_timeout_ms` 10000。重测链 A IMU 同拓扑；[`delta.md`](2026-09-11-iter7/delta.md) 只对照 iter6-imu-baseline，**jitter 门**。same-host BestEffort p95/到达间隔 **收紧，保留**。1 MiB / 中包点检未回吐。链 B 未重跑。 |
 | [`2026-09-11-iter8/`](2026-09-11-iter8/README.md) | iter8：探测默认 participant SIMPLE discovery `leaseAnnouncement` 15 s。重测链 A IMU 同拓扑；[`delta.md`](2026-09-11-iter8/delta.md) 主对照 iter7，**jitter 门**。same-host BestEffort 到达间隔 **变差，未保留**。1 MiB 赢面未擦。落地 XML 仍是 iter7 种子。链 B 未重跑。 |
 | [`2026-09-11-iter9/`](2026-09-11-iter9/README.md) | iter9：探测默认 participant `use_WriterLivelinessProtocol` false。重测链 A IMU 同拓扑；[`delta.md`](2026-09-11-iter9/delta.md) 主对照 iter7，**jitter 门**。same-host BestEffort 到达间隔 **变宽，未保留**。1 MiB 赢面未擦。落地 XML 仍是 iter7 种子。链 B 未重跑。 |
+| [`SCOREBOARD.md`](SCOREBOARD.md) | iter10 Path B：汇总当前最佳 `fastdds.xml`（iter7 种子）+ 大包 same-host（iter5）+ IMU HF same-host（iter7）表、SHA、保留/丢弃旋钮。**无行为变化**。**不是**飞书现场 / 实机 / 跨机证明。 |
 
 生成方式见 [`scripts/bench/README.md`](../../../scripts/bench/README.md) 与 [`docs/usage/benchmark-dds.md`](../../usage/benchmark-dds.md)。
 

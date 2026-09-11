@@ -238,6 +238,19 @@ jobs:
           grep -q '10000' config/fastdds.xml
           grep -q 'shm_midsize' config/fastdds.xml
           grep -q '280000' config/fastdds.xml
+          test -f docs/artifacts/bench/SCOREBOARD.md
+          grep -q '飞书' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'Not Feishu field proof' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'healthy_check_timeout_ms' docs/artifacts/bench/SCOREBOARD.md
+          grep -q '280000' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'port_queue_capacity' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'leaseAnnouncement' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'use_WriterLivelinessProtocol' docs/artifacts/bench/SCOREBOARD.md
+          grep -q 'a048b0c' docs/artifacts/bench/SCOREBOARD.md
+          grep -q '364f7cc' docs/artifacts/bench/SCOREBOARD.md
+          grep -q '5efbca3' docs/artifacts/bench/SCOREBOARD.md
+          grep -q '2026-09-10-iter5' docs/artifacts/bench/SCOREBOARD.md
+          grep -q '2026-09-11-iter7' docs/artifacts/bench/SCOREBOARD.md
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
@@ -345,6 +358,7 @@ jobs:
               Path("docs/artifacts/bench/2026-09-11-iter9/change.md"),
               Path("docs/artifacts/bench/2026-09-11-iter9/delta.md"),
               Path("docs/artifacts/bench/2026-09-11-iter9/environment.md"),
+              Path("docs/artifacts/bench/SCOREBOARD.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),

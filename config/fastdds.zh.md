@@ -43,6 +43,8 @@ iter8 探测把默认 participant 的 SIMPLE discovery `leaseAnnouncement` 从 3
 
 iter9 探测把默认 participant 的 `use_WriterLivelinessProtocol` 从 true 关掉。主指标是 **jitter**（对照 iter7），不是 p50。same-host BestEffort RTT p95 持平（1148 → 1148 µs）但到达 \|I−5 ms\| p95 375 → 543 µs；复跑 RTT p95 1115 而到达仍宽（413 µs）。**未保留**。落地 XML 仍是 iter7 种子。不是 `leaseAnnouncement` / `leaseDuration`（不要再探）。1 MiB 赢面未擦。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-11-iter9/change.md`。不是现网证明。
 
+iter10 不再探弱旋钮（discovery / liveliness / lease / WLP 已穷尽且禁止重试；`historyMemoryPolicy` / `publishMode` 要额外 `RMW_FASTRTPS_USE_QOS_FROM_XML`，不是一个 XML 旋钮）。落地仍是 iter7 种子。记分板：[`docs/artifacts/bench/SCOREBOARD.md`](../docs/artifacts/bench/SCOREBOARD.md)（当前最佳配置 + 大包 / IMU HF same-host 表、SHA、保留/丢弃）。不是现网证明。不是飞书现场证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么
