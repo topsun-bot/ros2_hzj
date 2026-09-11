@@ -24,24 +24,19 @@ jobs:
       - name: Vendor and DimOS dump paths exist
         run: |
           set -euo pipefail
-          # Plain copies only — fail if someone turned these into gitlinks/submodules.
-          test -d vendor/rmw
-          test -d vendor/rmw_implementation
-          test -d vendor/rmw_fastrtps
-          test -d vendor/Fast-DDS
-          test -d vendor/rmw_cyclonedds
-          test -d vendor/CycloneDDS
-          test -f vendor/rmw/package.xml || test -f vendor/rmw/rmw/package.xml
+          # Plain copies only — fail if a vendor tree is missing or still a gitlink.
+          for tree in vendor/rmw vendor/rmw_fastrtps vendor/rmw_implementation \
+                      vendor/rmw_cyclonedds vendor/Fast-DDS vendor/CycloneDDS; do
+            test -d "$tree"
+            test ! -e "$tree/.git"
+          done
+          test -f vendor/rmw/rmw/package.xml
           test -f vendor/rmw_fastrtps/rmw_fastrtps_cpp/package.xml
           test -f vendor/Fast-DDS/CMakeLists.txt
           test -f vendor/Fast-DDS/package.xml
           test -f vendor/rmw_cyclonedds/rmw_cyclonedds_cpp/package.xml
           test -f vendor/CycloneDDS/CMakeLists.txt
           test -f vendor/CycloneDDS/package.xml
-          test ! -e vendor/rmw/.git
-          test ! -e vendor/Fast-DDS/.git
-          test ! -e vendor/rmw_cyclonedds/.git
-          test ! -e vendor/CycloneDDS/.git
           test ! -f .gitmodules
           test -f vendor/VERSIONS.md
           test -d dimos_bridge/dimos/protocol/pubsub/impl
@@ -80,191 +75,22 @@ jobs:
           test -f scripts/bench/run_cross_host_a.sh
           test -f scripts/bench/write_delta.py
           test -f docs/artifacts/bench/README.md
-          test -f docs/artifacts/bench/2026-09-10/README.md
-          test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/raw.json
-          test -f docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
-          test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/environment.md
-          test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10/chain_a_same_process/raw.json
-          grep -q 'STATUS' docs/artifacts/bench/2026-09-10/chain_a_same_process/environment.md
-          test -f docs/artifacts/bench/2026-09-10/chain_a_same_host/environment.md
-          test -f docs/artifacts/bench/2026-09-10/chain_a_same_host/summary.md
-          grep -q 'same-host' docs/artifacts/bench/2026-09-10/chain_a_same_host/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/change.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/chain_a_same_process/raw.json
-          test -f docs/artifacts/bench/2026-09-10-iter1/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter1/chain_a_same_host/environment.md
-          grep -q 'historyQos' config/fastdds.xml
-          grep -q 'same-process' docs/artifacts/bench/2026-09-10-iter1/chain_a_same_process/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_a_same_process/raw.json
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_b_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-large-baseline/chain_b_same_host/summary.md
-          grep -q '102400' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
-          grep -q '1048576' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
-          grep -q '100 ms' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
-          grep -q 'localhost UDP' docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/change.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter2-after/chain_a_same_host/raw.json
-          grep -q 'sendSocketBufferSize' config/fastdds.xml
-          grep -q '2097152' config/fastdds.xml
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter2-after/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/change.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter3/chain_a_same_host/raw.json
-          grep -q 'send_buffers' config/fastdds.xml
-          grep -q 'preallocated_number' config/fastdds.xml
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter3/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/change.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter4/chain_a_same_host/raw.json
-          grep -q 'send_buffers' config/fastdds.xml
-          grep -q 'preallocated_number' config/fastdds.xml
-          grep -q 'dynamic>false' config/fastdds.xml
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter4/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/change.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter5/chain_a_same_host/raw.json
-          grep -q 'send_buffers' config/fastdds.xml
-          grep -q 'preallocated_number' config/fastdds.xml
-          grep -q 'dynamic>false' config/fastdds.xml
-          grep -q 'shm_midsize' config/fastdds.xml
-          grep -q '280000' config/fastdds.xml
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter5/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-imu-baseline/NOTES.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-imu-baseline/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-imu-baseline/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-imu-baseline/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-imu-baseline/chain_a_same_host/raw.json
-          grep -q '64' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
-          grep -q '200 Hz' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
-          grep -q '5 ms' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
-          grep -q 'jitter' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md
-          grep -q '280000' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/NOTES.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/NOTES.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter6-imu-baseline/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/README.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/change.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/delta.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/environment.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-10-iter6-after/chain_a_same_host/raw.json
-          grep -q '64' docs/artifacts/bench/2026-09-10-iter6-after/README.md
-          grep -q 'port_queue_capacity' docs/artifacts/bench/2026-09-10-iter6-after/change.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-10-iter6-after/delta.md
-          grep -q 'jitter' docs/artifacts/bench/2026-09-10-iter6-after/delta.md
-          grep -q 'shm_midsize' config/fastdds.xml
-          grep -q '280000' config/fastdds.xml
-          test -f docs/artifacts/bench/2026-09-11-iter7/README.md
-          test -f docs/artifacts/bench/2026-09-11-iter7/change.md
-          test -f docs/artifacts/bench/2026-09-11-iter7/delta.md
-          test -f docs/artifacts/bench/2026-09-11-iter7/environment.md
-          test -f docs/artifacts/bench/2026-09-11-iter7/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-11-iter7/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-11-iter7/chain_a_same_host/raw.json
-          grep -q '64' docs/artifacts/bench/2026-09-11-iter7/README.md
-          grep -q '200 Hz' docs/artifacts/bench/2026-09-11-iter7/README.md
-          grep -q '5 ms' docs/artifacts/bench/2026-09-11-iter7/README.md
-          grep -q 'healthy_check_timeout_ms' docs/artifacts/bench/2026-09-11-iter7/change.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter7/delta.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter7/environment.md
-          grep -q 'jitter' docs/artifacts/bench/2026-09-11-iter7/delta.md
-          grep -q 'healthy_check_timeout_ms' config/fastdds.xml
-          grep -q '10000' config/fastdds.xml
-          grep -q 'shm_midsize' config/fastdds.xml
-          grep -q '280000' config/fastdds.xml
-          test -f docs/artifacts/bench/2026-09-11-iter8/README.md
-          test -f docs/artifacts/bench/2026-09-11-iter8/change.md
-          test -f docs/artifacts/bench/2026-09-11-iter8/delta.md
-          test -f docs/artifacts/bench/2026-09-11-iter8/environment.md
-          test -f docs/artifacts/bench/2026-09-11-iter8/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-11-iter8/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-11-iter8/chain_a_same_host/raw.json
-          grep -q '64' docs/artifacts/bench/2026-09-11-iter8/README.md
-          grep -q '200 Hz' docs/artifacts/bench/2026-09-11-iter8/README.md
-          grep -q '5 ms' docs/artifacts/bench/2026-09-11-iter8/README.md
-          grep -q 'leaseAnnouncement' docs/artifacts/bench/2026-09-11-iter8/change.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter8/delta.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter8/environment.md
-          grep -q 'jitter' docs/artifacts/bench/2026-09-11-iter8/delta.md
-          grep -q 'healthy_check_timeout_ms' config/fastdds.xml
-          grep -q '10000' config/fastdds.xml
-          grep -q 'shm_midsize' config/fastdds.xml
-          grep -q '280000' config/fastdds.xml
-          test -f docs/artifacts/bench/2026-09-11-iter9/README.md
-          test -f docs/artifacts/bench/2026-09-11-iter9/change.md
-          test -f docs/artifacts/bench/2026-09-11-iter9/delta.md
-          test -f docs/artifacts/bench/2026-09-11-iter9/environment.md
-          test -f docs/artifacts/bench/2026-09-11-iter9/chain_a_same_process/summary.md
-          test -f docs/artifacts/bench/2026-09-11-iter9/chain_a_same_host/summary.md
-          test -f docs/artifacts/bench/2026-09-11-iter9/chain_a_same_host/raw.json
-          grep -q '64' docs/artifacts/bench/2026-09-11-iter9/README.md
-          grep -q '200 Hz' docs/artifacts/bench/2026-09-11-iter9/README.md
-          grep -q '5 ms' docs/artifacts/bench/2026-09-11-iter9/README.md
-          grep -q 'use_WriterLivelinessProtocol' docs/artifacts/bench/2026-09-11-iter9/change.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter9/delta.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter9/environment.md
-          grep -q 'jitter' docs/artifacts/bench/2026-09-11-iter9/delta.md
-          grep -q 'healthy_check_timeout_ms' config/fastdds.xml
-          grep -q '10000' config/fastdds.xml
-          grep -q 'shm_midsize' config/fastdds.xml
-          grep -q '280000' config/fastdds.xml
-          test -f docs/artifacts/bench/SCOREBOARD.md
-          grep -q '飞书' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'Not Feishu field proof' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'healthy_check_timeout_ms' docs/artifacts/bench/SCOREBOARD.md
-          grep -q '280000' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'port_queue_capacity' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'leaseAnnouncement' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'use_WriterLivelinessProtocol' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'a048b0c' docs/artifacts/bench/SCOREBOARD.md
-          grep -q '364f7cc' docs/artifacts/bench/SCOREBOARD.md
-          grep -q '5efbca3' docs/artifacts/bench/SCOREBOARD.md
-          grep -q '2026-09-10-iter5' docs/artifacts/bench/SCOREBOARD.md
-          grep -q '2026-09-11-iter7' docs/artifacts/bench/SCOREBOARD.md
-          test -f docs/artifacts/bench/2026-09-11-cross-host/README.md
-          test -f docs/artifacts/bench/2026-09-11-cross-host/summary.md
-          test -f docs/artifacts/bench/2026-09-11-cross-host/raw.json
-          test -f docs/artifacts/bench/2026-09-11-cross-host/environment.md
-          test -f docs/artifacts/bench/2026-09-11-cross-host/BLOCKED.txt
-          grep -q 'blocked' docs/artifacts/bench/2026-09-11-cross-host/README.md
-          grep -q 'blocked' docs/artifacts/bench/2026-09-11-cross-host/environment.md
-          grep -q '飞书' docs/artifacts/bench/2026-09-11-cross-host/README.md
-          grep -q 'Not Feishu field proof' docs/artifacts/bench/2026-09-11-cross-host/README.md
-          grep -q '2026-09-11-cross-host' docs/artifacts/bench/SCOREBOARD.md
-          grep -q 'run_cross_host_a.sh' docs/artifacts/bench/SCOREBOARD.md
-          test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
-          grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
-          grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
+          # Durable index only — do not fossilize every iter changelog file.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          readme = Path("docs/artifacts/bench/README.md")
+          text = readme.read_text(encoding="utf-8")
+          dirs = re.findall(r"\[`([^`]+/)`\]\([^)]+\)", text)
+          if not dirs:
+              sys.exit("bench README lists no date dirs")
+          missing = [d for d in dirs if not (readme.parent / d).is_dir()]
+          if missing:
+              sys.exit("bench README lists missing dirs: " + ", ".join(missing))
+          print(f"bench README lists {len(dirs)} date dirs")
+          PY
           grep -q 'domainId>42' config/fastdds.xml
           grep -q 'rmw_fastrtps_cpp' config/env/chain_a.sh
           grep -q 'ROS_DOMAIN_ID=42' config/env/chain_a.sh
@@ -332,47 +158,6 @@ jobs:
               Path("docs/usage/benchmark-dds.md"),
               Path("scripts/bench/README.md"),
               Path("docs/artifacts/bench/README.md"),
-              Path("docs/artifacts/bench/2026-09-10/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter1/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter2-large-baseline/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter2-large-baseline/NOTES.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter2-after/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter2-after/change.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter2-after/delta.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter3/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter3/change.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter3/delta.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter4/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter4/change.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter4/delta.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter4/environment.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter5/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter5/change.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter5/delta.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter5/environment.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-imu-baseline/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-imu-baseline/NOTES.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-imu-baseline/environment.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-after/README.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-after/change.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-after/delta.md"),
-              Path("docs/artifacts/bench/2026-09-10-iter6-after/environment.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter7/README.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter7/change.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter7/delta.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter7/environment.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter8/README.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter8/change.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter8/delta.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter8/environment.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter9/README.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter9/change.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter9/delta.md"),
-              Path("docs/artifacts/bench/2026-09-11-iter9/environment.md"),
-              Path("docs/artifacts/bench/SCOREBOARD.md"),
-              Path("docs/artifacts/bench/2026-09-11-cross-host/README.md"),
-              Path("docs/artifacts/bench/2026-09-11-cross-host/environment.md"),
-              Path("docs/artifacts/bench/2026-09-11-cross-host/summary.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),
