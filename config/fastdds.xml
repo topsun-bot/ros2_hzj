@@ -53,6 +53,14 @@
   (sample > 280000) on the builtin path. Not the discarded iter3
   unfragmented 1 MiB SHM probe (maxMessageSize 2 MiB / 4 MiB
   segment). send_buffers 32 / dynamic=false stay.
+
+  iter6 probe (not kept): shm_midsize port_queue_capacity 512 → 64.
+  Step A nailed 64 B / 200 Hz first. Gate is jitter, not p50:
+  same-host BestEffort RTT p95 1205 → 1234 µs (+2.4%) and arrival
+  |I−5 ms| p95 488 → 568 µs. Exclusive / oversized SHM stays
+  discarded. 1 MiB gains stay (no landed XML change vs iter5).
+  Landed XML is still the iter5 seed (280000 / 2 MiB, builtin on,
+  sockets, send_buffers 32 / dynamic=false).
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>

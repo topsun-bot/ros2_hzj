@@ -68,18 +68,67 @@ def main() -> int:
         "",
         f"- **Chain:** `{base_raw.get('chain')}` (only this chain)",
         f"- **Topology:** `{base_raw.get('topology')}`",
-        f"- **Metric:** ping-pong RTT microseconds. Δ = after − baseline. Negative = faster.",
+        f"- **Metric:** jitter first (RTT p95/p99 + inter-message interval). "
+        "p50/mean are secondary. Δ = after − baseline. Negative = tighter / faster.",
         f"- **Payload sizes:** `{base_raw.get('payload_sizes_bytes')}`",
-        f"- **Inter-message gap:** `{base_raw.get('inter_message_gap_ms')}` ms",
+        f"- **Inter-message gap:** `{base_raw.get('inter_message_gap_ms')}` ms"
+        + (
+            f" (target `{base_raw.get('target_publish_hz')}` Hz)"
+            if base_raw.get("target_publish_hz")
+            else ""
+        ),
         "",
         "Like-to-like only (same chain, topology, sizes, gap, runner). "
         "Do **not** mix Chain A and Chain B. "
-        "Not real-robot / Feishu-field / cross-host proof.",
+        "Not real-robot / Feishu-field / cross-host proof. "
+        "Do **not** claim success from p50/mean alone.",
         "",
     ]
     if args.notes:
         lines += [args.notes.strip(), ""]
     lines += [
+        "### Jitter (primary)",
+        "",
+        "| case | payload (B) | RTT p95 Δ | RTT p99 Δ | RTT p95−p50 base → after | "
+        "pub I stdev base → after | pub |I−tgt| p95 | pub |I−tgt| p99 | "
+        "arr I stdev | arr |I−tgt| p95 |",
+        "|------|-------------|-----------|-----------|--------------------------|"
+        "-------------------------|-----------------|-----------------|"
+        "-------------|---------------|",
+    ]
+    for key in keys:
+        b, a = base_cases[key], after_cases[key]
+        row = [f"`{key[0]}`", str(key[1])]
+        for stat in ("p95_us", "p99_us"):
+            bv, av = _pct(b.get(stat)), _pct(a.get(stat))
+            if bv is None or av is None:
+                row.append("—")
+                continue
+            delta = av - bv
+            pct = (delta / bv * 100.0) if bv else float("nan")
+            row.append(
+                f"{_fmt(bv)} → {_fmt(av)} ({_fmt(delta)}, {pct:+.2f}%)"
+                if pct == pct
+                else f"{_fmt(bv)} → {_fmt(av)}"
+            )
+        for stat in (
+            "rtt_jitter_p95_minus_p50_us",
+            "pub_interval_stdev_us",
+            "pub_interval_jitter_abs_p95_us",
+            "pub_interval_jitter_abs_p99_us",
+            "arrival_interval_stdev_us",
+            "arrival_interval_jitter_abs_p95_us",
+        ):
+            bv, av = _pct(b.get(stat)), _pct(a.get(stat))
+            if bv is None or av is None:
+                row.append("—")
+            else:
+                row.append(f"{_fmt(bv)} → {_fmt(av)}")
+        lines.append("| " + " | ".join(row) + " |")
+    lines += [
+        "",
+        "### RTT p50 (secondary — do not use as the keep/discard gate)",
+        "",
         "| case | payload (B) | p50 base → after | Δ p50 | p50 % | p95 base → after | Δ p95 | p95 % | p99 base → after | Δ p99 | p99 % |",
         "|------|-------------|------------------|-------|-------|------------------|-------|-------|------------------|-------|-------|",
     ]

@@ -121,15 +121,119 @@ def _wait_interval(last_pub_ns: int | None, interval_ms: float) -> None:
         time.sleep(remain / 1000.0)
 
 
+def _interval_series_stats(
+    timestamps_ns: list[int],
+    *,
+    target_interval_ms: float,
+    prefix: str,
+) -> dict[str, Any]:
+    """Percentiles and jitter of consecutive inter-timestamp gaps.
+
+    Primary IMU metrics live here: interval stdev and |I − target| p95/p99.
+    RFC 3550 interarrival jitter is the running mean of |Δinterval|.
+    """
+    empty = {
+        f"{prefix}_count": 0,
+        f"{prefix}_p50_us": float("nan"),
+        f"{prefix}_p95_us": float("nan"),
+        f"{prefix}_p99_us": float("nan"),
+        f"{prefix}_min_us": float("nan"),
+        f"{prefix}_max_us": float("nan"),
+        f"{prefix}_mean_us": float("nan"),
+        f"{prefix}_stdev_us": float("nan"),
+        f"{prefix}_jitter_abs_p50_us": float("nan"),
+        f"{prefix}_jitter_abs_p95_us": float("nan"),
+        f"{prefix}_jitter_abs_p99_us": float("nan"),
+        f"{prefix}_jitter_rfc3550_us": float("nan"),
+        f"{prefix}_target_us": (
+            target_interval_ms * 1000.0 if target_interval_ms > 0 else None
+        ),
+    }
+    if len(timestamps_ns) < 2:
+        return empty
+    gaps_ns = [b - a for a, b in zip(timestamps_ns, timestamps_ns[1:])]
+    stats = percentiles_us(gaps_ns)
+    target_ns = target_interval_ms * 1e6 if target_interval_ms > 0 else None
+    if target_ns is not None:
+        abs_dev_ns = [abs(g - target_ns) for g in gaps_ns]
+        dev = percentiles_us([int(x) for x in abs_dev_ns])
+    else:
+        # No target: jitter vs the series median.
+        mid = stats["p50_us"] * 1000.0
+        abs_dev_ns = [abs(g - mid) for g in gaps_ns]
+        dev = percentiles_us([int(x) for x in abs_dev_ns])
+    rfc_us = 0.0
+    if len(gaps_ns) >= 2:
+        j = 0.0
+        for i in range(1, len(gaps_ns)):
+            d = abs(gaps_ns[i] - gaps_ns[i - 1])
+            j = j + (d - j) / 16.0
+        rfc_us = j / 1000.0
+    return {
+        f"{prefix}_count": len(gaps_ns),
+        f"{prefix}_p50_us": stats["p50_us"],
+        f"{prefix}_p95_us": stats["p95_us"],
+        f"{prefix}_p99_us": stats["p99_us"],
+        f"{prefix}_min_us": stats["min_us"],
+        f"{prefix}_max_us": stats["max_us"],
+        f"{prefix}_mean_us": stats["mean_us"],
+        f"{prefix}_stdev_us": stats["stdev_us"],
+        f"{prefix}_jitter_abs_p50_us": dev["p50_us"],
+        f"{prefix}_jitter_abs_p95_us": dev["p95_us"],
+        f"{prefix}_jitter_abs_p99_us": dev["p99_us"],
+        f"{prefix}_jitter_rfc3550_us": rfc_us,
+        f"{prefix}_target_us": (
+            target_interval_ms * 1000.0 if target_interval_ms > 0 else None
+        ),
+    }
+
+
+def _jitter_fields(
+    *,
+    rtt_ns: list[int],
+    pub_ns: list[int],
+    arrival_ns: list[int],
+    interval_ms: float,
+) -> dict[str, Any]:
+    """RTT tail jitter plus inter-publish / inter-arrival interval stats.
+
+    Success is judged on p95/p99 RTT and interval jitter, not p50/mean.
+    """
+    rtt = percentiles_us(rtt_ns)
+    p50 = rtt.get("p50_us")
+    p95 = rtt.get("p95_us")
+    p99 = rtt.get("p99_us")
+    out: dict[str, Any] = {
+        "primary_metric": "jitter",
+        "rtt_jitter_p95_minus_p50_us": (
+            (p95 - p50) if p50 == p50 and p95 == p95 else float("nan")
+        ),
+        "rtt_jitter_p99_minus_p50_us": (
+            (p99 - p50) if p50 == p50 and p99 == p99 else float("nan")
+        ),
+        "rtt_stdev_us": rtt.get("stdev_us"),
+        **_interval_series_stats(
+            pub_ns, target_interval_ms=interval_ms, prefix="pub_interval"
+        ),
+        **_interval_series_stats(
+            arrival_ns, target_interval_ms=interval_ms, prefix="arrival_interval"
+        ),
+    }
+    return out
+
+
 def _case_pacing(interval_ms: float) -> dict[str, Any]:
     if interval_ms > 0:
         hz = 1000.0 / interval_ms
+        scale = (os.environ.get("BENCH_SCALE_LABEL") or "").strip()
+        scale_bit = f", {scale}" if scale else ""
         return {
             "inter_message_gap_ms": interval_ms,
             "target_publish_hz": hz,
+            "scale_label": scale or None,
             "pacing": (
                 f"minimum inter-publish gap {interval_ms:g} ms "
-                f"(target {hz:.4g} Hz, lidar-ish); "
+                f"(target {hz:.4g} Hz{scale_bit}); "
                 "if RTT exceeds the gap, the next ping waits for pong first "
                 "(closed-loop; effective rate is 1/RTT)"
             ),
@@ -184,6 +288,8 @@ def run_chain_b_same_process(
 
     payload = _payload_pattern(msg_size)
     rtt_ns: list[int] = []
+    pub_ns: list[int] = []
+    arrival_ns: list[int] = []
     timeouts = 0
     total = warmup + samples
     last_pub_ns: int | None = None
@@ -198,14 +304,20 @@ def run_chain_b_same_process(
         bus.publish(ping_topic, Probe(seq=i, t0_ns=t0, payload=payload))
         if not ev.wait(timeout=timeout_s):
             timeouts += 1
+            if i >= warmup:
+                pub_ns.append(t0)
             continue
         with lock:
             t1 = got.get(i)
         if t1 is None:
             timeouts += 1
+            if i >= warmup:
+                pub_ns.append(t0)
             continue
         if i >= warmup:
             rtt_ns.append(t1 - t0)
+            pub_ns.append(t0)
+            arrival_ns.append(t1)
 
     bus.stop()
     stats = percentiles_us(rtt_ns)
@@ -225,6 +337,12 @@ def run_chain_b_same_process(
         "units": "microseconds",
         **_case_pacing(interval_ms),
         **stats,
+        **_jitter_fields(
+            rtt_ns=rtt_ns,
+            pub_ns=pub_ns,
+            arrival_ns=arrival_ns,
+            interval_ms=interval_ms,
+        ),
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
 
@@ -333,6 +451,8 @@ def _chain_b_client_only(
 
     payload = _payload_pattern(msg_size)
     rtt_ns: list[int] = []
+    pub_ns: list[int] = []
+    arrival_ns: list[int] = []
     timeouts = 0
     total = warmup + samples
     last_pub_ns: int | None = None
@@ -347,14 +467,20 @@ def _chain_b_client_only(
         bus.publish(ping_topic, Probe(seq=i, t0_ns=t0, payload=payload))
         if not ev.wait(timeout=timeout_s):
             timeouts += 1
+            if i >= warmup:
+                pub_ns.append(t0)
             continue
         with lock:
             t1 = got.get(i)
         if t1 is None:
             timeouts += 1
+            if i >= warmup:
+                pub_ns.append(t0)
             continue
         if i >= warmup:
             rtt_ns.append(t1 - t0)
+            pub_ns.append(t0)
+            arrival_ns.append(t1)
 
     bus.stop()
     stats = percentiles_us(rtt_ns)
@@ -374,6 +500,12 @@ def _chain_b_client_only(
         "units": "microseconds",
         **_case_pacing(interval_ms),
         **stats,
+        **_jitter_fields(
+            rtt_ns=rtt_ns,
+            pub_ns=pub_ns,
+            arrival_ns=arrival_ns,
+            interval_ms=interval_ms,
+        ),
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
 
@@ -514,6 +646,8 @@ def _chain_a_case(
     extra: dict[str, Any] | None = None,
     interval_ms: float = 0.0,
     ros_msg: str = "byte_multiarray",
+    pub_ns: list[int] | None = None,
+    arrival_ns: list[int] | None = None,
 ) -> dict[str, Any]:
     stats = percentiles_us(rtt_ns)
     payload = {
@@ -537,6 +671,12 @@ def _chain_a_case(
         "units": "microseconds",
         **_case_pacing(interval_ms),
         **stats,
+        **_jitter_fields(
+            rtt_ns=rtt_ns,
+            pub_ns=pub_ns or [],
+            arrival_ns=arrival_ns or [],
+            interval_ms=interval_ms,
+        ),
         "rtt_us": [n / 1000.0 for n in rtt_ns],
     }
     if extra:
@@ -603,6 +743,8 @@ def run_chain_a_same_process(
 
         pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
         rtt_ns: list[int] = []
+        pub_ns: list[int] = []
+        arrival_ns: list[int] = []
         timeouts = 0
         total = warmup + samples
         last_pub_ns: int | None = None
@@ -618,14 +760,20 @@ def run_chain_a_same_process(
             pub_ping.publish(_chain_a_pack(ros_msg, header + pad))
             if not ev.wait(timeout=timeout_s):
                 timeouts += 1
+                if i >= warmup:
+                    pub_ns.append(t0)
                 continue
             with lock:
                 t1 = got.get(i)
             if t1 is None:
                 timeouts += 1
+                if i >= warmup:
+                    pub_ns.append(t0)
                 continue
             if i >= warmup:
                 rtt_ns.append(t1 - t0)
+                pub_ns.append(t0)
+                arrival_ns.append(t1)
 
         return _chain_a_case(
             qos_kind=qos_kind,
@@ -637,6 +785,8 @@ def run_chain_a_same_process(
             timeouts=timeouts,
             interval_ms=interval_ms,
             ros_msg=ros_msg,
+            pub_ns=pub_ns,
+            arrival_ns=arrival_ns,
         )
     finally:
         spin_stop.set()
@@ -731,6 +881,8 @@ def _chain_a_client_only(
 
         pad = bytes(i % 256 for i in range(max(0, msg_size - 12)))
         rtt_ns: list[int] = []
+        pub_ns: list[int] = []
+        arrival_ns: list[int] = []
         timeouts = 0
         total = warmup + samples
         last_pub_ns: int | None = None
@@ -746,14 +898,20 @@ def _chain_a_client_only(
             pub_ping.publish(_chain_a_pack(ros_msg, header + pad))
             if not ev.wait(timeout=timeout_s):
                 timeouts += 1
+                if i >= warmup:
+                    pub_ns.append(t0)
                 continue
             with lock:
                 t1 = got.get(i)
             if t1 is None:
                 timeouts += 1
+                if i >= warmup:
+                    pub_ns.append(t0)
                 continue
             if i >= warmup:
                 rtt_ns.append(t1 - t0)
+                pub_ns.append(t0)
+                arrival_ns.append(t1)
 
         return _chain_a_case(
             qos_kind=qos_kind,
@@ -765,6 +923,8 @@ def _chain_a_client_only(
             timeouts=timeouts,
             interval_ms=interval_ms,
             ros_msg=ros_msg,
+            pub_ns=pub_ns,
+            arrival_ns=arrival_ns,
         )
     finally:
         spin_stop.set()
@@ -1024,6 +1184,7 @@ def main() -> int:
             (1000.0 / args.interval_ms) if args.interval_ms > 0 else None
         ),
         "ros_msg": args.ros_msg if args.chain == "A" else None,
+        "scale_label": (os.environ.get("BENCH_SCALE_LABEL") or "").strip() or None,
         "note": (
             "Per-message RTT from a thin wrapper. Not a root-cause claim. "
             "Do not compare Chain A and Chain B in one table. "
