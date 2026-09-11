@@ -1,4 +1,4 @@
-<p align="center">
+<div align="center">
 
 # ros2_hzj
 
@@ -14,7 +14,7 @@
 
 [新闻](#news) · [为何选择](#why-ros2_hzj) · [总体计划](#总体计划约一个月) · [Plugin](#量产可集成-plugin) · [交付物](#交付物) · [快速开始](#快速开始)
 
-</p>
+</div>
 
 本仓库是 **TOPSUN / 桦之坚的 ROS 2 · DDS 工作线**，独立于 [`topsun_dimos`](https://github.com/topsun-bot/topsun_dimos)。目标是把公开 RMW / Fast-DDS / CycloneDDS 源码和 DimOS **双链相关**代码落到本仓自己的树里，并做 R1–R5 **行为不变**的结构抽出。`topsun_dimos` 只读：本工作流不在那边改代码、不开 PR。
 
