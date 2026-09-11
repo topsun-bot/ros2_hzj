@@ -1,0 +1,6 @@
+{
+  "status": "blocked",
+  "chain": "A",
+  "topology": "cross-host-UDP",
+  "error": "cross-host-UDP needs a second machine; this runner is single-host"
+}

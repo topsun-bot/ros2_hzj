@@ -73,6 +73,15 @@
   change. 1 MiB stays on the builtin fragment path (sample >
   280000); same-host 1 MiB spot stayed at iter5. Exclusive /
   oversized SHM stays discarded.
+
+  iter8 probe (not kept): default-participant SIMPLE discovery
+  leaseAnnouncement 3 s → 15 s. Gate is jitter vs iter7, not
+  p50: same-host BestEffort RTT p95 1148 → 1104 µs on the
+  official run but arrival |I−5 ms| p95 375 → 448 µs; a
+  same-host repeat lost the RTT win (p95 1174) and widened
+  arrival to 526 µs. Reverted. Not healthy_check (kept) /
+  port_queue (discarded) / sockets / send_buffers / mid-size
+  SHM size. Exclusive / oversized SHM stays discarded.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>
