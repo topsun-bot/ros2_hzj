@@ -62,15 +62,17 @@
   Landed XML is still the iter5 seed (280000 / 2 MiB, builtin on,
   sockets, send_buffers 32 / dynamic=false).
 
-  iter7 (one knob): shm_midsize healthy_check_timeout_ms 1000 → 10000.
-  Humble Fast-DDS 2.6 default is 1000 ms. The SHM port watcher
-  takes empty_cv_mutex when that timeout elapses; port_wait_timeout
-  is healthy_check_timeout_ms/3 (idle wait only). IMU 64 B / 200 Hz
-  is one-in-flight (~2 s per case). Prediction: a 10 s check
-  timeout keeps the watcher out of the p95/p99 window. Not
-  port_queue_capacity (discarded). Not a second mid-size / socket /
-  send_buffers change. 1 MiB stays on the builtin fragment path
-  (sample > 280000). Exclusive / oversized SHM stays discarded.
+  iter7 (one knob, kept): shm_midsize healthy_check_timeout_ms
+  1000 → 10000. Humble Fast-DDS 2.6 default is 1000 ms. The SHM
+  port watcher takes empty_cv_mutex when that timeout elapses;
+  port_wait_timeout is healthy_check_timeout_ms/3 (idle wait).
+  IMU 64 B / 200 Hz is one-in-flight (~2 s per case). Gate is
+  jitter: same-host BestEffort RTT p95 1205 → 1148 µs (−4.8%)
+  and arrival |I−5 ms| p95 488 → 375 µs. Not port_queue_capacity
+  (discarded). Not a second mid-size / socket / send_buffers
+  change. 1 MiB stays on the builtin fragment path (sample >
+  280000); same-host 1 MiB spot stayed at iter5. Exclusive /
+  oversized SHM stays discarded.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>

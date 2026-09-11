@@ -132,6 +132,12 @@ BENCH_DATE=2026-09-10-iter6-after \
   CHAIN_A_IMAGE=osrf/ros:humble-desktop \
   IMU_HF_CHAINS=A \
   ./scripts/bench/run_imu_hf.sh
+
+# iter7 remasure (Chain A only; like-to-like vs iter6-imu-baseline):
+BENCH_DATE=2026-09-11-iter7 \
+  CHAIN_A_IMAGE=osrf/ros:humble-desktop \
+  IMU_HF_CHAINS=A \
+  ./scripts/bench/run_imu_hf.sh
 ```
 
 That wrapper sets `BENCH_SIZES=64`, `BENCH_INTERVAL_MS=5`, `BENCH_SAMPLES=400`,
