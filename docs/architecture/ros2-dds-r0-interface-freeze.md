@@ -160,6 +160,7 @@ The nav Fast-DDS path (Chain A) needs a **separate same-domain-42 application pi
 | `ZenohTransport` (`dimos/core/transport.py` in `topsun_dimos`) | Stub only (`class ZenohTransport(PubSubTransport[T]): ...`) — **not a usable path** |
 | Public ROS 2 / rmw / Fast-DDS / Cyclone **submodule / subtree remote** in `ros2_hzj` | **Still forbidden.** Vendor trees are **plain copies** under `vendor/`. |
 | Custom RMW | **Out of scope** |
+| Vendor Isaac / NITROS (`isaac_ros_nitros`, Isaac GEM) | **Hold.** Public Humble type adaptation/negotiation is **not** a dual-chain substitute. See [nitros-vs-dual-chain.md](nitros-vs-dual-chain.md). |
 
 ---
 
