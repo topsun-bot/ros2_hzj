@@ -49,7 +49,6 @@ jobs:
           test -f dimos_bridge/dimos/protocol/pubsub/impl/rospubsub.py
           test -f dimos_bridge/dimos/protocol/service/ddsservice.py
           test -f dimos_bridge/dimos/core/transport.py
-          test -f dimos_bridge/docker/ros/Dockerfile
           test -f config/fastdds.xml
           test -f dimos_bridge/SOURCE.md
           # Do not build Fast-DDS or CycloneDDS in this job.

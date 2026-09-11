@@ -1,6 +1,6 @@
 # dimos_bridge/ 来源说明
 
-前缀：`dimos_bridge/`。其下**保持** `topsun_dimos` 相对路径（`dimos/...`、`docker/ros/`、`scripts/`）。
+前缀：`dimos_bridge/`。其下**保持** `topsun_dimos` 相对路径（`dimos/...`）。
 
 | 项 | 值 |
 |----|----|
@@ -12,7 +12,8 @@
 
 ## 整文件 / 整目录拷贝（真实 DimOS 源码）
 
-- `docker/ros/`（历史路径；`install-nix.sh` 仍是 DimOS 拷贝。`Dockerfile` 现为兼容包装，安装语义见仓库根 [`docker/ros/`](../docker/ros/)，包列表未改）
+ROS 镜像规范路径是仓库根 [`docker/ros/`](../docker/ros/)（`Dockerfile` + `install-base.sh` + `install-runtime.sh`）。`dimos_bridge/docker/ros/` 已删。
+
 - `dimos/protocol/pubsub/impl/ddspubsub.py`
 - `dimos/protocol/pubsub/impl/rospubsub.py`
 - `dimos/protocol/pubsub/impl/rospubsub_conversion.py`
@@ -21,15 +22,16 @@
 - `dimos/protocol/service/spec.py`（`DDSService` 的直接依赖）
 - `dimos/protocol/pubsub/benchmark/`（整目录）
 - `dimos/protocol/pubsub/spec.py`
-- `dimos/protocol/pubsub/patterns.py`
-- `dimos/protocol/pubsub/encoders.py`
 - `dimos/core/transport.py`
-- `dimos/robot/foxglove_bridge.py`
-- `dimos/utils/cli/foxglove_bridge/`
-- `dimos/utils/test_foxglove_bridge.py`
 - `dimos/robot/unitree/go2/blueprints/smart/unitree_go2_ros.py`
-- `dimos/robot/unitree/g1/effectors/high_level/dds_sdk.py`
-- `scripts/run_greeter_dds_lite.py`
+- `dimos/robot/unitree/g1/effectors/high_level/dds_sdk.py`（链 B 域 0 / `ChannelFactoryInitialize(0)` 引用）
+
+## 已删（死代码 / 超出本仓 DDS 范围）
+
+- Foxglove LCM viewer：`dimos/robot/foxglove_bridge.py`、`dimos/utils/cli/foxglove_bridge/`、`dimos/utils/test_foxglove_bridge.py`
+- 损坏 greeter lite：`scripts/run_greeter_dds_lite.py` + `dimos/robot/unitree/g1/blueprints/agentic/unitree_g1_greeter_dds_lite.py`（ImportError stub）；`scripts/` 已空
+- 重复 Docker：`docker/ros/Dockerfile`（与根 `docker/ros/Dockerfile` 同阶段）；未引用的 `docker/ros/install-nix.sh`
+- 零引用 pubsub：`dimos/protocol/pubsub/encoders.py`、`dimos/protocol/pubsub/patterns.py`
 
 ## 未在 main 找到（因此未拷）
 
