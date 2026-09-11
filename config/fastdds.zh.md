@@ -39,6 +39,8 @@ iter6 先钉 IMU **64 B / 200 Hz**（Step A，无新旋钮），再探测把同�
 
 iter7 只改同一条 `shm_midsize` 的 `healthy_check_timeout_ms`（1000 → 10000）。Humble Fast-DDS 2.6 默认 1000 ms；SHM 端口监视线程超时后会拿 `empty_cv_mutex`。IMU 64 B / 200 Hz 单飞约 2 s。主指标是 **jitter**（RTT p95/p99 + 到达间隔），不是 p50。same-host BestEffort RTT p95 1205 → 1148 µs（−4.8%），到达 \|I−5 ms\| p95 488 → 375 µs。**保留**。中包 SHM 280000 / 2 MiB、socket 2 MiB、`send_buffers` 32 / `dynamic=false` 不动。不是 `port_queue_capacity`（已丢）。1 MiB 仍走 builtin 分片（样本 > 280000），same-host 点检未回吐 iter5。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-11-iter7/change.md`。不是现网证明。
 
+iter8 只改默认 participant 的 SIMPLE discovery `leaseAnnouncement`（3 s → 15 s）。Humble Fast-DDS 2.6 默认 `leaseDuration_announcementperiod` 是 3 s；初始公告之后 PDP 按这个周期重发 SPDP。IMU same-host 约 5 s 的 64 B / 5 ms 流量。15 s 仍低于默认 20 s `leaseDuration`（不是第二个旋钮），对端不会过期。主指标是 **jitter**（RTT p95/p99 + 到达间隔），不是 p50。不是 `healthy_check_timeout_ms` / `port_queue_capacity` / socket / send_buffers / 中包 SHM 尺寸。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-11-iter8/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么
