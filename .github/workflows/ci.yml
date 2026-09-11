@@ -220,6 +220,24 @@ jobs:
           grep -q '10000' config/fastdds.xml
           grep -q 'shm_midsize' config/fastdds.xml
           grep -q '280000' config/fastdds.xml
+          test -f docs/artifacts/bench/2026-09-11-iter9/README.md
+          test -f docs/artifacts/bench/2026-09-11-iter9/change.md
+          test -f docs/artifacts/bench/2026-09-11-iter9/delta.md
+          test -f docs/artifacts/bench/2026-09-11-iter9/environment.md
+          test -f docs/artifacts/bench/2026-09-11-iter9/chain_a_same_process/summary.md
+          test -f docs/artifacts/bench/2026-09-11-iter9/chain_a_same_host/summary.md
+          test -f docs/artifacts/bench/2026-09-11-iter9/chain_a_same_host/raw.json
+          grep -q '64' docs/artifacts/bench/2026-09-11-iter9/README.md
+          grep -q '200 Hz' docs/artifacts/bench/2026-09-11-iter9/README.md
+          grep -q '5 ms' docs/artifacts/bench/2026-09-11-iter9/README.md
+          grep -q 'use_WriterLivelinessProtocol' docs/artifacts/bench/2026-09-11-iter9/change.md
+          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter9/delta.md
+          grep -q '飞书' docs/artifacts/bench/2026-09-11-iter9/environment.md
+          grep -q 'jitter' docs/artifacts/bench/2026-09-11-iter9/delta.md
+          grep -q 'healthy_check_timeout_ms' config/fastdds.xml
+          grep -q '10000' config/fastdds.xml
+          grep -q 'shm_midsize' config/fastdds.xml
+          grep -q '280000' config/fastdds.xml
           test -f docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'blocked' docs/artifacts/bench/2026-09-10/chain_a_cross_host_UDP/environment.md
           grep -q 'same-process' docs/artifacts/bench/2026-09-10/chain_b_same_process/environment.md
@@ -323,6 +341,10 @@ jobs:
               Path("docs/artifacts/bench/2026-09-11-iter8/change.md"),
               Path("docs/artifacts/bench/2026-09-11-iter8/delta.md"),
               Path("docs/artifacts/bench/2026-09-11-iter8/environment.md"),
+              Path("docs/artifacts/bench/2026-09-11-iter9/README.md"),
+              Path("docs/artifacts/bench/2026-09-11-iter9/change.md"),
+              Path("docs/artifacts/bench/2026-09-11-iter9/delta.md"),
+              Path("docs/artifacts/bench/2026-09-11-iter9/environment.md"),
               Path("vendor/VERSIONS.md"),
               Path("vendor/README.md"),
               Path("dimos_bridge/SOURCE.md"),

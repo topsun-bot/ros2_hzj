@@ -83,15 +83,15 @@
   port_queue (discarded) / sockets / send_buffers / mid-size
   SHM size. Exclusive / oversized SHM stays discarded.
 
-  iter9 (one knob): default-participant WLP off
-  (use_WriterLivelinessProtocol false). Humble Fast-DDS 2.6
-  default is true. WLP adds builtin writer/reader that share
-  the non-dynamic 32-buffer send pool and the SHM/UDP path
-  with 64 B one-in-flight. Not leaseAnnouncement /
-  leaseDuration (iter8 discarded; do not retry). Not
-  healthy_check (kept) / port_queue (discarded) / sockets /
-  send_buffers / mid-size SHM size. Exclusive / oversized
-  SHM stays discarded.
+  iter9 probe (not kept): default-participant WLP off
+  (use_WriterLivelinessProtocol false). Gate is jitter vs
+  iter7, not p50: same-host BestEffort RTT p95 1148 → 1148 µs
+  (flat) but arrival |I−5 ms| p95 375 → 543 µs; a same-host
+  repeat moved RTT p95 to 1115 but arrival stayed wide
+  (413 µs). Reverted. Not leaseAnnouncement / leaseDuration
+  (do not retry). Not healthy_check (kept) / port_queue
+  (discarded) / sockets / send_buffers / mid-size SHM size.
+  Exclusive / oversized SHM stays discarded.
 -->
 <profiles xmlns="http://www.eprosima.com">
     <transport_descriptors>
@@ -114,9 +114,6 @@
                 <transport_id>shm_midsize</transport_id>
             </userTransports>
             <useBuiltinTransports>true</useBuiltinTransports>
-            <builtin>
-                <use_WriterLivelinessProtocol>false</use_WriterLivelinessProtocol>
-            </builtin>
             <allocation>
                 <send_buffers>
                     <preallocated_number>32</preallocated_number>
