@@ -41,6 +41,8 @@ iter7 只改同一条 `shm_midsize` 的 `healthy_check_timeout_ms`（1000 → 10
 
 iter8 探测把默认 participant 的 SIMPLE discovery `leaseAnnouncement` 从 3 s 拉到 15 s。主指标是 **jitter**（对照 iter7），不是 p50。same-host BestEffort 到达 \|I−5 ms\| p95 375 → 448 µs；复跑丢掉 RTT p95 赢面（1148 → 1174 µs）且到达间隔更宽。**未保留**。落地 XML 仍是 iter7 种子（`healthy_check_timeout_ms` 10000，中包 SHM 280000 / 2 MiB，builtin 开，socket + send_buffers 不动）。1 MiB 赢面未擦。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-11-iter8/change.md`。不是现网证明。
 
+iter9 探测把默认 participant 的 `use_WriterLivelinessProtocol` 从 true 关掉。主指标是 **jitter**（对照 iter7），不是 p50。same-host BestEffort RTT p95 持平（1148 → 1148 µs）但到达 \|I−5 ms\| p95 375 → 543 µs；复跑 RTT p95 1115 而到达仍宽（413 µs）。**未保留**。落地 XML 仍是 iter7 种子。不是 `leaseAnnouncement` / `leaseDuration`（不要再探）。1 MiB 赢面未擦。独占 / 过大 SHM 仍丢弃。记录在 `docs/artifacts/bench/2026-09-11-iter9/change.md`。不是现网证明。
+
 Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 基线：`Invalid element ... Name: history`，`loadXMLFile` 失败）。History 写在 `<topic><historyQos>`，kind/depth 仍对齐冻结表。这不是传输层根因，也不改 `ddspubsub` / `rospubsub`。
 
 ## 不是什么

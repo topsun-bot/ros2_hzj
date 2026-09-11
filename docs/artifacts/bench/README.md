@@ -15,6 +15,7 @@ UTC 日期子目录各放一次基线。链 A 与链 B **分目录**；`same-pro
 | [`2026-09-10-iter6-after/`](2026-09-10-iter6-after/README.md) | iter6 Step B：探测 `shm_midsize` `port_queue_capacity` 64。重测链 A IMU 同拓扑；[`delta.md`](2026-09-10-iter6-after/delta.md) 只对照 Step A，**jitter 门**。same-host BestEffort p95/到达间隔 **变差，未保留**。1 MiB 赢面未擦。落地 XML 仍是 iter5 种子。链 B 未重跑。 |
 | [`2026-09-11-iter7/`](2026-09-11-iter7/README.md) | iter7：只改 `shm_midsize` `healthy_check_timeout_ms` 10000。重测链 A IMU 同拓扑；[`delta.md`](2026-09-11-iter7/delta.md) 只对照 iter6-imu-baseline，**jitter 门**。same-host BestEffort p95/到达间隔 **收紧，保留**。1 MiB / 中包点检未回吐。链 B 未重跑。 |
 | [`2026-09-11-iter8/`](2026-09-11-iter8/README.md) | iter8：探测默认 participant SIMPLE discovery `leaseAnnouncement` 15 s。重测链 A IMU 同拓扑；[`delta.md`](2026-09-11-iter8/delta.md) 主对照 iter7，**jitter 门**。same-host BestEffort 到达间隔 **变差，未保留**。1 MiB 赢面未擦。落地 XML 仍是 iter7 种子。链 B 未重跑。 |
+| [`2026-09-11-iter9/`](2026-09-11-iter9/README.md) | iter9：探测默认 participant `use_WriterLivelinessProtocol` false。重测链 A IMU 同拓扑；[`delta.md`](2026-09-11-iter9/delta.md) 主对照 iter7，**jitter 门**。same-host BestEffort 到达间隔 **变宽，未保留**。1 MiB 赢面未擦。落地 XML 仍是 iter7 种子。链 B 未重跑。 |
 
 生成方式见 [`scripts/bench/README.md`](../../../scripts/bench/README.md) 与 [`docs/usage/benchmark-dds.md`](../../usage/benchmark-dds.md)。
 
