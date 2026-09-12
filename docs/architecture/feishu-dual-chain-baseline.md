@@ -108,7 +108,21 @@ python3 scripts/print_bench_gates.py
 python3 scripts/prove_rmw.py
 ```
 
-无 ROS 时三个脚本都应能 exit 0。`check_dual_chain_baseline.py` 只读本页 + ADR §13(3) + `chain_a.sh` / `chain_b.sh`：双链契约标记在、本切不重写 XML、SCOREBOARD pointer-only、跨机 blocked、《3》–《6》 Hold。成功时打印 `dual-chain baseline: pointer only (no XML rewrite)` 以及 `same-topology XML tuning is paused`。CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编译 vendor，也**不要**发明分位数。
+无 ROS 时三个脚本都应能 exit 0。成功时打印 `dual-chain baseline: pointer only (no XML rewrite)` 以及 `same-topology XML tuning is paused`。脚本打开这些文件（缺一个就红）：
+
+| 打开 | 断言 |
+|------|------|
+| 本文 [`feishu-dual-chain-baseline.md`](feishu-dual-chain-baseline.md) | 双链契约句、**`no XML rewrite`**、SCOREBOARD **`pointer only`**、连续句 **`same-topology XML tuning is paused`**、跨机 `STATUS: blocked`、**three-chain map≠reproduce**、Unitree **drop-in FAIL**、《3》–《6》 Hold。不写 booked ping-pong quantile tokens |
+| [feishu-middleware-adr.md](feishu-middleware-adr.md) | §13(3) 行仍写 FastDDS + Cyclone、**不重写 XML**、并指向本文 |
+| [`config/env/chain_a.sh`](../../config/env/chain_a.sh) | 锚定 `export RMW_IMPLEMENTATION=rmw_fastrtps_cpp`、`export ROS_DOMAIN_ID=42`、`export FASTRTPS_DEFAULT_PROFILES_FILE=` |
+| [`config/env/chain_b.sh`](../../config/env/chain_b.sh) | 锚定 `export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`、`export ROS_DOMAIN_ID=0`。**不** `export CYCLONEDDS_URI=`。本闸不看调用者继承的环境；inherited `CYCLONEDDS_URI` 不在本闸范围 |
+| [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) | 双链 R0 冻结页还在（`Hold` 标记） |
+| [ros2-source-map.md](ros2-source-map.md) | 三条链地图还在（map≠reproduce，不是复现报告） |
+| [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) | 0.10.2 vs 11.0.1 **drop-in FAIL** 句还在 |
+| [`config/fastdds.xml`](../../config/fastdds.xml) | **只检查存在**。内容冻结由 CI **`boundary`** 管 |
+| [`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md) | **只检查存在**。不读数字；内容冻结由 **`boundary`** 管 |
+
+CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编译 vendor，也**不要**发明 booked 分位词。
 
 ---
 

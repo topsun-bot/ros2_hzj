@@ -8,11 +8,15 @@ On success print a line containing exactly:
   dual-chain baseline: pointer only (no XML rewrite)
 and a line containing exactly:
   same-topology XML tuning is paused
-On failure do not print those success markers.
+On failure do not print those success markers (including in ok/FAIL
+diagnostics).
 
-Does not invent percentiles. Does not prove fastdds.xml / SCOREBOARD
-contents are unchanged — those files are existence-only here; the
-`boundary` job owns the freeze.
+Does not invent booked percentile tokens (p50 / p90 / p95 / p99 or
+"Nth percentile"). Policy words such as 分位数 are allowed.
+Does not prove fastdds.xml / SCOREBOARD contents are unchanged —
+those files are existence-only here; the `boundary` job owns the freeze.
+Does not inspect the caller's inherited environment: chain_b.sh must
+not `export CYCLONEDDS_URI=`; an already-set URI is out of scope.
 Style follows scripts/check_unitree_cyclone_swap.py / check_risk_matrix.py.
 """
 
@@ -39,7 +43,8 @@ MAP_VERDICT = "map≠reproduce"
 NO_REWRITE = "no XML rewrite"
 
 # Contiguous phrases so a lone "pointer" / "blocked" / "Hold" cannot
-# keep this gate green. Not scores, not percentiles.
+# keep this gate green. Paused success phrase is checked separately so
+# a FAIL report does not echo it. Not scores, not percentiles.
 _BASELINE_MARKERS = (
     "§13",
     "rmw_fastrtps_cpp",
@@ -53,7 +58,6 @@ _BASELINE_MARKERS = (
     "CYCLONEDDS_URI",
     "SCOREBOARD",
     "pointer only",
-    PAUSED_MARKER,
     NO_REWRITE,
     "STATUS: blocked",
     "cross-host",
@@ -79,19 +83,20 @@ _ADR_MARKERS = (
     "feishu-dual-chain-baseline.md",
 )
 
-_CHAIN_A_MARKERS = (
-    "rmw_fastrtps_cpp",
-    "ROS_DOMAIN_ID=42",
-    "FASTRTPS_DEFAULT_PROFILES_FILE",
+_EXPORT_CHAIN_A = (
+    re.compile(r"(?m)^\s*export\s+RMW_IMPLEMENTATION=rmw_fastrtps_cpp\s*$"),
+    re.compile(r"(?m)^\s*export\s+ROS_DOMAIN_ID=42\s*$"),
+    re.compile(r"(?m)^\s*export\s+FASTRTPS_DEFAULT_PROFILES_FILE="),
+)
+_EXPORT_CHAIN_B = (
+    re.compile(r"(?m)^\s*export\s+RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\s*$"),
+    re.compile(r"(?m)^\s*export\s+ROS_DOMAIN_ID=0\s*$"),
 )
 
-_CHAIN_B_MARKERS = (
-    "rmw_cyclonedds_cpp",
-    "ROS_DOMAIN_ID=0",
-    "CYCLONEDDS_URI",
+# Booked tokens only. Policy language (分位数 / "percentile reprint") is OK.
+_PERCENTILE_RE = re.compile(
+    r"(?i)\b(?:p(?:50|90|95|99(?:\.\d+)?)|(?:50|90|95|99)(?:st|nd|rd|th)\s+percentile)\b"
 )
-
-_PERCENTILE_RE = re.compile(r"\bp(?:50|95|99)\b", re.IGNORECASE)
 _EXPORT_CYCLONE_URI_RE = re.compile(
     r"(?m)^\s*export\s+CYCLONEDDS_URI\s*="
 )
@@ -112,6 +117,14 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def _missing_exports(text: str, patterns: tuple[re.Pattern[str], ...]) -> list[str]:
+    missing: list[str] = []
+    for pattern in patterns:
+        if pattern.search(text) is None:
+            missing.append(pattern.pattern)
+    return missing
+
+
 def render(root: Path | None = None) -> tuple[str, int]:
     root = (root or _repo_root()).resolve()
     lines = [
@@ -124,10 +137,10 @@ def render(root: Path | None = None) -> tuple[str, int]:
     required = (
         (BASELINE_REL, _BASELINE_MARKERS, "dual-chain contracts + Hold + pointer-only"),
         (ADR_REL, _ADR_MARKERS, "§13(3) row pointer; no XML rewrite"),
-        (CHAIN_A_REL, _CHAIN_A_MARKERS, "chain A contract strings"),
-        (CHAIN_B_REL, _CHAIN_B_MARKERS, "chain B contract strings; no URI export"),
+        (CHAIN_A_REL, (), "opened; export assignments checked separately"),
+        (CHAIN_B_REL, (), "opened; export assignments + no URI export"),
         (R0_REL, ("Hold",), "dual-chain R0 freeze exists"),
-        (MAP_REL, ("vendor",), "three-chain map exists (map≠reproduce)"),
+        (MAP_REL, ("vendor",), "three-chain map exists (map only)"),
         (SWAP_REL, ("drop-in FAIL",), "Unitree 0.10.2 vs vendor 11.0.1"),
         (XML_REL, (), "existence only; content freeze is boundary"),
         (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
@@ -154,54 +167,73 @@ def render(root: Path | None = None) -> tuple[str, int]:
     baseline_text = texts.get(BASELINE_REL)
     if baseline_text is not None:
         if PAUSED_MARKER in baseline_text:
-            lines.append(f"- **ok paused phrase:** `{PAUSED_MARKER}`")
+            lines.append("- **ok paused phrase:** present in baseline doc")
         else:
-            failures.append(f"baseline doc missing contiguous `{PAUSED_MARKER}`")
-            lines.append(f"- **FAIL paused:** need `{PAUSED_MARKER}`")
+            failures.append("baseline doc missing contiguous same-topology paused phrase")
+            lines.append("- **FAIL paused:** need same-topology paused phrase")
         if MAP_VERDICT in baseline_text:
-            lines.append(f"- **ok three-chain phrase:** `{MAP_VERDICT}`")
+            lines.append("- **ok three-chain phrase:** present")
         else:
-            failures.append(f"baseline doc missing contiguous `{MAP_VERDICT}`")
-            lines.append(f"- **FAIL map:** need `{MAP_VERDICT}`")
+            failures.append("baseline doc missing contiguous three-chain map verdict")
+            lines.append("- **FAIL map:** need three-chain map verdict")
         if NO_REWRITE in baseline_text:
-            lines.append(f"- **ok no-rewrite phrase:** `{NO_REWRITE}`")
+            lines.append("- **ok no-rewrite phrase:** present")
         else:
-            failures.append(f"baseline doc missing contiguous `{NO_REWRITE}`")
-            lines.append(f"- **FAIL rewrite:** need `{NO_REWRITE}`")
+            failures.append("baseline doc missing contiguous no-XML-rewrite phrase")
+            lines.append("- **FAIL rewrite:** need no-XML-rewrite phrase")
         if "pointer only" in baseline_text:
-            lines.append("- **ok SCOREBOARD phrase:** `pointer only`")
+            lines.append("- **ok SCOREBOARD phrase:** pointer-only present")
         else:
-            failures.append("baseline doc missing SCOREBOARD `pointer only`")
-            lines.append("- **FAIL pointer:** need `pointer only`")
+            failures.append("baseline doc missing SCOREBOARD pointer-only phrase")
+            lines.append("- **FAIL pointer:** need pointer-only phrase")
         invented = _PERCENTILE_RE.findall(baseline_text)
         if invented:
             failures.append(
-                "baseline doc invents percentile token(s): "
+                "baseline doc invents booked percentile token(s): "
                 + ", ".join(sorted(set(invented)))
             )
-            lines.append("- **FAIL percentiles:** do not invent p50/p95/p99")
+            lines.append("- **FAIL percentiles:** do not invent booked pNN tokens")
         else:
-            lines.append("- **ok no invented percentiles**")
+            lines.append("- **ok no invented booked percentile tokens**")
+
+    chain_a_text = texts.get(CHAIN_A_REL)
+    if chain_a_text is not None:
+        missing_a = _missing_exports(chain_a_text, _EXPORT_CHAIN_A)
+        if missing_a:
+            failures.append("chain_a.sh missing anchored export assignment(s)")
+            lines.append("- **FAIL chain A:** need anchored export assignments")
+        else:
+            lines.append("- **ok chain A:** anchored export assignments")
 
     chain_b_text = texts.get(CHAIN_B_REL)
     if chain_b_text is not None:
-        if _EXPORT_CYCLONE_URI_RE.search(chain_b_text):
-            failures.append("chain_b.sh exports CYCLONEDDS_URI (default must be unset)")
-            lines.append("- **FAIL chain B:** CYCLONEDDS_URI must stay unset by default")
+        missing_b = _missing_exports(chain_b_text, _EXPORT_CHAIN_B)
+        if missing_b:
+            failures.append("chain_b.sh missing anchored export assignment(s)")
+            lines.append("- **FAIL chain B:** need anchored export assignments")
         else:
-            lines.append("- **ok chain B:** CYCLONEDDS_URI not exported")
+            lines.append("- **ok chain B:** anchored export assignments")
+        if _EXPORT_CYCLONE_URI_RE.search(chain_b_text):
+            failures.append("chain_b.sh exports CYCLONEDDS_URI (helper must not set it)")
+            lines.append("- **FAIL chain B:** helper must not export CYCLONEDDS_URI")
+        else:
+            lines.append(
+                "- **ok chain B:** helper does not export CYCLONEDDS_URI "
+                "(inherited env out of scope)"
+            )
 
     lines.append("")
     lines.extend(
         [
             "Filesystem + contract / Hold markers only. This is **not** a",
-            "latency measurement, not a percentile reprint, and not Feishu",
-            "field proof. SCOREBOARD is the current-best **pointer**; this",
-            "script does not copy its numbers. fastdds.xml / SCOREBOARD are",
-            "existence-only in this script; the boundary job owns the",
-            "content freeze. Cross-host stays blocked. three-chain stays",
-            f"{MAP_VERDICT}. Unitree 0.10.2 vs vendor 11.0.1 stays drop-in",
-            "FAIL. 《3》–《6》 stay Hold. No XML rewrite this cut.",
+            "latency measurement, not a booked-percentile reprint, and not",
+            "Feishu field proof. SCOREBOARD is the current-best pointer;",
+            "this script does not copy its numbers. fastdds.xml /",
+            "SCOREBOARD are existence-only in this script; the boundary",
+            "job owns the content freeze. Cross-host stays blocked.",
+            "three-chain stays map-only. Unitree 0.10.2 vs vendor 11.0.1",
+            "stays drop-in FAIL. 《3》–《6》 stay Hold. This cut does not",
+            "rewrite XML. Inherited CYCLONEDDS_URI is out of scope.",
             "",
         ]
     )
