@@ -7,6 +7,8 @@
 冻结表：[`docs/architecture/ros2-dds-r0-interface-freeze.md`](../../docs/architecture/ros2-dds-r0-interface-freeze.md)。  
 不要把「设了这些变量」或「已 vendor」当成时延根因。混用链 A / 链 B 默认值是**发现失败**。
 
+核对当前进程实际加载的 RMW / `.so`：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)（飞书《ROS 2 源码闭环》§6.3）。无 ROS 时仍退出 0。决策：[飞书中间件 ADR](../../docs/architecture/feishu-middleware-adr.md)。
+
 ## 链 A — nav FastDDS
 
 | 变量 | 契约值 | 说明 |

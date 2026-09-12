@@ -1,6 +1,6 @@
 # vendor/
 
-公开 ROS 2 RMW / Fast-DDS / CycloneDDS **完整源码树**的本仓拷贝。索引页；钉扎表只在 [VERSIONS.md](VERSIONS.md)。
+公开 ROS 2 RMW / Fast-DDS / CycloneDDS **完整源码树**的本仓拷贝。索引页；钉扎表只在 [VERSIONS.md](VERSIONS.md)。Humble 运行时 vs rolling 快照语义见 [MANIFEST.md](MANIFEST.md)。
 
 | 链 | 目录 |
 |----|------|
