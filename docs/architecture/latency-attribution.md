@@ -94,7 +94,7 @@ DoD（本仓已落地的可核对项，不是现场验收）：
 
 ## 3. §13 第 (3) 步：基线已在本仓，本切不重测
 
-ADR 已写：§13 (3) FastDDS + Cyclone 基线「双链契约已在；bench 产物另册；不重写 XML、不改 SCOREBOARD」。本文只**指过去**，不重跑、不重记账。
+ADR 已写：§13 (3) FastDDS + Cyclone 基线「双链契约已在；bench 产物另册；不重写 XML、不改 SCOREBOARD」。专页：[feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md)（SCOREBOARD **pointer only**；same-topology XML tuning is paused）。本文只**指过去**，不重跑、不重记账。
 
 | 指针 | 路径 |
 |------|------|
