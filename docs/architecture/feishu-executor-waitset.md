@@ -3,7 +3,7 @@
 Status: **身份地图 — 不是复现报告、不是时延数字、不是飞书现场证明。**  
 对照飞书《ROS 2 源码闭环》<https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf> §13 第 (2) 步的 wait→callback 链，以及 ADR 已写的 §9.4 层序（env/XML 第一，Executor 居中，fork 最后）。另两份飞书计划（已在 ADR）：《通信中间件》<https://topsunhzj.feishu.cn/wiki/XKDbw7blLieO4ykCRgLcUCJKnXe>、Cyclone 工业级 fork 研究 <https://topsunhzj.feishu.cn/docx/SrokdQU4DovvdAxutNDcXByMn5e>。
 
-Wiki 正文需登录，本页章节对照**派生自**已合入 ADR [feishu-middleware-adr.md](feishu-middleware-adr.md)，不是现场摘录。链路文件总表见 [ros2-source-map.md](ros2-source-map.md) §3。分段方法（不抄分位数）见 [latency-attribution.md](latency-attribution.md) 的 `T_rmw_take` / `T_callback`。双链契约：[ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md)。
+本环境打不开飞书 wiki 正文（登录墙 / 抓取失败）。本页章节对照**派生自**已合入 ADR [feishu-middleware-adr.md](feishu-middleware-adr.md)、[ros2-source-map.md](ros2-source-map.md) §3、[latency-attribution.md](latency-attribution.md) 的 `T_rmw_take` / `T_callback`，以及本树 `vendor/` 路径；**不是**现场摘录，不阻塞等 wiki。双链契约：[ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md)。
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
@@ -111,7 +111,7 @@ python3 scripts/prove_rmw.py
 
 ## 4. 引用
 
-飞书（查阅 2026-09-12；wiki 正文需登录，本仓按 ADR 已决条款落地）：
+飞书（查阅 2026-09-12；本环境未取到 wiki 正文，本仓按已合入 ADR / 源码地图 / 时延归因 / vendor 路径落地）：
 
 1. 《ROS 2 源码闭环》§13 wait→callback / §9.4 层序：<https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf>
 2. 《通信中间件》：<https://topsunhzj.feishu.cn/wiki/XKDbw7blLieO4ykCRgLcUCJKnXe>

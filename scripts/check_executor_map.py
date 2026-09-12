@@ -40,6 +40,7 @@ DOC_MARKERS = (
     "rclpy",
     "不在 vendor",
     "Not Feishu field proof",
+    "派生自",
     "rmw_fastrtps_cpp",
     "域 **42**",
     "域 **0**",
