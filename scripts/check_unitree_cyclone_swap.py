@@ -7,6 +7,8 @@ On success print a line containing exactly: drop-in: FAIL / wire: UNPROVEN
 On failure do not print that success marker.
 
 Does not invent SHAs, percentiles, or claim wire interop was run.
+Does not prove fastdds.xml / SCOREBOARD contents are unchanged —
+those files are existence-only here; the `boundary` job owns the freeze.
 Style follows scripts/check_runtime_provenance.py / check_risk_matrix.py.
 """
 
@@ -24,15 +26,15 @@ XML_REL = Path("config/fastdds.xml")
 SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "drop-in: FAIL / wire: UNPROVEN"
+DOC_VERDICT = "drop-in FAIL / wire UNPROVEN"
 
-# Exact substrings the swap doc must keep. Not scores, not invented SHAs.
+# Exact substrings the swap doc must keep. Verdict is one contiguous
+# phrase so `drop-in PASS / wire PROVEN` cannot keep this gate green.
 _SWAP_MARKERS = (
     "0.10.2",
     'DDS_VERSION "0.10.2"',
     "11.0.1",
-    "drop-in",
-    "FAIL",
-    "UNPROVEN",
+    DOC_VERDICT,
     "fastdds.xml",
     "SCOREBOARD",
     "Agnocast",
@@ -56,9 +58,10 @@ _VERSIONS_MARKERS = (
     "e54e991f75a3e67f8e628da3171122e36ea5b872",
 )
 
-_CMAKE_MARKERS = ("VERSION 11.0.1",)
-
-_SHA_RE = re.compile(r"\b[0-9a-f]{40}\b")
+# project(CycloneDDS … VERSION 11.0.1 …) — not a loose VERSION 11.0.1.
+_CMAKE_PROJECT_RE = re.compile(
+    r"(?m)^\s*project\s*\(\s*CycloneDDS\b[^)\n]*\bVERSION\s+11\.0\.1\b"
+)
 
 
 def _repo_root() -> Path:
@@ -77,14 +80,24 @@ def _read(path: Path) -> str:
 
 
 def _versions_cyclone_row(text: str) -> tuple[bool, str]:
+    pin_path, pin_ver, pin_sha = _VERSIONS_MARKERS
     hits = [
         line
         for line in text.splitlines()
-        if "vendor/CycloneDDS/" in line and "11.0.1" in line and _SHA_RE.search(line)
+        if pin_path in line and pin_ver in line and pin_sha in line
     ]
     if not hits:
-        return False, "VERSIONS missing CycloneDDS 11.0.1 SHA row"
-    return True, "vendor/CycloneDDS/ 11.0.1 SHA row"
+        return (
+            False,
+            f"VERSIONS missing CycloneDDS {pin_ver} row with SHA {pin_sha}",
+        )
+    return True, f"vendor/CycloneDDS/ {pin_ver} SHA {pin_sha} on same row"
+
+
+def _cmake_project_version(text: str) -> tuple[bool, str]:
+    if _CMAKE_PROJECT_RE.search(text):
+        return True, "project(CycloneDDS … VERSION 11.0.1 …)"
+    return False, "CMakeLists missing project(CycloneDDS … VERSION 11.0.1 …)"
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
@@ -95,12 +108,13 @@ def render(root: Path | None = None) -> tuple[str, int]:
     ]
     failures: list[str] = []
 
+    # XML / SCOREBOARD: existence only. Content freeze is the `boundary` job.
     required = (
-        (SWAP_REL, _SWAP_MARKERS, "drop-in FAIL / wire UNPROVEN + Hold"),
-        (VERSIONS_REL, _VERSIONS_MARKERS, "vendor Cyclone 11.0.1 pin"),
-        (CMAKE_REL, _CMAKE_MARKERS, "source snapshot VERSION 11.0.1"),
-        (XML_REL, (), "read-only contract seed; content not edited"),
-        (SCOREBOARD_REL, (), "current-best pointer; numbers not printed"),
+        (SWAP_REL, _SWAP_MARKERS, "contiguous verdict + Hold"),
+        (VERSIONS_REL, (), "opened; Cyclone pin checked on the SHA row"),
+        (CMAKE_REL, (), "opened; project() VERSION checked separately"),
+        (XML_REL, (), "existence only; content freeze is boundary"),
+        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
     )
     texts: dict[Path, str] = {}
     for rel, markers, hint in required:
@@ -130,6 +144,15 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(detail)
             lines.append(f"- **FAIL VERSIONS row:** {detail}")
 
+    cmake_text = texts.get(CMAKE_REL)
+    if cmake_text is not None:
+        ok, detail = _cmake_project_version(cmake_text)
+        if ok:
+            lines.append(f"- **ok CMake project():** {detail}")
+        else:
+            failures.append(detail)
+            lines.append(f"- **FAIL CMake project():** {detail}")
+
     swap_text = texts.get(SWAP_REL)
     if swap_text is not None:
         quoted = 'DDS_VERSION "0.10.2"' in swap_text
@@ -138,18 +161,25 @@ def render(root: Path | None = None) -> tuple[str, int]:
         else:
             failures.append('swap doc missing quoted DDS_VERSION "0.10.2"')
             lines.append("- **FAIL quote:** need `DDS_VERSION \"0.10.2\"`")
+        if DOC_VERDICT in swap_text:
+            lines.append(f"- **ok verdict phrase:** `{DOC_VERDICT}`")
+        else:
+            failures.append(f"swap doc missing contiguous `{DOC_VERDICT}`")
+            lines.append(f"- **FAIL verdict:** need `{DOC_VERDICT}`")
 
     lines.append("")
     lines.extend(
         [
             "Filesystem + version markers only. This is **not** a loaded",
             "`.so` proof, not a percentile, and not Feishu field proof.",
-            "Vendor SHA is read from VERSIONS.md, not invented here.",
+            "Vendor SHA is read from the CycloneDDS 11.0.1 VERSIONS row,",
+            "not invented here and not accepted from an unrelated line.",
             "drop-in of vendor 11.0.1 onto Unitree 0.10.2 is FAIL.",
             "Not an in-place overwrite: default stays bundled 0.10.2.",
             "Legal replace path is unitree_sdk2_hzj + opt-in",
             "UNITREE_DDS_PROVIDER=external. Wire interop stays UNPROVEN.",
-            "fastdds.xml / SCOREBOARD stay untouched. Agnocast / zenoh",
+            "fastdds.xml / SCOREBOARD are existence-only in this script;",
+            "the boundary job owns the content freeze. Agnocast / zenoh",
             "stay Hold. Do not copy rolling vendor onto a robot or",
             "/opt/ros/humble.",
             "",
@@ -163,8 +193,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
         lines.append("")
         lines.append(
             "Required swap doc, quoted Unitree 0.10.2, vendor 11.0.1 pin, "
-            "or Hold marker is gone. Restore the docs (no XML) or the "
-            "marker. Exit 1."
+            "contiguous verdict, or Hold marker is gone. Restore the "
+            "docs (no XML) or the marker. Exit 1."
         )
         lines.append("")
         return "\n".join(lines), 1

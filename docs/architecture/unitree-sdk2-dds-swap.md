@@ -121,7 +121,17 @@ DDS 线协议有时能跨小版本互通；**本环境没有跑通**，所以不
 python3 scripts/check_unitree_cyclone_swap.py
 ```
 
-无 ROS 时应 exit 0，并打印 `drop-in: FAIL / wire: UNPROVEN`。脚本只读本文 + [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md) + vendor `CMakeLists.txt`：必填文件在、`DDS_VERSION "0.10.2"` 引文在、vendor **11.0.1** 行在、FAIL / UNPROVEN / Hold 标记在。CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编译 vendor 或改 XML / SCOREBOARD。
+无 ROS 时应 exit 0，并打印 `drop-in: FAIL / wire: UNPROVEN`。脚本打开这些文件：
+
+| 打开 | 断言 |
+|------|------|
+| 本文 [`unitree-sdk2-dds-swap.md`](unitree-sdk2-dds-swap.md) | 连续裁决句 **`drop-in FAIL / wire UNPROVEN`**（不是拆开的 `drop-in` / `FAIL` / `UNPROVEN`）、`DDS_VERSION "0.10.2"` 引文、Hold 标记 |
+| [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md) | 同一行同时有 `vendor/CycloneDDS/` + `11.0.1` + SHA `e54e991f75a3e67f8e628da3171122e36ea5b872` |
+| [`vendor/CycloneDDS/CMakeLists.txt`](../../vendor/CycloneDDS/CMakeLists.txt) | `project(CycloneDDS … VERSION 11.0.1 …)` 声明（不是文件里任意一处 `VERSION 11.0.1`） |
+| [`config/fastdds.xml`](../../config/fastdds.xml) | **只检查存在**。内容冻结由 CI **`boundary`** 管 |
+| [`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md) | **只检查存在**。不读数字；内容冻结由 **`boundary`** 管 |
+
+CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编译 vendor 或改 XML / SCOREBOARD。
 
 ---
 
