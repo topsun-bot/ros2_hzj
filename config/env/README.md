@@ -36,7 +36,7 @@ DimOS 原生 DDS（`DDSTransport` → `ddspubsub` → `DDSService`）走 **cyclo
 |------|--------|------|
 | `RMW_IMPLEMENTATION` | `rmw_cyclonedds_cpp` | 仅当走 ROS 2 RMW；原生 DimOS DDS 不读这个 |
 | `ROS_DOMAIN_ID` | `0` | 与 `DDSConfig.domain_id` / Unitree 域 0 对齐 |
-| `CYCLONEDDS_URI` | （可选，默认不设） | 本仓不提供现网 Cyclone XML；不要假装有 |
+| `CYCLONEDDS_URI` | （默认 `unset`） | `chain_b.sh` / `export-b` / `apply-b` 清掉继承值；本仓不提供现网 Cyclone XML |
 | `CYCLONEDDS_HOME` | 系统 / Nix 前缀 | 装 Python `cyclonedds` 时需要；见 [docs/usage/transports/dds.md](../../docs/usage/transports/dds.md) |
 
 ```bash

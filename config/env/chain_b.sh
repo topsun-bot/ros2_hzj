@@ -8,8 +8,9 @@ fi
 
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export ROS_DOMAIN_ID=0
-# 不设置 CYCLONEDDS_URI：本仓没有现网 Cyclone XML。
-# CYCLONEDDS_HOME 若已由 Nix/apt 装好则保留，不覆盖。
+# 对齐 load.py CHAIN_B_UNSET：默认清掉继承的 Cyclone 网络 XML。
+# 本仓没有现网 Cyclone XML。CYCLONEDDS_HOME 若已由 Nix/apt 装好则保留，不覆盖。
+unset CYCLONEDDS_URI
 
 echo "chain B: RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION} ROS_DOMAIN_ID=${ROS_DOMAIN_ID}" >&2
 echo "chain B: DimOS 原生 DDS 仍用 DDSConfig.domain_id=0（模块默认未改）" >&2

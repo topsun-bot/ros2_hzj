@@ -14,6 +14,7 @@ python3 scripts/check_runtime_provenance.py
 python3 scripts/check_unitree_cyclone_swap.py
 python3 scripts/check_three_chain_repro.py
 python3 scripts/check_sink_layers.py
+python3 scripts/check_dual_chain_baseline.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -38,3 +39,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/unitree-sdk2-dds-swap.md](docs/architecture/unitree-sdk2-dds-swap.md) — Unitree bundled Cyclone 0.10.2 vs vendor 11.0.1: drop-in FAIL / wire UNPROVEN; default bundled; legal path `unitree_sdk2_hzj` + `UNITREE_DDS_PROVIDER=external`
 - [docs/architecture/feishu-three-chain-repro.md](docs/architecture/feishu-three-chain-repro.md) — wiki3 §13(2) three-chain reproduce: map ≠ reproduce; `STATUS: blocked` on this host (no Humble runtime)
 - [docs/architecture/feishu-sink-layers.md](docs/architecture/feishu-sink-layers.md) — Feishu 《通信中间件》 sink layers (app / rcl / rmw / DDS / executor / memory): Hold vs allowed; no XML
+- [docs/architecture/feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone baseline pointer (no XML rewrite; SCOREBOARD pointer only; same-topology XML tuning is paused)
