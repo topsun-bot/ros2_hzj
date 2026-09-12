@@ -16,7 +16,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 | Job | 断言（与拆分前同一套，可再拆不可丢） |
 |-----|--------------------------------------|
-| **structure** | R0 文档路径存在（含 `feishu-middleware-adr.md`、`ros2-source-map.md`、`cn-jp-ros2-absorb.md`、本文、`latency-attribution.md`、`feishu-risk-matrix.md`、`feishu-executor-waitset.md`、`feishu-runtime-provenance.md`、`unitree-sdk2-dds-swap.md`、`feishu-three-chain-repro.md`、`feishu-sink-layers.md`、`feishu-dual-chain-baseline.md`、`feishu-dod-evidence.md`、`feishu-cega-bridge-hold.md`、`AGENTS.md`）；`scripts/prove_rmw.py`、`scripts/check_source_map.py`、`scripts/print_bench_gates.py`、`scripts/check_risk_matrix.py`、`scripts/check_executor_map.py`、`scripts/check_runtime_provenance.py`、`scripts/check_unitree_cyclone_swap.py`、`scripts/check_three_chain_repro.py`、`scripts/check_sink_layers.py`、`scripts/check_dual_chain_baseline.py`、`scripts/check_dod_evidence.py`、`scripts/check_cega_bridge_hold.py`、`vendor/MANIFEST.md`；vendor 六棵树是普通目录（不是 gitlink / 无 `.gitmodules`）；DimOS 双链拷贝路径；R1–R5 产物；bench README 列出的日期目录存在；`fastdds.xml` 仍写 `domainId>42`；`chain_a.sh` / `chain_b.sh` 契约字符串；`python3 scripts/check_source_map.py`（只读源码地图：引用路径存在，允许清单符号仍在；行号过期只警告）；`python3 scripts/print_bench_gates.py`（只读 bench 指针 / `STATUS: blocked`，**不**打印分位数）；`python3 scripts/check_risk_matrix.py`（只读 §9.4 层序 / Hold 标记，**不**打风险分）；`python3 scripts/check_executor_map.py`（只读 WaitSet / `rmw_wait` / take / callback 地图 + Humble `rcl*` 未 vendor；打印 `WaitSet -> callback: mapped`，**不**发明时延）；`python3 scripts/check_runtime_provenance.py`（只读 Humble underlay / overlay / vendor snapshot 钉扎；打印 `underlay != vendor snapshot`，**不**发明 SHA）；`python3 scripts/check_unitree_cyclone_swap.py`（只读 Unitree 0.10.2 vs vendor 11.0.1；打印 `drop-in: FAIL / wire: UNPROVEN`，**不**发明时延）；`python3 scripts/check_three_chain_repro.py`（只读 §13(2) 三条链复现状态：map ≠ reproduce + `STATUS: blocked`；打印 `three-chain repro: blocked (map only)`，**不**发明复现已跑）；`python3 scripts/check_sink_layers.py`（只读 app / rcl / rmw / DDS / executor / memory 的 Hold vs allowed；打印 `sink layers: mapped (Hold vs allowed)`，**不**改 XML）；`python3 scripts/check_dual_chain_baseline.py`（只读 §13(3) 双链契约 / 不重写 XML / SCOREBOARD pointer-only / 跨机 blocked / 《3》–《6》 Hold；打印 `dual-chain baseline: pointer only (no XML rewrite)`，**不**发明分位数）；`python3 scripts/check_dod_evidence.py`（只读 wiki3 §6.3 产品 DoD 诚实标记；打印 `dod evidence: unmet (blocked)`，**不**发明 PASS / PROVEN / 本机 measured-delta）；`python3 scripts/check_cega_bridge_hold.py`（只读 §13(4) Cega / Bridge Hold；打印 `§13(4) Cega / Bridge: Hold`，**不**接 Cega、**不**改 `dimos_bridge` 运行时） |
+| **structure** | R0 文档路径存在（含 `feishu-middleware-adr.md`、`ros2-source-map.md`、`cn-jp-ros2-absorb.md`、本文、`latency-attribution.md`、`feishu-risk-matrix.md`、`feishu-executor-waitset.md`、`feishu-runtime-provenance.md`、`unitree-sdk2-dds-swap.md`、`feishu-three-chain-repro.md`、`feishu-sink-layers.md`、`feishu-dual-chain-baseline.md`、`feishu-dod-evidence.md`、`feishu-cega-bridge-hold.md`、`feishu-memory-hold.md`、`AGENTS.md`）；`scripts/prove_rmw.py`、`scripts/check_source_map.py`、`scripts/print_bench_gates.py`、`scripts/check_risk_matrix.py`、`scripts/check_executor_map.py`、`scripts/check_runtime_provenance.py`、`scripts/check_unitree_cyclone_swap.py`、`scripts/check_three_chain_repro.py`、`scripts/check_sink_layers.py`、`scripts/check_dual_chain_baseline.py`、`scripts/check_dod_evidence.py`、`scripts/check_cega_bridge_hold.py`、`scripts/check_memory_hold.py`、`vendor/MANIFEST.md`；vendor 六棵树是普通目录（不是 gitlink / 无 `.gitmodules`）；DimOS 双链拷贝路径；R1–R5 产物；bench README 列出的日期目录存在；`fastdds.xml` 仍写 `domainId>42`；`chain_a.sh` / `chain_b.sh` 契约字符串；`python3 scripts/check_source_map.py`（只读源码地图：引用路径存在，允许清单符号仍在；行号过期只警告）；`python3 scripts/print_bench_gates.py`（只读 bench 指针 / `STATUS: blocked`，**不**打印分位数）；`python3 scripts/check_risk_matrix.py`（只读 §9.4 层序 / Hold 标记，**不**打风险分）；`python3 scripts/check_executor_map.py`（只读 WaitSet / `rmw_wait` / take / callback 地图 + Humble `rcl*` 未 vendor；打印 `WaitSet -> callback: mapped`，**不**发明时延）；`python3 scripts/check_runtime_provenance.py`（只读 Humble underlay / overlay / vendor snapshot 钉扎；打印 `underlay != vendor snapshot`，**不**发明 SHA）；`python3 scripts/check_unitree_cyclone_swap.py`（只读 Unitree 0.10.2 vs vendor 11.0.1；打印 `drop-in: FAIL / wire: UNPROVEN`，**不**发明时延）；`python3 scripts/check_three_chain_repro.py`（只读 §13(2) 三条链复现状态：map ≠ reproduce + `STATUS: blocked`；打印 `three-chain repro: blocked (map only)`，**不**发明复现已跑）；`python3 scripts/check_sink_layers.py`（只读 app / rcl / rmw / DDS / executor / memory 的 Hold vs allowed；打印 `sink layers: mapped (Hold vs allowed)`，**不**改 XML）；`python3 scripts/check_dual_chain_baseline.py`（只读 §13(3) 双链契约 / 不重写 XML / SCOREBOARD pointer-only / 跨机 blocked / 《3》–《6》 Hold；打印 `dual-chain baseline: pointer only (no XML rewrite)`，**不**发明分位数）；`python3 scripts/check_dod_evidence.py`（只读 wiki3 §6.3 产品 DoD 诚实标记；打印 `dod evidence: unmet (blocked)`，**不**发明 PASS / PROVEN / 本机 measured-delta）；`python3 scripts/check_cega_bridge_hold.py`（只读 §13(4) Cega / Bridge Hold；打印 `§13(4) Cega / Bridge: Hold`，**不**接 Cega、**不**改 `dimos_bridge` 运行时）；`python3 scripts/check_memory_hold.py`（只读 memory 层 Hold；打印 `memory layer: Hold (no zero-copy land)`，**不**落地 Loaned / Data Sharing / Iceoryx / Agnocast，**不**发明时延） |
 | **contracts** | `python3 config/env/load.py print-a\|print-b` 打印契约且 import **不**写 `os.environ`；`dds_topics.py` 常量；上表文档的相对链接可解析；`python3 scripts/prove_rmw.py` 在 **没有 ROS** 时仍 exit 0 并打印 `ROS not loaded` |
 | **boundary** | 仅对 `pull_request` **失败**：diff 碰到冻结路径或明显引入 Agnocast / zenoh 的路径。`push` 到 `main` **只警告、不失败**（已合入历史不得被这道闸误杀） |
 
@@ -102,6 +102,7 @@ test -f docs/architecture/feishu-sink-layers.md
 test -f docs/architecture/feishu-dual-chain-baseline.md
 test -f docs/architecture/feishu-dod-evidence.md
 test -f docs/architecture/feishu-cega-bridge-hold.md
+test -f docs/architecture/feishu-memory-hold.md
 test -f AGENTS.md
 test -f scripts/prove_rmw.py
 test -f scripts/check_source_map.py
@@ -115,6 +116,7 @@ test -f scripts/check_sink_layers.py
 test -f scripts/check_dual_chain_baseline.py
 test -f scripts/check_dod_evidence.py
 test -f scripts/check_cega_bridge_hold.py
+test -f scripts/check_memory_hold.py
 test -d vendor/Fast-DDS && test ! -e vendor/Fast-DDS/.git
 python3 scripts/check_source_map.py
 python3 scripts/print_bench_gates.py
@@ -127,6 +129,7 @@ python3 scripts/check_sink_layers.py
 python3 scripts/check_dual_chain_baseline.py
 python3 scripts/check_dod_evidence.py
 python3 scripts/check_cega_bridge_hold.py
+python3 scripts/check_memory_hold.py
 
 # contracts
 python3 scripts/prove_rmw.py
@@ -153,6 +156,7 @@ python3 config/env/load.py print-b
 - [feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone 基线指针（不重写 XML；SCOREBOARD pointer only；same-topology XML tuning is paused）
 - [feishu-dod-evidence.md](feishu-dod-evidence.md) — wiki3 §6.3 产品 DoD（`DoD: unmet` / `STATUS: blocked`；`prove_rmw` = env / 字符串，不是 modified `.so`）
 - [feishu-cega-bridge-hold.md](feishu-cega-bridge-hold.md) — wiki3 §13(4) Cega / Bridge 后置 Hold（不接 Cega，不改 `dimos_bridge` 运行时）
+- [feishu-memory-hold.md](feishu-memory-hold.md) — 《通信中间件》memory 层 Hold（不落地 Loaned / Data Sharing / Iceoryx / Agnocast；AUTO ≠ zero-copy）
 - [latency-attribution.md](latency-attribution.md) — wiki3 §12 分段公式 × 双链（不抄 SCOREBOARD 数字）
 - [feishu-risk-matrix.md](feishu-risk-matrix.md) — wiki3 §9.4 层序 × Hold（不打风险分）
 - [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) — 双链契约
