@@ -4,10 +4,19 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  docs:
-    name: R0 docs + vendor seed + R1–R5 structure
+  structure:
+    name: structure
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,11 +29,13 @@ jobs:
           test -f docs/architecture/cn-jp-ros2-absorb.md
           test -f docs/architecture/feishu-middleware-adr.md
           test -f docs/architecture/ros2-source-map.md
+          test -f docs/architecture/ci-cd-gates.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
+          test -f AGENTS.md
           test -f LICENSE
 
       - name: Vendor and DimOS dump paths exist
@@ -104,6 +115,12 @@ jobs:
           grep -q 'rmw_cyclonedds_cpp' config/env/chain_b.sh
           grep -q 'ROS_DOMAIN_ID=0' config/env/chain_b.sh
 
+  contracts:
+    name: contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Env helpers print contract (no silent apply)
         run: |
           set -euo pipefail
@@ -159,11 +176,13 @@ jobs:
           root = Path(".").resolve()
           files = [
               Path("README.md"),
+              Path("AGENTS.md"),
               Path("docs/architecture/ros2-dds-r0-interface-freeze.md"),
               Path("docs/architecture/nitros-vs-dual-chain.md"),
               Path("docs/architecture/cn-jp-ros2-absorb.md"),
               Path("docs/architecture/feishu-middleware-adr.md"),
               Path("docs/architecture/ros2-source-map.md"),
+              Path("docs/architecture/ci-cd-gates.md"),
               Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
@@ -216,3 +235,104 @@ jobs:
           python3 scripts/prove_rmw.py
           python3 scripts/prove_rmw.py | grep -F 'ROS not loaded'
           # Do not compile vendor.
+
+  boundary:
+    name: boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # HEAD plus the PR base SHA (fetched below) is enough for a tree diff.
+          fetch-depth: 1
+
+      - name: Fetch PR base for diff
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+
+      - name: Hold boundary guard
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA: ${{ github.sha }}
+          HAS_BYPASS: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'allow-hold-bypass') }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+
+          event = os.environ.get("EVENT_NAME", "")
+          has_bypass = os.environ.get("HAS_BYPASS", "false").lower() == "true"
+          base = os.environ.get("BASE_SHA", "")
+          head = os.environ.get("HEAD_SHA", "")
+
+          frozen = {
+              "config/fastdds.xml",
+              "docs/artifacts/bench/SCOREBOARD.md",
+          }
+          intro_re = re.compile(
+              r"(^|/)([^/]*(agnocast|zenoh)[^/]*)(/|$)",
+              re.IGNORECASE,
+          )
+
+          def paths_from_diff(a: str, b: str) -> list[str]:
+              out = subprocess.check_output(
+                  ["git", "diff", "--name-status", "--find-renames", a, b],
+                  text=True,
+              )
+              found: list[str] = []
+              for line in out.splitlines():
+                  parts = line.split("\t")
+                  if len(parts) < 2:
+                      continue
+                  found.extend(p for p in parts[1:] if p)
+              return found
+
+          def violations_for(paths: list[str]) -> list[str]:
+              hits: list[str] = []
+              for path in paths:
+                  if path in frozen:
+                      hits.append(f"{path} (Hold-frozen file)")
+                  elif intro_re.search(path):
+                      hits.append(f"{path} (Hold: Agnocast/zenoh path)")
+              return hits
+
+          if event != "pull_request":
+              print(
+                  "push/main: Hold boundary is warn-only "
+                  "(already-merged history must not fail CI)"
+              )
+              sys.exit(0)
+
+          if has_bypass:
+              print("label allow-hold-bypass present: skipping fail")
+              if base and head:
+                  paths = paths_from_diff(base, head)
+                  hits = violations_for(paths)
+                  if hits:
+                      print("would have flagged:")
+                      for item in hits:
+                          print(f"  - {item}")
+              sys.exit(0)
+
+          if not base or not head:
+              sys.exit("BASE_SHA/HEAD_SHA missing on pull_request")
+
+          paths = paths_from_diff(base, head)
+          print(f"PR diff {base[:12]}..{head[:12]}: {len(paths)} path(s)")
+          hits = violations_for(paths)
+          if hits:
+              print("Hold boundary violated:")
+              for item in hits:
+                  print(f"  - {item}")
+              print(
+                  "Do not edit fastdds.xml / SCOREBOARD or introduce "
+                  "Agnocast/zenoh paths. Rare override: label allow-hold-bypass."
+              )
+              sys.exit(1)
+          print("Hold boundary: no frozen or Agnocast/zenoh paths in PR diff")
+          PY
