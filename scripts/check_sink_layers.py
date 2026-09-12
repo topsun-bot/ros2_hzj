@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+"""Assert Feishu sink-layer (RMW/DDS/Executor) docs stay honest.
+
+Vanilla box (no ROS): exit 0 when the sink doc + layer/Hold markers
+are present. Missing file or expected marker: FAIL (exit 1).
+On success print a line containing exactly:
+    sink layers: mapped (Hold vs allowed)
+On failure do not print that success marker.
+
+Does not invent SHAs, percentiles, or claim Feishu was fetched live.
+Does not prove fastdds.xml / SCOREBOARD contents are unchanged —
+those files are existence-only here; the `boundary` job owns the freeze.
+Style follows scripts/check_unitree_cyclone_swap.py / check_risk_matrix.py.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+
+SINK_REL = Path("docs/architecture/feishu-sink-layers.md")
+ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
+MAP_REL = Path("docs/architecture/ros2-source-map.md")
+EXEC_REL = Path("docs/architecture/feishu-executor-waitset.md")
+SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
+XML_REL = Path("config/fastdds.xml")
+SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
+
+SUCCESS_MARKER = "sink layers: mapped (Hold vs allowed)"
+
+# Exact substrings the sink doc must keep. Layers + Hold + no XML/SCOREBOARD
+# rewrite + no Agnocast/zenoh. Pointers are contiguous so a lone "map"
+# or "FAIL" cannot keep this gate green.
+_SINK_MARKERS = (
+    "app",
+    "rcl",
+    "rmw",
+    "DDS",
+    "executor",
+    "memory",
+    "Hold vs allowed",
+    "Hold",
+    "allowed",
+    "fastdds.xml",
+    "SCOREBOARD",
+    "Agnocast",
+    "zenoh",
+    "eCAL",
+    "DPDK",
+    "Isaac",
+    "Cega",
+    "自定义 RMW",
+    "派生自",
+    "Not Feishu field proof",
+    "map ≠ reproduce",
+    "drop-in FAIL",
+    "0.10.2",
+    "11.0.1",
+    "《3》",
+    "《4》",
+    "《5》",
+    "《6》",
+    "Humble",
+    "Rolling",
+    "blocked",
+)
+
+_ADR_MARKERS = (
+    "RMW",
+    "DDS",
+    "Executor",
+    "内存",
+)
+
+_MAP_MARKERS = (
+    "不是复现",
+    "publish",
+)
+
+_EXEC_MARKERS = (
+    "WaitSet",
+    "callback",
+)
+
+_SWAP_MARKERS = (
+    "0.10.2",
+    "11.0.1",
+    "drop-in FAIL",
+)
+
+
+def _repo_root() -> Path:
+    cwd = Path.cwd()
+    if (cwd / SINK_REL).is_file() or (cwd / ADR_REL).is_file():
+        return cwd.resolve()
+    here = Path(__file__).resolve().parent
+    candidate = here.parent
+    if (candidate / SINK_REL).is_file() or (candidate / ADR_REL).is_file():
+        return candidate
+    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def render(root: Path | None = None) -> tuple[str, int]:
+    root = (root or _repo_root()).resolve()
+    lines = [
+        "# check_sink_layers (Feishu RMW/DDS/Executor sink)",
+        "",
+    ]
+    failures: list[str] = []
+
+    # XML / SCOREBOARD: existence only. Content freeze is the `boundary` job.
+    required = (
+        (SINK_REL, _SINK_MARKERS, "layers + Hold vs allowed + no XML/SCOREBOARD rewrite"),
+        (ADR_REL, _ADR_MARKERS, "differentiation sink still named"),
+        (MAP_REL, _MAP_MARKERS, "three-chain map ≠ reproduce pointer target"),
+        (EXEC_REL, _EXEC_MARKERS, "WaitSet / callback identity map"),
+        (SWAP_REL, _SWAP_MARKERS, "Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL"),
+        (XML_REL, (), "existence only; content freeze is boundary"),
+        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+    )
+    texts: dict[Path, str] = {}
+    for rel, markers, hint in required:
+        path = root / rel
+        key = rel.as_posix()
+        if not path.is_file():
+            failures.append(f"missing file `{key}`")
+            lines.append(f"- **FAIL missing:** `{key}`")
+            continue
+        text = _read(path)
+        texts[rel] = text
+        missing_markers = [m for m in markers if m not in text]
+        if missing_markers:
+            joined = ", ".join(missing_markers)
+            failures.append(f"`{key}` missing marker(s): {joined}")
+            lines.append(f"- **FAIL markers:** `{key}` (need {joined})")
+            continue
+        extra = f" ({hint})" if hint else ""
+        lines.append(f"- **ok file:** `{key}`{extra}")
+
+    sink_text = texts.get(SINK_REL)
+    if sink_text is not None:
+        layers = ("app", "rcl", "rmw", "DDS", "executor", "memory")
+        if all(layer in sink_text for layer in layers):
+            lines.append("- **ok layers:** app / rcl / rmw / DDS / executor / memory")
+        else:
+            missing = [layer for layer in layers if layer not in sink_text]
+            failures.append(f"sink doc missing layer(s): {', '.join(missing)}")
+            lines.append(f"- **FAIL layers:** need {', '.join(missing)}")
+        if "Hold vs allowed" in sink_text:
+            lines.append("- **ok Hold vs allowed:** contiguous phrase present")
+        else:
+            failures.append("sink doc missing contiguous `Hold vs allowed`")
+            lines.append("- **FAIL Hold vs allowed:** need contiguous phrase")
+        if "map ≠ reproduce" in sink_text:
+            lines.append("- **ok three-chain pointer:** `map ≠ reproduce`")
+        else:
+            failures.append("sink doc missing contiguous `map ≠ reproduce`")
+            lines.append("- **FAIL three-chain:** need `map ≠ reproduce`")
+        if "drop-in FAIL" in sink_text:
+            lines.append("- **ok Unitree pointer:** `drop-in FAIL`")
+        else:
+            failures.append("sink doc missing contiguous `drop-in FAIL`")
+            lines.append("- **FAIL Unitree pointer:** need `drop-in FAIL`")
+
+    lines.append("")
+    lines.extend(
+        [
+            "Filesystem + Hold markers only. This is **not** a loaded",
+            "`.so` proof, not a percentile, and not Feishu field proof.",
+            "Live Feishu was not fetched; the sink doc must stay derived",
+            "from the in-repo ADR + source map + executor map.",
+            "fastdds.xml / SCOREBOARD are existence-only in this script;",
+            "the boundary job owns the content freeze. Agnocast / zenoh",
+            "stay Hold. Three-chain stays map ≠ reproduce. Unitree 0.10.2",
+            "vs vendor 11.0.1 stays drop-in FAIL. Do not rewrite XML.",
+            "",
+        ]
+    )
+
+    if failures:
+        lines.append("FAIL:")
+        for item in failures:
+            lines.append(f"- {item}")
+        lines.append("")
+        lines.append(
+            "Required sink-layer doc, layer/Hold marker, no-XML/SCOREBOARD "
+            "marker, or Agnocast/zenoh Hold is gone. Restore the docs "
+            "(no XML) or the marker. Exit 1."
+        )
+        lines.append("")
+        return "\n".join(lines), 1
+
+    lines.append(f"- **{SUCCESS_MARKER}**")
+    lines.append("")
+    lines.append(
+        "Sink-layer record healthy: app / rcl / rmw / DDS / executor / "
+        "memory stay marked Hold vs allowed; XML / SCOREBOARD stay "
+        "untouched; Agnocast / zenoh stay Hold. Exit 0."
+    )
+    lines.append("")
+    return "\n".join(lines), 0
+
+
+def main() -> int:
+    text, code = render()
+    sys.stdout.write(text)
+    return code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
