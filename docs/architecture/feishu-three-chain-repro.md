@@ -46,7 +46,7 @@ flowchart LR
   cb -.-> blocked
 ```
 
-双链提醒（混用默认值是 discovery 失败，不是单栈复现失败）：链 A `rmw_fastrtps_cpp` 域 **42**；链 B Cyclone 域 **0**。Humble `rclcpp` / `rclpy` **不在 vendor**。链 B 原生 `DDSTransport` 走 listener，不是 `rclpy` executor。
+双链提醒（混用默认值是 discovery 失败，不是单栈复现失败）：链 A `rmw_fastrtps_cpp` 域 **42**；链 B Cyclone 域 **0**。Humble `rclcpp` / `rclpy` **不在 vendor**。链 B 原生 `DDSTransport` 走 listener，不是 `rclpy` executor。§13(3) 双链基线指针（不重写 XML）：[feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md)。
 
 ---
 
@@ -121,4 +121,5 @@ python3 scripts/check_three_chain_repro.py
 6. [feishu-executor-waitset.md](feishu-executor-waitset.md) — WaitSet → callback 身份地图
 7. [feishu-runtime-provenance.md](feishu-runtime-provenance.md) — Humble underlay ≠ vendor snapshot
 8. [ci-cd-gates.md](ci-cd-gates.md)
-9. [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py)
+9. [feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone 基线指针（不重写 XML）
+10. [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py) · [scripts/check_dual_chain_baseline.py](../../scripts/check_dual_chain_baseline.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py)

@@ -16,11 +16,12 @@ Status: **指针 — 不是重测、不是飞书现场、不是跨机根因。**
 3. **SCOREBOARD 只当 current-best pointer。** [`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md) 是 **pointer only**。本文与 CI **不**抄、不改、不重算那边的分位数。
 4. **same-topology XML tuning is paused.** 同拓扑（`same-process` / `same-host`）再拧 XML 旋钮已暂停：SCOREBOARD 页眉写 leftover family **Forbidden to retry**；本切不发明新旋钮。
 5. **跨机 UDP 仍 `STATUS: blocked`。** 单机 / 无第二台，禁止填假分位数。见 [`2026-09-11-cross-host/`](../artifacts/bench/2026-09-11-cross-host/README.md)。
-6. **三条链仍是地图，不是复现。** wiki3 §13(2) publish / ingress→History / wait→callback = **three-chain map≠reproduce**。只认 [ros2-source-map.md](ros2-source-map.md) + ADR「只画地图」。
+6. **三条链仍是地图，不是复现。** wiki3 §13(2) publish / ingress→History / wait→callback = **three-chain map≠reproduce**。只认 [ros2-source-map.md](ros2-source-map.md) + [feishu-three-chain-repro.md](feishu-three-chain-repro.md)（`STATUS: blocked`）+ ADR。
 7. **Unitree 0.10.2 vs vendor 11.0.1 = drop-in FAIL。** 见 [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。线缆互通仍 UNPROVEN。
 8. **《3》–《6》仍 Hold。** 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE。Agnocast / zenoh / Cega / 自定义 RMW 仍 Hold。不改 `dimos_bridge` 运行时模块。
 
 核对本页 + 双链契约脚本仍一致：[`scripts/check_dual_chain_baseline.py`](../../scripts/check_dual_chain_baseline.py)。  
+核对三条链仍 blocked / map≠reproduce：[`scripts/check_three_chain_repro.py`](../../scripts/check_three_chain_repro.py)。  
 核对「加载了哪个 RMW」：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)。  
 核对 bench 指针 / 跨机 STATUS：[`scripts/print_bench_gates.py`](../../scripts/print_bench_gates.py)。
 
@@ -89,7 +90,7 @@ Humble 发行版 `.so` 才是默认加载对象。`vendor/rmw_fastrtps` / `vendo
 | XML / SCOREBOARD 本切 | **不重写 / 不改数字** | [`config/fastdds.xml`](../../config/fastdds.xml) 只读；SCOREBOARD **pointer only** |
 | same-topology XML 再拧 | **paused** | SCOREBOARD 页眉 leftover = Forbidden to retry |
 | 跨机 UDP | **`STATUS: blocked`** | [`2026-09-11-cross-host/`](../artifacts/bench/2026-09-11-cross-host/README.md) |
-| §13(2) 三条链 | **three-chain map≠reproduce** | [ros2-source-map.md](ros2-source-map.md)；ADR「只画地图」 |
+| §13(2) 三条链 | **three-chain map≠reproduce** | [ros2-source-map.md](ros2-source-map.md) · [feishu-three-chain-repro.md](feishu-three-chain-repro.md)（`STATUS: blocked`） |
 | Unitree Cyclone 换库 | **0.10.2 vs vendor 11.0.1 drop-in FAIL** | [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) |
 | 《3》《4》《5》《6》 | **Hold** | [ci-cd-gates.md](ci-cd-gates.md) |
 
@@ -104,11 +105,12 @@ Humble 发行版 `.so` 才是默认加载对象。`vendor/rmw_fastrtps` / `vendo
 
 ```bash
 python3 scripts/check_dual_chain_baseline.py
+python3 scripts/check_three_chain_repro.py
 python3 scripts/print_bench_gates.py
 python3 scripts/prove_rmw.py
 ```
 
-无 ROS 时三个脚本都应能 exit 0。成功时打印 `dual-chain baseline: pointer only (no XML rewrite)` 以及 `same-topology XML tuning is paused`。脚本打开这些文件（缺一个就红）：
+无 ROS 时四个脚本都应能 exit 0。成功时打印 `dual-chain baseline: pointer only (no XML rewrite)` 以及 `same-topology XML tuning is paused`。脚本打开这些文件（缺一个就红）：
 
 | 打开 | 断言 |
 |------|------|
@@ -139,7 +141,7 @@ CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编�
 4. [feishu-middleware-adr.md](feishu-middleware-adr.md) — §13(3) 行
 5. [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) · [config/env/README.md](../../config/env/README.md)
 6. [docs/artifacts/bench/SCOREBOARD.md](../artifacts/bench/SCOREBOARD.md) — current-best **pointer only**
-7. [ros2-source-map.md](ros2-source-map.md) — three-chain **map≠reproduce**
+7. [ros2-source-map.md](ros2-source-map.md) · [feishu-three-chain-repro.md](feishu-three-chain-repro.md) — three-chain **map≠reproduce**（`STATUS: blocked`）
 8. [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — 0.10.2 vs 11.0.1 **drop-in FAIL**
 9. [latency-attribution.md](latency-attribution.md) · [feishu-runtime-provenance.md](feishu-runtime-provenance.md)
-10. [scripts/check_dual_chain_baseline.py](../../scripts/check_dual_chain_baseline.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py)
+10. [scripts/check_dual_chain_baseline.py](../../scripts/check_dual_chain_baseline.py) · [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py)
