@@ -160,6 +160,14 @@ def _to_repo_rel(root: Path, map_path: Path, raw: str) -> Path | None:
         return None
     if target.startswith(("http://", "https://", "mailto:", "<", "/")):
         return None
+    # Prose like `dimos_bridge` is not a path citation.
+    if (
+        not target.startswith(".")
+        and not _looks_like_repo_path(target)
+        and "/" not in target
+        and not Path(target).suffix
+    ):
+        return None
     if target.startswith("."):
         dest = map_path.parent / target
     elif _looks_like_repo_path(target):
@@ -182,9 +190,13 @@ def _parse_map(root: Path, map_path: Path) -> tuple[dict[Path, set[int]], list[s
     body = _FENCE_RE.sub("", text)
     cited: dict[Path, set[int]] = {}
     notes: list[str] = []
+    absent_keys = {p.as_posix() for p in ABSENT_VENDOR_TREES}
 
     def add(rel: Path | None, line: int | None = None) -> None:
         if rel is None:
+            return
+        # `vendor/rcl*` is cited as absent; do not require those trees.
+        if rel.as_posix() in absent_keys:
             return
         cited.setdefault(rel, set())
         if line is not None and line > 0:
