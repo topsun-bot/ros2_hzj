@@ -87,7 +87,9 @@ _ADR_MARKERS = (
 _EXPORT_CHAIN_A = (
     re.compile(r"(?m)^\s*export\s+RMW_IMPLEMENTATION=rmw_fastrtps_cpp\s*$"),
     re.compile(r"(?m)^\s*export\s+ROS_DOMAIN_ID=42\s*$"),
-    re.compile(r"(?m)^\s*export\s+FASTRTPS_DEFAULT_PROFILES_FILE="),
+    re.compile(
+        r"(?m)^\s*export\s+FASTRTPS_DEFAULT_PROFILES_FILE=.*config/fastdds\.xml"
+    ),
 )
 _EXPORT_CHAIN_B = (
     re.compile(r"(?m)^\s*export\s+RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\s*$"),
@@ -144,11 +146,12 @@ def render(root: Path | None = None) -> tuple[str, int]:
         (CHAIN_A_REL, (), "opened; export assignments checked separately"),
         (CHAIN_B_REL, (), "opened; export assignments + no URI export"),
         (R0_REL, ("Hold",), "dual-chain R0 freeze exists"),
-        (MAP_REL, ("vendor",), "three-chain map exists (map only)"),
-        (SWAP_REL, ("drop-in FAIL",), "Unitree 0.10.2 vs vendor 11.0.1"),
+        (MAP_REL, ("vendor", "不是复现"), "three-chain map exists (not a reproduce)"),
+        (SWAP_REL, ("drop-in FAIL", "0.10.2", "11.0.1"), "Unitree 0.10.2 vs vendor 11.0.1"),
         (XML_REL, (), "existence only; content freeze is boundary"),
         (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
     )
+    existence_only = {XML_REL, SCOREBOARD_REL}
     texts: dict[Path, str] = {}
     for rel, markers, hint in required:
         path = root / rel
@@ -156,6 +159,10 @@ def render(root: Path | None = None) -> tuple[str, int]:
         if not path.is_file():
             failures.append(f"missing file `{key}`")
             lines.append(f"- **FAIL missing:** `{key}`")
+            continue
+        if rel in existence_only:
+            extra = f" ({hint})" if hint else ""
+            lines.append(f"- **ok file:** `{key}`{extra}")
             continue
         text = _read(path)
         texts[rel] = text
