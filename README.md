@@ -22,7 +22,7 @@
 
 # News
 
-- [2026.09.12] 吸收中日公开、可引用的 ROS 2 / DDS 做法（文档 + 可选加法配方）：[cn-jp-ros2-absorb.md](docs/architecture/cn-jp-ros2-absorb.md)。不改 `fastdds.xml` / SCOREBOARD 已记账表。
+- [2026.09.12] 中日公开 ROS 2 / DDS 做法只进文档：[cn-jp-ros2-absorb.md](docs/architecture/cn-jp-ros2-absorb.md)。不改 `fastdds.xml` / SCOREBOARD。
 - [2026.09.11] README 按 HoloMotion 结构重排：亮点、计划模板、Plugin 面与交付物清单（空项标 TBD，不编造链接）。
 - [2026.09.10] `main` 合入 [PR #11](https://github.com/topsun-bot/ros2_hzj/pull/11)：iter6 IMU 尺度（64 B / 200 Hz）抖动基线；`port_queue_capacity` 探测未保留。
 - [2026.09.10] [PR #6](https://github.com/topsun-bot/ros2_hzj/pull/6)–[#10](https://github.com/topsun-bot/ros2_hzj/pull/10)：链 A `fastdds.xml` 单旋钮迭代（Humble `historyQos`、UDP socket buffer、send-buffer 池、中包 SHM）并落盘重测。

@@ -7,12 +7,6 @@ modules, vendor trees, QoS defaults, or domains.
 Do **not** put Chain A and Chain B numbers in one comparison table.
 Do **not** treat these numbers as a root-cause claim.
 
-CN / JP public absorb (docs + optional labeled recipe, not default):
-[docs/architecture/cn-jp-ros2-absorb.md](../../docs/architecture/cn-jp-ros2-absorb.md).
-Autoware-like Cyclone XML for Chain B experiments only:
-[cyclonedds_autoware_like.xml](cyclonedds_autoware_like.xml)
-(`CYCLONEDDS_URI` stays unset unless an operator exports it).
-
 ## Exact commands
 
 ### Chain B (Cyclone `DDS` / domain 0)

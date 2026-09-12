@@ -147,14 +147,4 @@ This section is a **pointer only**. It does **not** change current best config, 
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
-## CN / JP public ROS 2 absorb (pointer only)
-
-Documented, citable Japan / mainland-China ROS 2 · DDS practices mapped onto the dual-chain contract: [`docs/architecture/cn-jp-ros2-absorb.md`](../../architecture/cn-jp-ros2-absorb.md). Optional Chain B **labeled example** (not default, not this scoreboard): [`scripts/bench/cyclonedds_autoware_like.xml`](../../../scripts/bench/cyclonedds_autoware_like.xml).
-
-Hold: Agnocast vendor / kmod, new RMW (`rmw_zenoh`), distro rebase, flipping `data_sharing` in the live XML, regressing iter2 2 MiB sockets. 《3》–《6》 still Hold.
-
-This section is a **pointer only**. It does **not** change current best config, booked same-host tables, or the iter7 `fastdds.xml` seed.
-
-**不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
-
 Index of every dated run: [`README.md`](README.md). How to re-run: [`docs/usage/benchmark-dds.md`](../../usage/benchmark-dds.md), [`scripts/bench/README.md`](../../../scripts/bench/README.md).

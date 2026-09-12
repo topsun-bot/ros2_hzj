@@ -34,7 +34,7 @@ DimOS 原生 DDS（`DDSTransport` → `ddspubsub` → `DDSService`）走 **cyclo
 |------|--------|------|
 | `RMW_IMPLEMENTATION` | `rmw_cyclonedds_cpp` | 仅当走 ROS 2 RMW；原生 DimOS DDS 不读这个 |
 | `ROS_DOMAIN_ID` | `0` | 与 `DDSConfig.domain_id` / Unitree 域 0 对齐 |
-| `CYCLONEDDS_URI` | （可选，默认不设） | 本仓不提供现网 Cyclone XML。Autoware 公开配方的**标签示例**在 [`scripts/bench/cyclonedds_autoware_like.xml`](../../scripts/bench/cyclonedds_autoware_like.xml)，须操作员自己 export；不是默认，不是 SCOREBOARD。对照 [cn-jp-ros2-absorb.md](../../docs/architecture/cn-jp-ros2-absorb.md) |
+| `CYCLONEDDS_URI` | （可选，默认不设） | 本仓不提供现网 Cyclone XML；不要假装有 |
 | `CYCLONEDDS_HOME` | 系统 / Nix 前缀 | 装 Python `cyclonedds` 时需要；见 [docs/usage/transports/dds.md](../../docs/usage/transports/dds.md) |
 
 ```bash
