@@ -272,7 +272,9 @@ source config/env/chain_a.sh
 - [Bench 怎么跑](docs/usage/benchmark-dds.md) · [Bench 产物](docs/artifacts/bench/README.md)
 - [env helper](config/env/README.md) · [fastdds.xml 说明](config/fastdds.zh.md) · [vendor SHA](vendor/VERSIONS.md)
 
-CI：[`.github/workflows/ci.yml`](.github/workflows/ci.yml) 检查 R0 路径、vendor 目录、R1–R5 产物、文档相对链接。
+## CI
+
+Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
 
 # Citation
 
