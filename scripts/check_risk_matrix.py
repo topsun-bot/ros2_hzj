@@ -39,6 +39,8 @@ _MATRIX_MARKERS = (
     "Humble",
     "Rolling",
     "blocked",
+    # Hold contract is 《3》–《6》; requiring each token so a lone
+    # "《3》" or "《3》–《6》" range cannot hide a missing item.
     "《3》",
     "《4》",
     "《5》",
