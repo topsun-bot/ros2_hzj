@@ -7,6 +7,7 @@ Use these pages instead:
 | Page | What it is |
 |------|------------|
 | [R0 interface freeze](../../architecture/ros2-dds-r0-interface-freeze.md) | Dual-chain map, frozen topics / QoS, LCM out of scope |
+| [china-japan-dds-absorptions.md](../../architecture/china-japan-dds-absorptions.md) | Orbbec / Autoware / loaned zero-copy refs (no XML rewrite) |
 | [dds.md](dds.md) | Chain B Cyclone install notes |
 | [benchmark-dds.md](../benchmark-dds.md) | How to run benches (no scores) |
 
