@@ -16,6 +16,7 @@ Style follows scripts/check_unitree_cyclone_swap.py / check_risk_matrix.py.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import sys
 
 
@@ -29,23 +30,26 @@ SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "sink layers: mapped (Hold vs allowed)"
 
+# Contiguous policy clauses — a lone "fastdds.xml" / "Agnocast" / "Hold"
+# is not enough (a rewrite that *allows* XML could keep those names).
+_POLICY_CLAUSES = (
+    "不改 config/fastdds.xml / SCOREBOARD",
+    "不启用 Agnocast / zenoh",
+    "《3》–《6》仍 Hold",
+)
+
+# Table-row labels. Substring "rcl" would also match `rclpy` in the app row.
+_LAYER_ROW_RE = re.compile(
+    r"(?m)^\|\s*\*\*(app|rcl|rmw|DDS|executor|memory)\*\*\s*\|"
+)
+_LAYER_NAMES = ("app", "rcl", "rmw", "DDS", "executor", "memory")
+
 # Exact substrings the sink doc must keep. Layers + Hold + no XML/SCOREBOARD
 # rewrite + no Agnocast/zenoh. Pointers are contiguous so a lone "map"
 # or "FAIL" cannot keep this gate green.
 _SINK_MARKERS = (
-    "app",
-    "rcl",
-    "rmw",
-    "DDS",
-    "executor",
-    "memory",
+    *_POLICY_CLAUSES,
     "Hold vs allowed",
-    "Hold",
-    "allowed",
-    "fastdds.xml",
-    "SCOREBOARD",
-    "Agnocast",
-    "zenoh",
     "eCAL",
     "DPDK",
     "Isaac",
@@ -57,13 +61,11 @@ _SINK_MARKERS = (
     "drop-in FAIL",
     "0.10.2",
     "11.0.1",
-    "《3》",
-    "《4》",
-    "《5》",
-    "《6》",
     "Humble",
     "Rolling",
     "blocked",
+    "psmx_iox",
+    "vendor/iceoryx",
 )
 
 _ADR_MARKERS = (
@@ -144,13 +146,29 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     sink_text = texts.get(SINK_REL)
     if sink_text is not None:
-        layers = ("app", "rcl", "rmw", "DDS", "executor", "memory")
-        if all(layer in sink_text for layer in layers):
-            lines.append("- **ok layers:** app / rcl / rmw / DDS / executor / memory")
+        found_layers = set(_LAYER_ROW_RE.findall(sink_text))
+        missing_layers = [name for name in _LAYER_NAMES if name not in found_layers]
+        if missing_layers:
+            failures.append(
+                "sink doc missing table-row label(s): "
+                + ", ".join(f"| **{name}** |" for name in missing_layers)
+            )
+            lines.append(
+                "- **FAIL layers:** need table rows "
+                + ", ".join(f"| **{name}** |" for name in missing_layers)
+            )
         else:
-            missing = [layer for layer in layers if layer not in sink_text]
-            failures.append(f"sink doc missing layer(s): {', '.join(missing)}")
-            lines.append(f"- **FAIL layers:** need {', '.join(missing)}")
+            lines.append(
+                "- **ok layers:** table rows | **app** | **rcl** | **rmw** | "
+                "**DDS** | **executor** | **memory** |"
+            )
+        missing_policy = [c for c in _POLICY_CLAUSES if c not in sink_text]
+        if missing_policy:
+            joined = ", ".join(f"`{c}`" for c in missing_policy)
+            failures.append(f"sink doc missing policy clause(s): {joined}")
+            lines.append(f"- **FAIL policy:** need {joined}")
+        else:
+            lines.append("- **ok policy:** 不改 XML/SCOREBOARD; 不启用 Agnocast/zenoh; 《3》–《6》仍 Hold")
         if "Hold vs allowed" in sink_text:
             lines.append("- **ok Hold vs allowed:** contiguous phrase present")
         else:
