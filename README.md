@@ -268,13 +268,13 @@ source config/env/chain_a.sh
 
 ## 文档
 
-- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [中日 ROS 2 吸收](docs/architecture/cn-jp-ros2-absorb.md) · [飞书中间件 ADR](docs/architecture/feishu-middleware-adr.md) · [源码地图](docs/architecture/ros2-source-map.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
+- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [中日 ROS 2 吸收](docs/architecture/cn-jp-ros2-absorb.md) · [飞书中间件 ADR](docs/architecture/feishu-middleware-adr.md) · [源码地图](docs/architecture/ros2-source-map.md) · [时延归因（不抄 SCOREBOARD 数字）](docs/architecture/latency-attribution.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
 - [Bench 怎么跑](docs/usage/benchmark-dds.md) · [Bench 产物](docs/artifacts/bench/README.md)
 - [env helper](config/env/README.md) · [fastdds.xml 说明](config/fastdds.zh.md) · [vendor SHA](vendor/VERSIONS.md)
 
 ## CI
 
-Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。
+Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。bench 指针 / 跨机 STATUS：`python3 scripts/print_bench_gates.py`（无 ROS；见 [latency-attribution.md](docs/architecture/latency-attribution.md)）。
 
 # Citation
 
