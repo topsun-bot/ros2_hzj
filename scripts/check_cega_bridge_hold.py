@@ -18,6 +18,7 @@ check_runtime_provenance.py.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import sys
 
 
@@ -60,14 +61,22 @@ _HOLD_MARKERS = (
     "Unitree",
 )
 
-# ADR §13(4) row must stay Hold. Require the section + Cega + Hold.
+# Loose ADR tokens still required, but they cannot keep the gate green
+# if the §13(4) row itself is rewritten to PASS.
 _ADR_MARKERS = (
     "§13",
-    "Cega / Bridge",
-    "Hold",
     "不接 Cega",
     "dimos_bridge",
 )
+
+# Row-scoped: `| (4) | Cega / Bridge 后置 | **Hold**` on one line.
+# A leftover "Hold" elsewhere (or a PASS in this cell) must fail.
+_ADR_ROW_RE = re.compile(
+    r"(?m)^\s*\|\s*\(4\)\s*\|\s*Cega / Bridge 后置\s*\|\s*\*\*Hold\*\*"
+)
+
+# Status header, not a leftover `STATUS: Hold` later in the page.
+_HOLD_STATUS_RE = re.compile(r"(?m)^Status:\s*\*\*Hold\*\*")
 
 # Runtime Python this phase documents as read-only. Existence only.
 _RUNTIME_RELS = (
@@ -109,7 +118,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
     # XML / SCOREBOARD: existence only. Content freeze is the `boundary` job.
     required = (
         (HOLD_REL, _HOLD_MARKERS, "STATUS: Hold + no Cega + no runtime edits"),
-        (ADR_REL, _ADR_MARKERS, "§13(4) Cega / Bridge still Hold"),
+        (ADR_REL, _ADR_MARKERS, "opened; §13(4) row checked separately"),
         (XML_REL, (), "existence only; content freeze is boundary"),
         (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
     )
@@ -132,8 +141,27 @@ def render(root: Path | None = None) -> tuple[str, int]:
         extra = f" ({hint})" if hint else ""
         lines.append(f"- **ok file:** `{key}`{extra}")
 
+    adr_text = texts.get(ADR_REL)
+    if adr_text is not None:
+        if _ADR_ROW_RE.search(adr_text):
+            lines.append(
+                "- **ok ADR §13(4) row:** `| (4) | Cega / Bridge 后置 | **Hold**`"
+            )
+        else:
+            failures.append(
+                "ADR missing contiguous `| (4) | Cega / Bridge 后置 | **Hold**` row"
+            )
+            lines.append(
+                "- **FAIL ADR row:** need `| (4) | Cega / Bridge 后置 | **Hold**`"
+            )
+
     hold_text = texts.get(HOLD_REL)
     if hold_text is not None:
+        if _HOLD_STATUS_RE.search(hold_text):
+            lines.append("- **ok status header:** `Status: **Hold**`")
+        else:
+            failures.append("hold doc missing `Status: **Hold**` header")
+            lines.append("- **FAIL status:** need `Status: **Hold**` at line start")
         if "STATUS: Hold" in hold_text:
             lines.append("- **ok status phrase:** `STATUS: Hold`")
         else:
