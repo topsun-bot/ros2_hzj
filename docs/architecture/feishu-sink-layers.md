@@ -16,7 +16,7 @@ Status: **分层清单 — Hold vs allowed；不是已改中间件、不是飞�
 3. **不启用 Agnocast / zenoh。** 亦不接 eCAL / DPDK / Isaac / Cega / 自定义 RMW。不 vendor `rmw_zenoh`，不装 kmod。不改 `dimos_bridge` 运行时 Python 模块、不改 vendor 源码。
 4. **《3》–《6》仍 Hold。** 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE。跨机 UDP 仍 **blocked**。
 5. **Rolling ≠ Humble。** vendor 是对照快照，不是 `/opt/ros/humble` 已加载 `.so`。见 [feishu-runtime-provenance.md](feishu-runtime-provenance.md)。
-6. **三条链 map ≠ reproduce。** publish / ingress→History / wait→callback 只画地图，不是已复现。指针：[ros2-source-map.md](ros2-source-map.md)（Status：**地图 — 不是复现报告**）；ADR §13(2)「只画地图」。不要把地图写成 PASS。
+6. **三条链 map ≠ reproduce。** publish / ingress→History / wait→callback 只画地图，不是已复现。指针：[feishu-three-chain-repro.md](feishu-three-chain-repro.md)（`STATUS: blocked`）；[ros2-source-map.md](ros2-source-map.md)（Status：**地图 — 不是复现报告**）；ADR §13(2)。不要把地图写成 PASS。
 7. **Unitree 0.10.2 vs vendor 11.0.1 = drop-in FAIL。** 指针：[unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。不是本页再裁决一遍。
 
 核对本页层序 / Hold vs allowed 标记仍在：[`scripts/check_sink_layers.py`](../../scripts/check_sink_layers.py)。
@@ -58,7 +58,7 @@ flowchart LR
 | 裁决 | 本仓权威页 | 本页只做 |
 |------|------------|----------|
 | Unitree SDK2 自带 Cyclone **0.10.2** **不是** vendor **11.0.1** 的 drop-in（主版本 / ABI）。默认 bundled 0.10.2；合法换库走 `unitree_sdk2_hzj` + `UNITREE_DDS_PROVIDER=external`。线缆互通 **UNPROVEN** | [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) · [`scripts/check_unitree_cyclone_swap.py`](../../scripts/check_unitree_cyclone_swap.py) | **pointer。** 不重抄 SHA、不编造互通 PASS |
-| 飞书 §13(2) 三条链（publish / ingress→History / wait→callback）= **map ≠ reproduce**。源码地图 Status 已写「地图 — 不是复现报告」。ADR §13(2)「只画地图」。`publish()` 返回 ≠ 端到端送达 | [ros2-source-map.md](ros2-source-map.md) · [feishu-executor-waitset.md](feishu-executor-waitset.md) · ADR §13(2) | **pointer。** 不编造已复现、不跑 vendor 编译、不填分位数 |
+| 飞书 §13(2) 三条链（publish / ingress→History / wait→callback）= **map ≠ reproduce**。复现状态页 `STATUS: blocked`。源码地图 Status 已写「地图 — 不是复现报告」。`publish()` 返回 ≠ 端到端送达 | [feishu-three-chain-repro.md](feishu-three-chain-repro.md) · [ros2-source-map.md](ros2-source-map.md) · [feishu-executor-waitset.md](feishu-executor-waitset.md) · ADR §13(2) | **pointer。** 不编造已复现、不跑 vendor 编译、不填分位数 |
 
 跨机 UDP 仍 **blocked**（单机）。《3》–《6》仍 Hold。
 
@@ -98,9 +98,10 @@ CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编�
 
 4. [feishu-middleware-adr.md](feishu-middleware-adr.md)
 5. [ros2-source-map.md](ros2-source-map.md) — 三条链 **map ≠ reproduce**
-6. [feishu-executor-waitset.md](feishu-executor-waitset.md)
-7. [feishu-risk-matrix.md](feishu-risk-matrix.md) — §9.4 层序（不打分）
-8. [feishu-runtime-provenance.md](feishu-runtime-provenance.md)
-9. [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree **0.10.2** vs vendor **11.0.1**（**drop-in FAIL**）
-10. [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — Loaned / Agnocast / zenoh 对照（不落地）
-11. [scripts/check_sink_layers.py](../../scripts/check_sink_layers.py) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py)
+6. [feishu-three-chain-repro.md](feishu-three-chain-repro.md) — wiki3 §13(2) 复现状态（`STATUS: blocked`）
+7. [feishu-executor-waitset.md](feishu-executor-waitset.md)
+8. [feishu-risk-matrix.md](feishu-risk-matrix.md) — §9.4 层序（不打分）
+9. [feishu-runtime-provenance.md](feishu-runtime-provenance.md)
+10. [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree **0.10.2** vs vendor **11.0.1**（**drop-in FAIL**）
+11. [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — Loaned / Agnocast / zenoh 对照（不落地）
+12. [scripts/check_sink_layers.py](../../scripts/check_sink_layers.py) · [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py)
