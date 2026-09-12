@@ -78,8 +78,9 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 期望：`main` **要求本工作流绿才能合**。在 GitHub 里把 `structure`、`contracts`、`boundary` 设为 required status checks（Ruleset「Require status checks」或经典 Branch protection）。
 
 - 不要只保护其中一个 job。
+- **不要**把 [`request-copilot-review.yml`](../../.github/workflows/request-copilot-review.yml) 设成 required check（失败只警告）。
 - Agent 可以做到 **merge / production 闸门之前**（开 PR、推提交、等 CI、修红）。
-- **人类批准 merge**。本仓不自动合入。
+- **人类批准 merge**。本仓不自动合入。Required GitHub Approve **仍是 1**，除非仓库 **Settings → Copilot → Code review** 打开 Auto-approval（Allow Copilot to approve + count toward merge）。Copilot 评论 ≠ 已满足 merge 所需 Approve。
 
 ---
 
@@ -113,7 +114,19 @@ python3 config/env/load.py print-b
 
 ---
 
-## 7. 相关文档
+## 7. Copilot auto-review
+
+Ruleset **`copilot-auto-review`**（id **22999465**）已 **ACTIVE**：`copilot_code_review`，`review_on_push=true`，`review_draft_pull_requests=true`，作用域 **all branches**。每个 PR（含 draft）在 push 时会自动收到 Copilot 审阅。
+
+可选腰带：[`.github/workflows/request-copilot-review.yml`](../../.github/workflows/request-copilot-review.yml) 在 `pull_request`（`opened` / `ready_for_review` / `synchronize`）用 `GITHUB_TOKEN` 调 `gh api` 请求 reviewer `copilot-pull-request-reviewer[bot]`。Token 若无权请求该 reviewer，job **只警告、不失败**。**不要**把这个 job 设成 required check。
+
+**Required approvals 仍是 1（人类）**，除非仓库 **Settings → Copilot → Code review** 打开 Auto-approval 两个开关（Allow Copilot to approve + count toward merge）。
+
+**不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
+
+---
+
+## 8. 相关文档
 
 - [feishu-middleware-adr.md](feishu-middleware-adr.md) — 飞书三份中间件计划 → 本仓已决
 - [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — 中日公开做法对照（权威吸收文，不落旋钮）
