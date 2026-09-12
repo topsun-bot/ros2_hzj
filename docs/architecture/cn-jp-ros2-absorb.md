@@ -24,25 +24,21 @@ Status: **文档对照 — 不落地旋钮。**
 
 | 路径 | 是什么 | 不是什么 |
 |------|--------|----------|
-| **同进程** 零拷 / 少拷 | ComponentContainer / Fast DDS intra-process；节点在同一进程里，避开序列化/拷贝 | 不是跨进程，不是跨机 |
-| **同机 SHM**（典型跨进程） | Fast DDS **Data Sharing** + ROS 2 **Loaned Messages**：同一台机器上共享 DataWriter history；Humble+ `rmw_fastrtps_cpp` 对 POD | **不是** 跨机 UDP 解锁。对端不在同一块共享内存时仍要序列化 |
-| **跨机 UDP** | 普通 RMW/DDS 序列化走网卡 | 本仓仍 **STATUS: blocked**（yixin Docker DOWN / 单 VM）。无假分位数 |
+| **同进程 / 同机** 零拷 | ComponentContainer / intra-process；以及 Loaned Messages + Fast DDS Data Sharing（`rmw_fastrtps` 写明加速 **intra-host**） | **不是** 跨机 UDP 解锁 |
+| **跨机 UDP** | 普通 RMW/DDS 序列化走网卡（`rmw_fastrtps` 默认 inter-host 用 UDPv4） | 本仓仍 **STATUS: blocked**（yixin Docker DOWN / 单 VM）。无假分位数 |
 
 本 PR **不**在现网 XML 翻转 `data_sharing`。
 
 ```mermaid
 flowchart LR
-  subgraph sameProc["同进程"]
+  subgraph sameHost["same-process / same-host"]
     CC["ComponentContainer / intra-process"]
-  end
-  subgraph sameHost["同机 SHM（典型跨进程）"]
     DS["Loaned + Data Sharing"]
   end
-  subgraph crossHost["跨机 UDP"]
+  subgraph crossHost["cross-host UDP"]
     UDP["序列化 + UDP"]
   end
-  sameProc -.->|"不是"| sameHost
-  sameHost -.->|"不是解锁"| crossHost
+  sameHost -.->|"不解锁"| crossHost
   crossHost --> BLK["本仓 blocked"]
 ```
 
@@ -53,10 +49,10 @@ flowchart LR
 | 公开项 | 本仓落点 | 本 PR 动作 |
 |--------|----------|------------|
 | TIER IV / Autoware Agnocast（未定长真零拷；kmod + `LD_PRELOAD` heaphook；`ENABLE_AGNOCAST`） | **不是** 第三条链，也不是 RMW。跨机 / rviz / rosbag 仍走现有 RMW/DDS | **Hold**：不 vendor、不装 kmod |
-| Autoware CycloneDDS 10MB recv window 等（见原文） | 链 B 默认 **不** 设 `CYCLONEDDS_URI` | **只引 URL**；不写示例 XML、不改默认 |
+| Autoware / Cyclone recv window（见 TIER IV 页 + 其 ROS 2 DDS tuning） | 链 B 默认 **不** 设 `CYCLONEDDS_URI` | **只引 URL，example only**；不写 XML |
 | Autoware 经典 ComponentContainer 同进程 | 同进程少拷；故障隔离 vs 零拷 | 只对照 |
-| 奥比中光相机 Fast DDS 大缓冲（见原文） | 链 A 现网仍是 iter7 种子（iter2 已用 2MiB socket、builtin 开） | **只引 URL**；不回退、不改 XML |
-| Fast DDS Data Sharing + Loaned Messages | 同机 SHM（典型跨进程）；跨机仍序列化 | **只对照**；不翻转现网 `data_sharing` |
+| 奥比中光 Fast DDS 大缓冲（example `1048576`） | 链 A 现网仍是 iter7 种子 | **只引 URL，example only**；不改 XML |
+| Loaned + Data Sharing | **same-process / same-host** 零拷 | **只对照**；**不**解锁跨机 UDP；不翻转现网 `data_sharing` |
 | openEuler 24.03：Jazzy + `rmw_zenoh` 预览；Embedded Humble / SDK | 本仓 Humble + 双链 RMW；`ZenohTransport` 仍是空 stub | **Hold** 新 RMW 与 rebase |
 
 ---
@@ -78,18 +74,14 @@ flowchart LR
 
 **本仓 verdict: Hold。** 不 vendor Agnocast 树，不装 / 不加载 kmod，不加第三条链。跨机 UDP、域 42/0、Fast-DDS XML 旋钮都不在 Agnocast 覆盖范围。
 
-### 2.2 Autoware CycloneDDS 配方 — 只引原文，不落地
+### 2.2 Autoware / Cyclone recv window — 只引原文，example only
 
-来源（请直接读旋钮，不要抄进本仓 XML）：[DDS settings for ROS 2 and Autoware](https://autowarefoundation.github.io/autoware-documentation/main/installation/additional-settings-for-developers/network-configuration/dds-settings/)（与 [源码页](https://raw.githubusercontent.com/autowarefoundation/autoware-documentation/main/docs/installation/additional-settings-for-developers/network-configuration/dds-settings.md) 核对；站点 HTML 本次抓取曾 409，内容以该 markdown 为准）。
+来源（Researcher 指定；**不要**抄进本仓 XML / SCOREBOARD）：
 
-已核实（原文如此；**不**写入本仓默认 / 现网 / SCOREBOARD）：
+- TIER IV Autoware：[Additional settings for developers](https://tier4.github.io/autoware-documentation/latest/installation/additional-settings-for-developers/)（「DDS settings」节：CycloneDDS 默认；recv buffer 对点云 / 图像关键；示例 `CYCLONEDDS_URI` + 示例 XML 含 `SocketReceiveBufferSize min="10MB"`）。
+- 该页指向的 ROS 2 DDS tuning：[Humble DDS-tuning](https://docs.ros.org/en/humble/How-To-Guides/DDS-tuning.html)。更早的 ROS 2 副本把同一 10MB recv window 写成 `MinimumSocketReceiveBufferSize` 10MB（例：[Foxy](https://docs.ros.org/en/foxy/How-To-Guides/DDS-tuning.html)）。
 
-- **CycloneDDS 是 Autoware 推荐且测得最多的 DDS。**
-- 文档给出 `CYCLONEDDS_URI` 指向一份 XML，其中含 `SocketReceiveBufferSize` min 10MB、`MaxMessageSize` 65500B、`ParticipantIndex` none，以及他们的本机 `lo` 示例。Jazzy 上默认 participant index 大约 32，多节点会 `Failed to find a free participant index for domain 0`。
-- 环境：`RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`，`CYCLONEDDS_URI=file://…`。
-- 系统侧另有 `net.core.rmem_max` / IP 分片调参（与 ROS 2 DDS tuning 同源）。**本仓不把这些写成已测根因，也不改现网。**
-
-本仓映射：链 B 是 Cyclone / 域 **0**。[`config/env/chain_b.sh`](../../config/env/chain_b.sh) **默认不设** `CYCLONEDDS_URI`。本 PR **不**新增 Cyclone XML。要看 10MB recv window，去上面的 Autoware URL，不要从本仓抄一份当默认。
+**Cite as example only。** 不写入 `config/fastdds.xml`、SCOREBOARD、或任何现网 / 默认 Cyclone XML。链 B 默认仍 **不** 设 `CYCLONEDDS_URI`。
 
 ### 2.3 ComponentContainer 同进程 — 对照，不落地
 
@@ -101,33 +93,28 @@ flowchart LR
 
 ## 3. 中国大陆
 
-### 3.1 奥比中光相机 Fast DDS — 只引原文，勿改现网 XML
+### 3.1 奥比中光 Fast DDS 大缓冲 — 只引原文，example only
 
-来源（请直接读缓冲与 transport，不要抄进 `fastdds.xml`）：[针对 Orbbec 相机与 ROS2 的 Fast DDS 优化](https://orbbec.github.io/OrbbecSDK_ROS2/zh/source/camera_devices/5_advanced_guide/performance/fastdds_tuning.html)。
+来源（Researcher 指定）：[Fast DDS Optimization for Orbbec Camera with ROS2](https://orbbec.github.io/OrbbecSDK_ROS2/en/source/camera_devices/5_advanced_guide/performance/fastdds_tuning.html)。
 
-已核实环境变量（原文）：`RMW_IMPLEMENTATION=rmw_fastrtps_cpp`、`FASTRTPS_DEFAULT_PROFILES_FILE`、`RMW_FASTRTPS_USE_QOS_FROM_XML=1`。
+已核实：该页 `shm_fastdds.xml` **示例**里 `sendBufferSize` / `receiveBufferSize` 以及 `listenSocketBufferSize`（同文件还有 `sendSocketBufferSize`）= **1048576**。环境变量示例为 `RMW_IMPLEMENTATION=rmw_fastrtps_cpp`、`FASTRTPS_DEFAULT_PROFILES_FILE`、`RMW_FASTRTPS_USE_QOS_FROM_XML=1`。
 
-已核实他们的示例 XML（原文 `shm_fastdds.xml`）：UDP send/recv **1MiB**；`useBuiltinTransports` false（只用自定义 UDPv4）；另有 `maxMessageSize`、`initialPeersList` 127.0.0.1、以及 reader 侧 `data_sharing` AUTOMATIC 等。系统 `rmem_*` / IP 分片页上也有示例。
+**Cite as example only。** 不把 1048576 或他们的 `useBuiltinTransports` false 写进 [`config/fastdds.xml`](../../config/fastdds.xml) 或 SCOREBOARD。链 A 现网仍是 iter7 种子。
 
-本仓链 A 现网仍是 **iter7 种子**：iter2 已把默认 participant UDP socket 提到 **2MiB**，且 **builtin UDP+SHM 开着**。**不要为对齐 Orbbec 页把 socket 回退到 1MiB，也不要关掉 builtin，也不要把他们的 1MiB / `useBuiltinTransports` false 写进本仓 XML。** 他们设 `RMW_FASTRTPS_USE_QOS_FROM_XML=1` 才会吃 writer/reader QoS；本仓 iter7 种子没有默认 writer/reader profile。
+### 3.2 Loaned Messages + Data Sharing — same-process / same-host，不解锁跨机
 
-### 3.2 Fast DDS Data Sharing + Loaned Messages — 同机 SHM，不是跨机解锁
+来源（Researcher 指定）：
 
-来源：
+- ROS 2 Jazzy：[Configure Zero Copy Loaned Messages](https://docs.ros.org/en/jazzy/How-To-Guides/Configure-ZeroCopy-loaned-messages.html)（页标题 / og 描述已核实为 loaned messages + zero copy data sharing；正文本次抓取被 Anubis 拦下，主张以该 URL 与下一份 README 为准）。
+- `rmw_fastrtps`：[Enable Zero Copy Data Sharing](https://github.com/ros2/rmw_fastrtps#enable-zero-copy-data-sharing)（本仓拷贝 [`vendor/rmw_fastrtps/README.md`](../../vendor/rmw_fastrtps/README.md) 一致）。
 
-- eProsima：[ROS 2 using Fast DDS middleware](https://fast-dds.docs.eprosima.com/en/latest/fastdds/ros2/ros2.html)（`rmw_fastrtps_cpp` 为除 EOL Galactic 外的默认 RMW）
-- eProsima：[Data-sharing delivery](https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/datasharing.html)（**同机**共享 DataWriter history；跨机仍走传输层）
-- ROS 2 设计：[Zero Copy via Loaned Messages](https://design.ros2.org/articles/zero_copy.html)
-- `rmw_fastrtps` README（本仓拷贝 [`vendor/rmw_fastrtps/README.md`](../../vendor/rmw_fastrtps/README.md) 与 [上游](https://github.com/ros2/rmw_fastrtps) 一致）：Humble 上 Loaned Messages 需要 **POD + 打开 Data Sharing**；Iron+ 只需 POD。打开 Data Sharing 要 XML `data_sharing` AUTOMATIC 且 `RMW_FASTRTPS_USE_QOS_FROM_XML=1`。默认 `rmw_fastrtps_cpp` 用 **SHM 做同机、UDPv4 做跨机**。
-
-已核实约束（Data-sharing 页）：两端能碰同一块共享内存；类型 **bounded**；非 keyed；writer 预分配内存策略；不用 security。跨主机没有这块共享内存，仍要序列化走 UDP。
+已核实（README）：Loaned Messages + Fast DDS Data Sharing 用来加速 **intra-host**；默认 `rmw_fastrtps_cpp` 用 Shared Memory 做 intra-host、**UDPv4 做 inter-host**。Humble 上 Loaned Messages 还要 POD + 打开 Data Sharing（`RMW_FASTRTPS_USE_QOS_FROM_XML=1` + XML `data_sharing` AUTOMATIC）。
 
 因此：
 
-- **Loaned + Data Sharing = 同机 SHM，典型是跨进程**（两个 `ros2 run` / 两个 container 同 host）。
-- **不是** 跨机 UDP 解锁。本仓跨机仍 **blocked**（yixin Docker DOWN）。
-- **不是** 同进程 ComponentContainer / intra-process（那是另一条路径，见 §0 / §2.3）。
-- **本 PR 不**在 [`config/fastdds.xml`](../../config/fastdds.xml) 加或翻转 `data_sharing`，也不设 `RMW_FASTRTPS_USE_QOS_FROM_XML`。SCOREBOARD 已把该家族标成「不是一个 XML 旋钮」——本文不改那一行。
+- **same-process / same-host 零拷**。不是跨机 UDP 解锁。
+- 本仓跨机 UDP 仍 **blocked**（yixin Docker DOWN）。
+- **本 PR 不**在 [`config/fastdds.xml`](../../config/fastdds.xml) 加或翻转 `data_sharing`。SCOREBOARD 不抄这些旋钮。
 
 ### 3.3 openEuler 24.03 / Embedded — Hold 新 RMW 与 rebase
 
@@ -145,11 +132,11 @@ flowchart LR
 | 项 | 状态 |
 |----|------|
 | 链 A：`rmw_fastrtps_cpp` / 域 42 / `config/fastdds.xml` iter7 种子 | **不变** |
-| 链 B：Cyclone / 域 0；默认不设 `CYCLONEDDS_URI` | **不变**；Autoware 配方只引 URL |
+| 链 B：Cyclone / 域 0；默认不设 `CYCLONEDDS_URI` | **不变**；Autoware / ROS 2 DDS tuning 只引 URL |
 | DimOS 默认 LCM | **不变**，仍在 DDS 范围外 |
 | NITROS | 仍同进程 GPU only，见 [nitros-vs-dual-chain.md](nitros-vs-dual-chain.md) |
-| Loaned + Data Sharing | 同机 SHM（典型跨进程）；**不是**跨机 UDP |
-| 同进程零拷 | ComponentContainer / intra-process；**不是** Data Sharing |
+| Loaned + Data Sharing | **same-process / same-host**；**不是**跨机 UDP |
+| 同进程少拷（组合） | ComponentContainer / intra-process |
 | 跨机 UDP | 仍 **STATUS: blocked**（yixin Docker DOWN / 单 VM）；无假分位数 |
 | 现网 `data_sharing` | **不翻转** |
 | 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE | 仍 **Hold** |
@@ -159,19 +146,21 @@ flowchart LR
 
 ## 5. 公开引用
 
-只列本文用过的链接（2026-09-12 核对）：
+三条吸收的 Researcher 指定 URL（2026-09-12 核对；数字只作 example，不写进现网 / SCOREBOARD）：
 
-1. Autoware — *Agnocast: A True Zero-Copy Publish/Subscribe IPC*：<https://autoware.org/agnocast-a-true-zero-copy-publish-subscribe-ipc/>
-2. GitHub `tier4/agnocast`：<https://github.com/tier4/agnocast>（README 现指向 AWF 树 / 文档站）
-3. AWF Agnocast Getting Started：<https://autowarefoundation.github.io/agnocast_doc/environment-setup/>
-4. Open Robotics Discourse #52678（跨机 / rviz / rosbag 仍走 RMW）：<https://discourse.openrobotics.org/t/agnocast-callback-isolated-executor-true-zero-copy-ipc-and-middleware-transparent-scheduling-for-ros-2/52678>
-5. `autoware_agnocast_wrapper` review guide（`ENABLE_AGNOCAST`）：<https://github.com/autowarefoundation/autoware_core/blob/a50ac9281442b83ec240aedcb4fe78598e07c8e3/common/autoware_agnocast_wrapper/docs/review_guide.md>
-6. Autoware Documentation — *DDS settings*（Cyclone 10MB recv 等，只引不抄）：<https://autowarefoundation.github.io/autoware-documentation/main/installation/additional-settings-for-developers/network-configuration/dds-settings/>
-7. OrbbecSDK ROS2 — Fast DDS 优化（大缓冲，只引不抄）：<https://orbbec.github.io/OrbbecSDK_ROS2/zh/source/camera_devices/5_advanced_guide/performance/fastdds_tuning.html>
-8. eProsima Fast DDS — ROS 2：<https://fast-dds.docs.eprosima.com/en/latest/fastdds/ros2/ros2.html>
-9. eProsima Fast DDS — Data-sharing delivery：<https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/datasharing.html>
-10. ROS 2 design — *Zero Copy via Loaned Messages*：<https://design.ros2.org/articles/zero_copy.html>
-11. `ros2/rmw_fastrtps` README：<https://github.com/ros2/rmw_fastrtps>
-12. openEuler 2025-03 月报（Jazzy + `rmw_zenoh` 预览）：<https://www.openeuler.org/zh/news/openEuler/20250407-yb/20250407-yb.html>
-13. openEuler Embedded 24.03 — 嵌入式 ROS（Humble 源码 + SDK）：<https://embedded.pages.openeuler.org/openEuler-24.03-LTS/features/ros.html>
-14. 本仓双链：[ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) · [nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)
+1. Orbbec — *Fast DDS Optimization for Orbbec Camera with ROS2*（example `sendBufferSize` / `receiveBufferSize` / `listenSocketBufferSize` = 1048576）：<https://orbbec.github.io/OrbbecSDK_ROS2/en/source/camera_devices/5_advanced_guide/performance/fastdds_tuning.html>
+2. TIER IV Autoware — *Additional settings for developers*（Cyclone recv window）：<https://tier4.github.io/autoware-documentation/latest/installation/additional-settings-for-developers/>
+3. 该页指向的 ROS 2 DDS tuning（Humble）：<https://docs.ros.org/en/humble/How-To-Guides/DDS-tuning.html>  
+   更早副本把 10MB recv 写成 `MinimumSocketReceiveBufferSize`：<https://docs.ros.org/en/foxy/How-To-Guides/DDS-tuning.html>
+4. ROS 2 Jazzy — *Configure Zero Copy Loaned Messages*：<https://docs.ros.org/en/jazzy/How-To-Guides/Configure-ZeroCopy-loaned-messages.html>
+5. `ros2/rmw_fastrtps` — *Enable Zero Copy Data Sharing*（intra-host；inter-host 仍 UDPv4）：<https://github.com/ros2/rmw_fastrtps#enable-zero-copy-data-sharing>
+
+Hold / 背景（非落地）：
+
+6. Autoware — *Agnocast*：<https://autoware.org/agnocast-a-true-zero-copy-publish-subscribe-ipc/>
+7. GitHub `tier4/agnocast`：<https://github.com/tier4/agnocast>
+8. Open Robotics Discourse #52678：<https://discourse.openrobotics.org/t/agnocast-callback-isolated-executor-true-zero-copy-ipc-and-middleware-transparent-scheduling-for-ros-2/52678>
+9. `ENABLE_AGNOCAST` review guide：<https://github.com/autowarefoundation/autoware_core/blob/a50ac9281442b83ec240aedcb4fe78598e07c8e3/common/autoware_agnocast_wrapper/docs/review_guide.md>
+10. openEuler 2025-03 月报（Jazzy + `rmw_zenoh` 预览）：<https://www.openeuler.org/zh/news/openEuler/20250407-yb/20250407-yb.html>
+11. openEuler Embedded 24.03 — 嵌入式 ROS：<https://embedded.pages.openeuler.org/openEuler-24.03-LTS/features/ros.html>
+12. 本仓双链：[ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) · [nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)
