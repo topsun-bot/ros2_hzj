@@ -67,7 +67,7 @@ flowchart LR
 | [`config/fastdds.xml`](../../config/fastdds.xml) | **只读**（iter7 种子） | [`config/fastdds.zh.md`](../../config/fastdds.zh.md) |
 | [`SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md) | **冻结** current best | 只认该页指针；本文与 CI **不**改数字 |
 | Agnocast / zenoh / eCAL / DPDK / Isaac | **Hold** | [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)、ADR §3 |
-| Cega / 自研 Bridge / 自定义 RMW | **Hold** | ADR §2 / §3；不改 `dimos_bridge` 运行时 |
+| Cega / 自研 Bridge / 自定义 RMW | **Hold** | ADR §13(4)；[feishu-cega-bridge-hold.md](feishu-cega-bridge-hold.md)；不改 `dimos_bridge` 运行时 |
 | Rolling ≠ Humble | **严禁** 覆盖 | [vendor/MANIFEST.md](../../vendor/MANIFEST.md) |
 | 跨机 UDP | **blocked** | [`2026-09-11-cross-host/`](../artifacts/bench/2026-09-11-cross-host/README.md) |
 | 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE | **Hold** | [ci-cd-gates.md](ci-cd-gates.md) |
