@@ -40,6 +40,9 @@ _MATRIX_MARKERS = (
     "Rolling",
     "blocked",
     "《3》",
+    "《4》",
+    "《5》",
+    "《6》",
 )
 
 
