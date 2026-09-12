@@ -6,6 +6,7 @@
 
 ```bash
 python3 scripts/prove_rmw.py
+python3 scripts/check_source_map.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```

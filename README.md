@@ -274,7 +274,7 @@ source config/env/chain_a.sh
 
 ## CI
 
-Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。
+Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。
 
 # Citation
 

@@ -32,6 +32,7 @@ jobs:
           test -f docs/architecture/ci-cd-gates.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
+          test -f scripts/check_source_map.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -114,6 +115,12 @@ jobs:
           grep -q 'ROS_DOMAIN_ID=42' config/env/chain_a.sh
           grep -q 'rmw_cyclonedds_cpp' config/env/chain_b.sh
           grep -q 'ROS_DOMAIN_ID=0' config/env/chain_b.sh
+
+      - name: check_source_map.py (wiki3 §13.2)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_source_map.py
+          # Paths + allowlisted symbols only. Do not compile vendor.
 
   contracts:
     name: contracts
