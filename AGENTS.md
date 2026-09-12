@@ -10,6 +10,7 @@ python3 scripts/check_source_map.py
 python3 scripts/print_bench_gates.py
 python3 scripts/check_risk_matrix.py
 python3 scripts/check_executor_map.py
+python3 scripts/check_runtime_provenance.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -30,3 +31,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/latency-attribution.md](docs/architecture/latency-attribution.md) — wiki3 §12 / §13.3 stage method (no SCOREBOARD number edits)
 - [docs/architecture/feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md) — wiki3 §9.4 layer checklist (no risk scores)
 - [docs/architecture/feishu-executor-waitset.md](docs/architecture/feishu-executor-waitset.md) — wiki3 §13 WaitSet → callback identity map (Humble `rclcpp`/`rclpy` not in vendor)
+- [docs/architecture/feishu-runtime-provenance.md](docs/architecture/feishu-runtime-provenance.md) — wiki3 §13 underlay vs overlay vs vendor snapshot (Humble ≠ rolling)
