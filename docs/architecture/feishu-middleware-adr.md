@@ -45,7 +45,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | (5) | 一次一层 | 本切 = 文档 + 证明脚本 + CI 登记。下一层另开 PR。 |
 | (6) | CI + 灰度 | CI 检查新文档路径 / 相对链接，并跑 `prove_rmw.py`。**不**编译 vendor。 |
 
-§9.4 风险矩阵：DDS XML / 环境变量 **第一优先**（本切只读现网契约，不改 [`config/fastdds.xml`](../../config/fastdds.xml)）；fork `rcl` / `rclcpp` / DDS core **最后**（本仓甚至没有 vendor `rcl` / `rclcpp`）。
+§9.4 风险矩阵：DDS XML / 环境变量 **第一优先**（本切只读现网契约，不改 [`config/fastdds.xml`](../../config/fastdds.xml)）；fork `rcl` / `rclcpp` / DDS core **最后**（本仓甚至没有 vendor `rcl` / `rclcpp`）。本仓清单：[feishu-risk-matrix.md](feishu-risk-matrix.md)。
 
 ---
 
@@ -97,5 +97,6 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 5. [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)
 6. [nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)
 7. [ros2-source-map.md](ros2-source-map.md)
-8. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
-9. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py)
+8. [feishu-risk-matrix.md](feishu-risk-matrix.md) — wiki3 §9.4 层序 × Hold（不打分）
+9. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
+10. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py)
