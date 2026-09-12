@@ -1,7 +1,7 @@
 # ROS 2 源码地图（飞书《源码闭环》三条链 → 本仓路径）
 
 Status: **地图 — 不是复现报告。**  
-对照飞书《ROS 2 源码闭环》<https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf> 的 publish / ingress→History / wait→callback。只标**本树里核对过存在**的文件。决策见 [feishu-middleware-adr.md](feishu-middleware-adr.md)。
+对照飞书《ROS 2 源码闭环》<https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf> 的 publish / ingress→History / wait→callback。只标**本树里核对过存在**的文件。决策见 [feishu-middleware-adr.md](feishu-middleware-adr.md)。复现执行状态（**map ≠ reproduce**，本主机 `STATUS: blocked`）：[feishu-three-chain-repro.md](feishu-three-chain-repro.md)。
 
 **`publish()` / `rmw_publish()` 返回 `RMW_RET_OK` ≠ 对端已投递、已入 History、已 callback。** 那只是本进程把样本交给了 DataWriter / `dds_write_*`。端到端要另走 wait → take → executor。
 

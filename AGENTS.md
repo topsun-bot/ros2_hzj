@@ -12,6 +12,7 @@ python3 scripts/check_risk_matrix.py
 python3 scripts/check_executor_map.py
 python3 scripts/check_runtime_provenance.py
 python3 scripts/check_unitree_cyclone_swap.py
+python3 scripts/check_three_chain_repro.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -34,3 +35,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/feishu-executor-waitset.md](docs/architecture/feishu-executor-waitset.md) — wiki3 §13 WaitSet → callback identity map (Humble `rclcpp`/`rclpy` not in vendor)
 - [docs/architecture/feishu-runtime-provenance.md](docs/architecture/feishu-runtime-provenance.md) — wiki3 §13 underlay vs overlay vs vendor snapshot (Humble ≠ rolling)
 - [docs/architecture/unitree-sdk2-dds-swap.md](docs/architecture/unitree-sdk2-dds-swap.md) — Unitree bundled Cyclone 0.10.2 vs vendor 11.0.1: drop-in FAIL / wire UNPROVEN; default bundled; legal path `unitree_sdk2_hzj` + `UNITREE_DDS_PROVIDER=external`
+- [docs/architecture/feishu-three-chain-repro.md](docs/architecture/feishu-three-chain-repro.md) — wiki3 §13(2) three-chain reproduce: map ≠ reproduce; `STATUS: blocked` on this host (no Humble runtime)

@@ -9,7 +9,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | Cyclone 工业级 fork 研究 | https://topsunhzj.feishu.cn/docx/SrokdQU4DovvdAxutNDcXByMn5e | 高吞吐同机不要默认 Cyclone **网络**配置。Agnocast / eCAL / DPDK-XDP / `rmw_zenoh` / Unitree 控环剥离 DDS 是行业选型建议，**不是**本切交付。本仓映射见下表，**不 vendor**。 |
 | 《ROS 2 源码闭环》 | https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf | 不重写整套中间件；差异化下沉到 RMW / DDS / Executor / 内存。执行顺序 §13、风险矩阵 §9.4、运行时证明 §6.3。**严禁** Rolling 源码直接覆盖 Humble。 |
 
-本仓契约仍是两条独立栈：[R0 接口冻结](ros2-dds-r0-interface-freeze.md)。中日公开做法只对照、不落旋钮：[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)。NITROS 仍是同进程 GPU：[nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)。vendor 语义冻结：[vendor/MANIFEST.md](../../vendor/MANIFEST.md)。运行时分层（underlay / overlay / vendor snapshot）：[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。链路上的真实文件：[ros2-source-map.md](ros2-source-map.md)。Unitree 自带 Cyclone 0.10.2 **不是** vendor 11.0.1 的 drop-in：[unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。
+本仓契约仍是两条独立栈：[R0 接口冻结](ros2-dds-r0-interface-freeze.md)。中日公开做法只对照、不落旋钮：[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)。NITROS 仍是同进程 GPU：[nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)。vendor 语义冻结：[vendor/MANIFEST.md](../../vendor/MANIFEST.md)。运行时分层（underlay / overlay / vendor snapshot）：[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。链路上的真实文件：[ros2-source-map.md](ros2-source-map.md)。三条链复现（**map ≠ reproduce**，`STATUS: blocked`）：[feishu-three-chain-repro.md](feishu-three-chain-repro.md)。Unitree 自带 Cyclone 0.10.2 **不是** vendor 11.0.1 的 drop-in：[unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
@@ -39,11 +39,11 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | §13 | 飞书要求 | 本切 |
 |-----|----------|------|
 | (1) | 冻 `ROS_DISTRO` + exact manifest | [`vendor/MANIFEST.md`](../../vendor/MANIFEST.md)。运行时目标 = Humble（[`docker/ros/`](../../docker/ros/)）。vendor 树 = rolling / master 快照，SHA **只**在 [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)。分层记录：[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。 |
-| (2) | 复现 publish / ingress→History / wait→callback 三条链 | **只画地图**：[ros2-source-map.md](ros2-source-map.md)。wait→callback 加深：[feishu-executor-waitset.md](feishu-executor-waitset.md)。不编造已复现、不跑 vendor 编译。`publish()` 返回 **不是**端到端送达。 |
+| (2) | 复现 publish / ingress→History / wait→callback 三条链 | **map ≠ reproduce。** 地图：[ros2-source-map.md](ros2-source-map.md)。wait→callback 加深：[feishu-executor-waitset.md](feishu-executor-waitset.md)。复现状态：[feishu-three-chain-repro.md](feishu-three-chain-repro.md)（`STATUS: blocked`；本自动化主机无 Humble 运行时，未执行复现）。不编造 PASS / 时延。`publish()` 返回 **不是**端到端送达。 |
 | (3) | FastDDS + Cyclone 基线 | 双链契约已在；bench 产物另册。本切 **不**重写 XML、**不**改 SCOREBOARD。 |
 | (4) | Cega / Bridge 后置 | **Hold**。不接 Cega，不改 `dimos_bridge` 运行时模块。 |
 | (5) | 一次一层 | 本切 = 文档 + 证明脚本 + CI 登记。下一层另开 PR。 |
-| (6) | CI + 灰度 | CI 检查新文档路径 / 相对链接，并跑 `prove_rmw.py` 与 `check_runtime_provenance.py`。**不**编译 vendor。 |
+| (6) | CI + 灰度 | 三个 required job 名不变：`structure` / `contracts` / `boundary`。路径 + 相对链接 + 现网检查器：`prove_rmw.py`、`check_source_map.py`、`print_bench_gates.py`、`check_risk_matrix.py`、`check_executor_map.py`、`check_runtime_provenance.py`、`check_unitree_cyclone_swap.py`、`check_three_chain_repro.py`。**不**编译 vendor。 |
 
 §9.4 风险矩阵：DDS XML / 环境变量 **第一优先**（本切只读现网契约，不改 [`config/fastdds.xml`](../../config/fastdds.xml)）；Executor / WaitSet / callback **居中**（身份地图见 [feishu-executor-waitset.md](feishu-executor-waitset.md)，不是风险打分）；fork `rcl` / `rclcpp` / DDS core **最后**（本仓甚至没有 vendor `rcl` / `rclcpp`）。本仓清单：[feishu-risk-matrix.md](feishu-risk-matrix.md)。
 
@@ -101,6 +101,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 8. [feishu-risk-matrix.md](feishu-risk-matrix.md) — wiki3 §9.4 层序 × Hold（不打分）
 9. [feishu-executor-waitset.md](feishu-executor-waitset.md) — wiki3 §13 wait→callback 身份地图
 10. [feishu-runtime-provenance.md](feishu-runtime-provenance.md) — wiki3 §13 underlay vs overlay vs vendor snapshot
-11. [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree 0.10.2 vs vendor 11.0.1（drop-in FAIL / wire UNPROVEN）
-12. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
-13. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/check_runtime_provenance.py](../../scripts/check_runtime_provenance.py) · [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py)
+11. [feishu-three-chain-repro.md](feishu-three-chain-repro.md) — wiki3 §13(2) 三条链复现（map ≠ reproduce；`STATUS: blocked`）
+12. [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree 0.10.2 vs vendor 11.0.1（drop-in FAIL / wire UNPROVEN）
+13. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
+14. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/check_runtime_provenance.py](../../scripts/check_runtime_provenance.py) · [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py) · [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py)
