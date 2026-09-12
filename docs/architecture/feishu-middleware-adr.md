@@ -80,7 +80,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | 自定义 RMW、Cega、Agnocast / zenoh / eCAL / DPDK / Isaac 进 `vendor/` | 本切 **不**做 |
 | 改 `dimos_bridge` 运行时 Python 模块 | **禁止**（本切） |
 | 飞书现场 / 实机根因 | **不是。** |
-| 用 vendor Cyclone 11.0.1 drop-in 替换 Unitree SDK2 自带 0.10.2 `libddsc` / `libddscxx` | **FAIL**（主版本 / ABI）。线缆互通 **UNPROVEN**。见 [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) |
+| 用 vendor Cyclone 11.0.1 drop-in / in-place overwrite Unitree SDK2 自带 0.10.2 `libddsc` / `libddscxx` | **FAIL**（主版本 / ABI）。默认保持 **bundled 0.10.2**。合法路径：[`unitree_sdk2_hzj`](https://github.com/topsun-bot/unitree_sdk2_hzj) + opt-in `UNITREE_DDS_PROVIDER=external`。线缆互通 **UNPROVEN**。见 [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) |
 
 ---
 

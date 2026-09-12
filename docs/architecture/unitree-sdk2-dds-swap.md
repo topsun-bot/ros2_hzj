@@ -1,7 +1,7 @@
 # Unitree SDK2 DDS swap（vendor Cyclone 11.0.1 ≠ drop-in）
 
 Status: **drop-in FAIL / wire UNPROVEN** — 版本对照记录，不是已测时延、不是飞书现场、不是跨机根因。  
-查阅日期：2026-09-12。钉扎来自本仓 [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)、[`vendor/CycloneDDS/CMakeLists.txt`](../../vendor/CycloneDDS/CMakeLists.txt)，以及只读核对的 [`topsun-bot/unitree_sdk2`](https://github.com/topsun-bot/unitree_sdk2) `main` @ `9754cd15` 与 [`topsun_dimos`](https://github.com/topsun-bot/topsun_dimos) `pyproject.toml` extras。本切**不开** `unitree_sdk2` / `topsun_dimos` PR。
+查阅日期：2026-09-12。钉扎来自本仓 [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)、[`vendor/CycloneDDS/CMakeLists.txt`](../../vendor/CycloneDDS/CMakeLists.txt)，以及只读核对的 [`topsun-bot/unitree_sdk2`](https://github.com/topsun-bot/unitree_sdk2) `main` @ `9754cd15` 与 [`topsun_dimos`](https://github.com/topsun-bot/topsun_dimos) `pyproject.toml` extras。默认 **bundled 0.10.2**；合法换库走 [`unitree_sdk2_hzj`](https://github.com/topsun-bot/unitree_sdk2_hzj) + opt-in `UNITREE_DDS_PROVIDER=external`（不是 in-place overwrite）。本切**不开** `topsun_dimos` PR，**不**改 `unitree_sdk2` `main` 的 `thirdparty/`。
 
 决策背景：[feishu-middleware-adr.md](feishu-middleware-adr.md)。vendor 是对照快照、不是 Humble 已加载 `.so`：[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。CI 闸门：[ci-cd-gates.md](ci-cd-gates.md)。
 
@@ -12,10 +12,12 @@ Status: **drop-in FAIL / wire UNPROVEN** — 版本对照记录，不是已测�
 ## 0. 硬规则
 
 1. **drop-in 把 `vendor/CycloneDDS` 11.0.1 覆盖进 Unitree `thirdparty/lib/*/libddsc.so`（及 `libddscxx.so`）= FAIL。** 主版本 / ABI 不同。见 §2。
-2. **不要**把 rolling vendor 文件拷到机器人，或铺进 **`/opt/ros/humble`**。Humble underlay ≠ vendor snapshot。见 [vendor/MANIFEST.md](../../vendor/MANIFEST.md)。
-3. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)。
-4. **不**启用 Agnocast / zenoh / eCAL / DPDK / Isaac。不 vendor `rmw_zenoh`，不装 kmod。《3》–《6》仍 Hold。跨机 UDP 仍 **blocked**。
-5. 线缆互通（本进程 11.0.1 ↔ Unitree 0.10.2 participant）= **UNPROVEN**。未跑通之前写 `STATUS: blocked`，禁止编造时延。
+2. **不是 in-place overwrite。** 不改 [`topsun-bot/unitree_sdk2`](https://github.com/topsun-bot/unitree_sdk2) `main` 的 `thirdparty/` 0.10.2。默认永远是 **bundled** Cyclone **0.10.2**，保证原树还能编、还能链自带 `.so`。
+3. **合法换库路径**在独立仓 [`topsun-bot/unitree_sdk2_hzj`](https://github.com/topsun-bot/unitree_sdk2_hzj)（新 SDK HZJ 版本；已 seed）。那边以后加 opt-in `UNITREE_DDS_PROVIDER=external`（**default bundled**）。不是只在 fork 上就地改 `thirdparty`。见 §4。
+4. **不要**把 rolling vendor 文件拷到机器人，或铺进 **`/opt/ros/humble`**。Humble underlay ≠ vendor snapshot。见 [vendor/MANIFEST.md](../../vendor/MANIFEST.md)。
+5. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)。
+6. **不**启用 Agnocast / zenoh / eCAL / DPDK / Isaac。不 vendor `rmw_zenoh`，不装 kmod。《3》–《6》仍 Hold。跨机 UDP 仍 **blocked**。
+7. 线缆互通（本进程 11.0.1 ↔ Unitree 0.10.2 participant）= **UNPROVEN**。未跑通之前写 `STATUS: blocked`，禁止编造时延。
 
 核对本文 + VERSIONS 钉扎仍一致：[`scripts/check_unitree_cyclone_swap.py`](../../scripts/check_unitree_cyclone_swap.py)。
 
@@ -62,12 +64,12 @@ vendor 钉扎原文（本仓 [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)）
 
 **禁止：**
 
-- 把 `vendor/CycloneDDS` 构建产物覆盖 Unitree `thirdparty/lib/**`
+- 把 `vendor/CycloneDDS` 构建产物 **in-place overwrite** 进 Unitree `thirdparty/lib/**`（原 fork `main` 必须保持 bundled 0.10.2）
 - 把 rolling vendor 铺进机器人根文件系统
 - 把 rolling vendor 铺进 **`/opt/ros/humble`**（Humble ≠ 11.0.1 snapshot）
 - 把 `cyclonedds>=0.10.5` Python wheel 接到 11.0.1 C 库上当已验证组合
 
-本切只记录 FAIL，**不**改 `dimos_bridge` DDS 行为，**不**改 vendor 源码。
+本切只记录 FAIL，**不**改 `dimos_bridge` DDS 行为，**不**改 vendor 源码，**不开** `topsun_dimos` PR。
 
 ---
 
@@ -93,16 +95,23 @@ DDS 线协议有时能跨小版本互通；**本环境没有跑通**，所以不
 
 ---
 
-## 4. 若仍要「换库」：合法路径（不是本 PR）
+## 4. 合法换库路径（新仓 + opt-in；保证原树还能用）
 
-drop-in 拷 `.so` 已判 FAIL。若以后要换，只能 **rebuild `unitree_sdk2`（及其消费者）对着选定的 Cyclone**：
+**Replacement is not an in-place overwrite** of Unitree `thirdparty` 0.10.2。  
+**Default remains bundled Cyclone 0.10.2。** 原 fork [`topsun-bot/unitree_sdk2`](https://github.com/topsun-bot/unitree_sdk2) `main` @ `9754cd15` 继续链自带 `.so`，本切不动它。
 
-| 目标 | 做法 | 不做什么 |
-|------|------|----------|
-| 贴近机器人 ABI | 对着 **0.10.x** 重编（与 bundled 0.10.2、DimOS Python `cyclonedds>=0.10.5` 同家族） | 不拿 11.0.1 `.so` 去换 0.10.2 |
-| 跟本仓 vendor 对齐 | 对着 **11.0.1** **整树重编** SDK2 + 所有链接 `libddsc` / `libddscxx` 的二进制 | 不 drop-in，不铺进 `/opt/ros/humble` |
+合法路径是**另一棵树**，不是在 fork 上就地改 `thirdparty/`：
 
-那是**后续 PR**，不是本切。本切不开 `unitree_sdk2` / `topsun_dimos` PR，不 vendor SDK2，不编译 Cyclone。
+| 树 | 角色 | 默认 | 换库怎么开 |
+|----|------|------|------------|
+| [`topsun-bot/unitree_sdk2`](https://github.com/topsun-bot/unitree_sdk2) | 原 SDK2（上游 `unitreerobotics/unitree_sdk2` @ `9754cd15`） | **bundled 0.10.2** | **不**在这棵树上 in-place 覆盖 `thirdparty/` |
+| [`topsun-bot/unitree_sdk2_hzj`](https://github.com/topsun-bot/unitree_sdk2_hzj) | 新 SDK HZJ 版本（已 seed；独立于 `topsun_dimos`） | 仍是 **bundled 0.10.2** | 后续在该仓加 opt-in **`UNITREE_DDS_PROVIDER=external`**（unset / `bundled` = 自带 0.10.2；`external` = 链外部选定的 Cyclone，需对该版本 **rebuild**，不是拷 `.so`） |
+
+`UNITREE_DDS_PROVIDER=external` 是 **opt-in**。没设、或设成 bundled，行为必须等于今天的 0.10.2 自带库。这样原机器人 / 原 fork 消费者不受影响。
+
+若 `external` 选本仓 vendor **11.0.1**：仍要在 `unitree_sdk2_hzj` **整树重编**（及所有链接 `libddsc` / `libddscxx` 的二进制）。**drop-in 11.0.1 仍是 FAIL。** 贴近机器人 ABI 则 `external` 只指向 **0.10.x**（与 bundled 0.10.2、DimOS Python `cyclonedds>=0.10.5` 同家族）。不要铺进 `/opt/ros/humble`。
+
+那是 **`unitree_sdk2_hzj` 后续 PR**，不是本切。本切：**不开** `topsun_dimos` PR，**不**改 `unitree_sdk2` `main` 的 `thirdparty/`，不 vendor SDK2，不编译 Cyclone。`unitree_sdk2_hzj` 当前只是 seed README（「cloud agent will land the rewrite」），开关尚未落地。
 
 ---
 
@@ -121,6 +130,7 @@ python3 scripts/check_unitree_cyclone_swap.py
 1. 本仓 [vendor/VERSIONS.md](../../vendor/VERSIONS.md) — Cyclone tag `11.0.1` / SHA `e54e991f75a3e67f8e628da3171122e36ea5b872`
 2. 本仓 [vendor/CycloneDDS/CMakeLists.txt](../../vendor/CycloneDDS/CMakeLists.txt) — `project(CycloneDDS VERSION 11.0.1 …)`
 3. [topsun-bot/unitree_sdk2](https://github.com/topsun-bot/unitree_sdk2) `thirdparty/include/dds/version.h` — `DDS_VERSION "0.10.2"`（`main` @ `9754cd15`）
-4. [topsun_dimos](https://github.com/topsun-bot/topsun_dimos) `pyproject.toml` extras `unitree-dds` / `dds` — `cyclonedds>=0.10.5`
-5. [feishu-middleware-adr.md](feishu-middleware-adr.md) · [feishu-runtime-provenance.md](feishu-runtime-provenance.md) · [ci-cd-gates.md](ci-cd-gates.md)
-6. [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py)
+4. [topsun_dimos](https://github.com/topsun-bot/topsun_dimos) `pyproject.toml` extras `unitree-dds` / `dds` — `cyclonedds>=0.10.5`（本切不开 PR）
+5. [topsun-bot/unitree_sdk2_hzj](https://github.com/topsun-bot/unitree_sdk2_hzj) — 合法换库落点（default bundled 0.10.2；opt-in `UNITREE_DDS_PROVIDER=external`）
+6. [feishu-middleware-adr.md](feishu-middleware-adr.md) · [feishu-runtime-provenance.md](feishu-runtime-provenance.md) · [ci-cd-gates.md](ci-cd-gates.md)
+7. [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py)

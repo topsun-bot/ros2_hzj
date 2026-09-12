@@ -44,6 +44,10 @@ _SWAP_MARKERS = (
     "/opt/ros/humble",
     "STATUS: blocked",
     "Unitree",
+    "in-place overwrite",
+    "bundled",
+    "UNITREE_DDS_PROVIDER=external",
+    "unitree_sdk2_hzj",
 )
 
 _VERSIONS_MARKERS = (
@@ -142,7 +146,9 @@ def render(root: Path | None = None) -> tuple[str, int]:
             "`.so` proof, not a percentile, and not Feishu field proof.",
             "Vendor SHA is read from VERSIONS.md, not invented here.",
             "drop-in of vendor 11.0.1 onto Unitree 0.10.2 is FAIL.",
-            "Wire interop stays UNPROVEN until a same-host smoke is run.",
+            "Not an in-place overwrite: default stays bundled 0.10.2.",
+            "Legal replace path is unitree_sdk2_hzj + opt-in",
+            "UNITREE_DDS_PROVIDER=external. Wire interop stays UNPROVEN.",
             "fastdds.xml / SCOREBOARD stay untouched. Agnocast / zenoh",
             "stay Hold. Do not copy rolling vendor onto a robot or",
             "/opt/ros/humble.",
@@ -167,7 +173,9 @@ def render(root: Path | None = None) -> tuple[str, int]:
     lines.append("")
     lines.append(
         "Unitree Cyclone swap record healthy: bundled 0.10.2 vs vendor "
-        "11.0.1 is not drop-in; wire interop remains UNPROVEN. Exit 0."
+        "11.0.1 is not drop-in; default stays bundled; legal path is "
+        "unitree_sdk2_hzj + UNITREE_DDS_PROVIDER=external; wire interop "
+        "remains UNPROVEN. Exit 0."
     )
     lines.append("")
     return "\n".join(lines), 0

@@ -132,7 +132,7 @@ python3 config/env/load.py print-b
 - [ros2-source-map.md](ros2-source-map.md) — publish / History / callback 地图
 - [feishu-executor-waitset.md](feishu-executor-waitset.md) — wiki3 §13 WaitSet → callback 身份地图（Humble `rcl*` 不在 vendor）
 - [feishu-runtime-provenance.md](feishu-runtime-provenance.md) — wiki3 §13 underlay vs overlay vs vendor snapshot（Humble ≠ rolling）
-- [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree bundled 0.10.2 vs vendor 11.0.1（drop-in FAIL / wire UNPROVEN）
+- [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree bundled 0.10.2 vs vendor 11.0.1（drop-in FAIL / wire UNPROVEN；default bundled；合法路径 `unitree_sdk2_hzj` + `UNITREE_DDS_PROVIDER=external`）
 - [latency-attribution.md](latency-attribution.md) — wiki3 §12 分段公式 × 双链（不抄 SCOREBOARD 数字）
 - [feishu-risk-matrix.md](feishu-risk-matrix.md) — wiki3 §9.4 层序 × Hold（不打风险分）
 - [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) — 双链契约

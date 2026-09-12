@@ -22,7 +22,7 @@
 
 # News
 
-- [2026.09.12] Unitree SDK2 自带 Cyclone 0.10.2 **不是**本仓 vendor 11.0.1 的 drop-in：[unitree-sdk2-dds-swap.md](docs/architecture/unitree-sdk2-dds-swap.md) · `python3 scripts/check_unitree_cyclone_swap.py`。drop-in FAIL / wire UNPROVEN。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
+- [2026.09.12] Unitree SDK2 自带 Cyclone 0.10.2 **不是**本仓 vendor 11.0.1 的 drop-in：[unitree-sdk2-dds-swap.md](docs/architecture/unitree-sdk2-dds-swap.md) · `python3 scripts/check_unitree_cyclone_swap.py`。drop-in FAIL / wire UNPROVEN。默认 bundled 0.10.2；合法换库走 [`unitree_sdk2_hzj`](https://github.com/topsun-bot/unitree_sdk2_hzj) + opt-in `UNITREE_DDS_PROVIDER=external`（不是 in-place overwrite）。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] Underlay / overlay / vendor snapshot 分层闸：[feishu-runtime-provenance.md](docs/architecture/feishu-runtime-provenance.md) · `python3 scripts/check_runtime_provenance.py`。Humble `/opt/ros/humble` ≠ rolling `vendor/`。不改 XML / SCOREBOARD。
 - [2026.09.12] Executor · WaitSet · callback 身份闸：[feishu-executor-waitset.md](docs/architecture/feishu-executor-waitset.md) · `python3 scripts/check_executor_map.py`。Humble `rclcpp`/`rclpy` 不在 vendor。不改 XML / SCOREBOARD。
 - [2026.09.12] [PR #28](https://github.com/topsun-bot/ros2_hzj/pull/28) 时延归因闸门 + [PR #29](https://github.com/topsun-bot/ros2_hzj/pull/29) 飞书 wiki3 §9.4 风险矩阵：[latency-attribution.md](docs/architecture/latency-attribution.md) · [feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md)。不改 `fastdds.xml` / SCOREBOARD；不接 Agnocast / zenoh / Cega。
