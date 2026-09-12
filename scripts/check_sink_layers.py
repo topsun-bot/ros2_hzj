@@ -239,8 +239,9 @@ def render(root: Path | None = None) -> tuple[str, int]:
     lines.append("")
     lines.append(
         "Sink-layer record healthy: app / rcl / rmw / DDS / executor / "
-        "memory stay marked Hold vs allowed; XML / SCOREBOARD stay "
-        "untouched; Agnocast / zenoh stay Hold. Exit 0."
+        "memory stay marked Hold vs allowed; Agnocast / zenoh stay Hold. "
+        "fastdds.xml / SCOREBOARD are existence-only here — the boundary "
+        "job owns the content freeze. Exit 0."
     )
     lines.append("")
     return "\n".join(lines), 0
