@@ -18,6 +18,10 @@ jobs:
           test -f docs/architecture/ros2-dds-r0-interface-freeze.md
           test -f docs/architecture/nitros-vs-dual-chain.md
           test -f docs/architecture/cn-jp-ros2-absorb.md
+          test -f docs/architecture/feishu-middleware-adr.md
+          test -f docs/architecture/ros2-source-map.md
+          test -f vendor/MANIFEST.md
+          test -f scripts/prove_rmw.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -41,6 +45,7 @@ jobs:
           test -f vendor/CycloneDDS/package.xml
           test ! -f .gitmodules
           test -f vendor/VERSIONS.md
+          test -f vendor/MANIFEST.md
           test -d dimos_bridge/dimos/protocol/pubsub/impl
           test -f dimos_bridge/dimos/protocol/pubsub/impl/ddspubsub.py
           test -f dimos_bridge/dimos/protocol/pubsub/impl/rospubsub.py
@@ -157,6 +162,9 @@ jobs:
               Path("docs/architecture/ros2-dds-r0-interface-freeze.md"),
               Path("docs/architecture/nitros-vs-dual-chain.md"),
               Path("docs/architecture/cn-jp-ros2-absorb.md"),
+              Path("docs/architecture/feishu-middleware-adr.md"),
+              Path("docs/architecture/ros2-source-map.md"),
+              Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
               Path("docs/usage/benchmark-dds.md"),
@@ -199,3 +207,12 @@ jobs:
                   print(f"  {item}")
               sys.exit(1)
           PY
+
+      - name: prove_rmw.py runs without ROS
+        run: |
+          set -euo pipefail
+          unset ROS_DISTRO RMW_IMPLEMENTATION ROS_DOMAIN_ID \
+            FASTRTPS_DEFAULT_PROFILES_FILE CYCLONEDDS_URI AMENT_PREFIX_PATH || true
+          python3 scripts/prove_rmw.py
+          python3 scripts/prove_rmw.py | grep -F 'ROS not loaded'
+          # Do not compile vendor.

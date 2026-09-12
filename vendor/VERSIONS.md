@@ -2,6 +2,8 @@
 
 本文件是本仓**唯一**的 vendor SHA / 标签钉扎表。其他文档只链到这里，不要再抄一份 SHA 表。
 
+Humble Docker vs rolling / master 快照的**语义**（不要把 rolling 文件直接铺进 Humble）见 [MANIFEST.md](MANIFEST.md)，不在本表重复。
+
 本目录是**整树文件拷贝**，不是 git submodule，也不是 subtree 远端跟踪。
 源码以本仓 `vendor/` 为准。上游 URL 只用于追溯，不是运行时源。
 
