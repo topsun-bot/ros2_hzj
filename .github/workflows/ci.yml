@@ -17,6 +17,7 @@ jobs:
           set -euo pipefail
           test -f docs/architecture/ros2-dds-r0-interface-freeze.md
           test -f docs/architecture/nitros-vs-dual-chain.md
+          test -f docs/architecture/cn-jp-ros2-absorb.md
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -74,6 +75,7 @@ jobs:
           test -f scripts/bench/run_large_packet.sh
           test -f scripts/bench/run_imu_hf.sh
           test -f scripts/bench/run_cross_host_a.sh
+          test -f scripts/bench/cyclonedds_autoware_like.xml
           test -f scripts/bench/write_delta.py
           test -f docs/artifacts/bench/README.md
           # Durable index only — do not fossilize every iter changelog file.
@@ -155,6 +157,7 @@ jobs:
               Path("README.md"),
               Path("docs/architecture/ros2-dds-r0-interface-freeze.md"),
               Path("docs/architecture/nitros-vs-dual-chain.md"),
+              Path("docs/architecture/cn-jp-ros2-absorb.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
               Path("docs/usage/benchmark-dds.md"),

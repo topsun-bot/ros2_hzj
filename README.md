@@ -22,6 +22,7 @@
 
 # News
 
+- [2026.09.12] 吸收中日公开、可引用的 ROS 2 / DDS 做法（文档 + 可选加法配方）：[cn-jp-ros2-absorb.md](docs/architecture/cn-jp-ros2-absorb.md)。不改 `fastdds.xml` / SCOREBOARD 已记账表。
 - [2026.09.11] README 按 HoloMotion 结构重排：亮点、计划模板、Plugin 面与交付物清单（空项标 TBD，不编造链接）。
 - [2026.09.10] `main` 合入 [PR #11](https://github.com/topsun-bot/ros2_hzj/pull/11)：iter6 IMU 尺度（64 B / 200 Hz）抖动基线；`port_queue_capacity` 探测未保留。
 - [2026.09.10] [PR #6](https://github.com/topsun-bot/ros2_hzj/pull/6)–[#10](https://github.com/topsun-bot/ros2_hzj/pull/10)：链 A `fastdds.xml` 单旋钮迭代（Humble `historyQos`、UDP socket buffer、send-buffer 池、中包 SHM）并落盘重测。
@@ -266,7 +267,7 @@ source config/env/chain_a.sh
 
 ## 文档
 
-- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
+- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [中日 ROS 2 吸收](docs/architecture/cn-jp-ros2-absorb.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
 - [Bench 怎么跑](docs/usage/benchmark-dds.md) · [Bench 产物](docs/artifacts/bench/README.md)
 - [env helper](config/env/README.md) · [fastdds.xml 说明](config/fastdds.zh.md) · [vendor SHA](vendor/VERSIONS.md)
 
