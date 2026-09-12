@@ -8,6 +8,7 @@
 python3 scripts/prove_rmw.py
 python3 scripts/check_source_map.py
 python3 scripts/print_bench_gates.py
+python3 scripts/check_risk_matrix.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -26,3 +27,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md) — CI jobs, Hold boundary, `allow-hold-bypass`
 - [docs/architecture/feishu-middleware-adr.md](docs/architecture/feishu-middleware-adr.md) — Feishu middleware ADR
 - [docs/architecture/latency-attribution.md](docs/architecture/latency-attribution.md) — wiki3 §12 / §13.3 stage method (no SCOREBOARD number edits)
+- [docs/architecture/feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md) — wiki3 §9.4 layer checklist (no risk scores)
