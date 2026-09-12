@@ -26,6 +26,7 @@ REQUIRED_DOCS = (
     Path("docs/architecture/ros2-source-map.md"),
     Path("docs/architecture/feishu-middleware-adr.md"),
     Path("docs/architecture/latency-attribution.md"),
+    Path("docs/architecture/feishu-risk-matrix.md"),
     Path("scripts/prove_rmw.py"),
     Path("scripts/check_source_map.py"),
 )
