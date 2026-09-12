@@ -106,7 +106,7 @@ python3 scripts/check_cega_bridge_hold.py
 | 打开 | 断言 |
 |------|------|
 | 本文 [`feishu-cega-bridge-hold.md`](feishu-cega-bridge-hold.md) | `STATUS: Hold`、`no Cega`、`不接 Cega`、`no dimos_bridge runtime edits this cut`、`no XML/SCOREBOARD`、`《3》`–`《6》`、Agnocast / zenoh、三条链 / DoD / blocked、Unitree `drop-in FAIL` |
-| [`feishu-middleware-adr.md`](feishu-middleware-adr.md) | 同一行必须是 `| (4) | Cega / Bridge 后置 | **Hold**`（不是别处剩的 `Hold`） |
+| [`feishu-middleware-adr.md`](feishu-middleware-adr.md) | 第 (4) 行整格必须是 `**Hold**` 开头，且该格不得写 PASS / 已接 Cega（不是别处剩的 `Hold`，也不是 `**Hold** … PASS`） |
 | 上表 `dimos_bridge` 运行时 `.py` | **只检查存在**。不审行为、不算 hash |
 | [`config/fastdds.xml`](../../config/fastdds.xml) | **只检查存在**。内容冻结由 **`boundary`** 管 |
 | [`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md) | **只检查存在**。不读数字；内容冻结由 **`boundary`** 管 |

@@ -69,14 +69,33 @@ _ADR_MARKERS = (
     "dimos_bridge",
 )
 
-# Row-scoped: `| (4) | Cega / Bridge 后置 | **Hold**` on one line.
-# A leftover "Hold" elsewhere (or a PASS in this cell) must fail.
+# Full §13(4) row. Group 1 is the status cell (not just the **Hold** prefix).
 _ADR_ROW_RE = re.compile(
-    r"(?m)^\s*\|\s*\(4\)\s*\|\s*Cega / Bridge 后置\s*\|\s*\*\*Hold\*\*"
+    r"(?m)^\s*\|\s*\(4\)\s*\|\s*Cega / Bridge 后置\s*\|\s*(.*?)\s*\|\s*$"
 )
 
-# Status header, not a leftover `STATUS: Hold` later in the page.
-_HOLD_STATUS_RE = re.compile(r"(?m)^Status:\s*\*\*Hold\*\*")
+# Positive verdicts in that cell. `**Hold** … PASS` / 已接 Cega must fail.
+_CELL_POSITIVE_RE = re.compile(
+    r"(?i)(?:\b(?:PASS|PROVEN|Active|OK|SUCCESS)\b|"
+    r"已接\s*Cega|接入\s*Cega|integrat(?:e|ed|ion)\s+Cega)"
+)
+
+# Prohibition on the same line may mention PASS / 接入 without claiming it.
+_PROHIBITION_RE = re.compile(
+    r"(不要|禁止|不得|不是|不会|do not|not write|not claim|不得把|不要把|"
+    r"禁止把|不发明|不接|未接)",
+    re.IGNORECASE,
+)
+_STATUS_FABRICATE_RE = re.compile(
+    r"(?i)STATUS:\s*\*?\s*(PASS|PROVEN|OK|SUCCESS|Active)\b"
+)
+_CEGA_FABRICATE_RES = (
+    re.compile(
+        r"(?i)Cega\s*/\s*Bridge\s*[:：]\s*(PASS|PROVEN|OK|SUCCESS|Active)\b"
+    ),
+    re.compile(r"已接\s*Cega"),
+    re.compile(r"(?i)integrat(?:e|ed|ion)\s+Cega"),
+)
 
 # Runtime Python this phase documents as read-only. Existence only.
 _RUNTIME_RELS = (
@@ -105,6 +124,75 @@ def _repo_root() -> Path:
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _line_at(text: str, index: int) -> str:
+    start = text.rfind("\n", 0, index) + 1
+    end = text.find("\n", index)
+    if end < 0:
+        end = len(text)
+    return text[start:end]
+
+
+def _first_status_line(text: str) -> str | None:
+    for line in text.splitlines():
+        if line.startswith("Status:"):
+            return line
+    return None
+
+
+def _adr_row_cell(text: str) -> str | None:
+    match = _ADR_ROW_RE.search(text)
+    if match is None:
+        return None
+    return match.group(1)
+
+
+def _adr_row_ok(text: str) -> bool:
+    cell = _adr_row_cell(text)
+    if cell is None:
+        return False
+    if not cell.lstrip().startswith("**Hold**"):
+        return False
+    if _CELL_POSITIVE_RE.search(cell):
+        return False
+    return True
+
+
+def _fabricate_hits(text: str) -> list[str]:
+    hits: list[str] = []
+    for match in _STATUS_FABRICATE_RE.finditer(text):
+        if _PROHIBITION_RE.search(_line_at(text, match.start())):
+            continue
+        hits.append(match.group(0).strip())
+    for pattern in _CEGA_FABRICATE_RES:
+        for match in pattern.finditer(text):
+            if _PROHIBITION_RE.search(_line_at(text, match.start())):
+                continue
+            hits.append(match.group(0).strip())
+    return hits
+
+
+def _row_self_check(adr_text: str) -> list[str]:
+    """In-memory mutations must fail. Do not write the repo."""
+    fails: list[str] = []
+    pass_row = re.sub(
+        r"(?m)^(\s*\|\s*\(4\)\s*\|\s*Cega / Bridge 后置\s*\|\s*)\*\*Hold\*\*",
+        r"\1**PASS**",
+        adr_text,
+        count=1,
+    )
+    if _adr_row_ok(pass_row):
+        fails.append("self-check: (4) **PASS** rewrite still matched")
+    hold_plus = re.sub(
+        r"(?m)^(\s*\|\s*\(4\)\s*\|\s*Cega / Bridge 后置\s*\|\s*\*\*Hold\*\*)",
+        r"\1 … PASS / 已接 Cega",
+        adr_text,
+        count=1,
+    )
+    if _adr_row_ok(hold_plus):
+        fails.append("self-check: (4) **Hold** … PASS cell still matched")
+    return fails
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
@@ -143,30 +231,58 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     adr_text = texts.get(ADR_REL)
     if adr_text is not None:
-        if _ADR_ROW_RE.search(adr_text):
+        if _adr_row_ok(adr_text):
             lines.append(
                 "- **ok ADR §13(4) row:** `| (4) | Cega / Bridge 后置 | **Hold**`"
+                " (full cell; no PASS / 已接 Cega)"
             )
         else:
             failures.append(
-                "ADR missing contiguous `| (4) | Cega / Bridge 后置 | **Hold**` row"
+                "ADR missing `| (4) | Cega / Bridge 后置 | **Hold**` "
+                "cell without PASS / 已接 Cega"
             )
             lines.append(
-                "- **FAIL ADR row:** need `| (4) | Cega / Bridge 后置 | **Hold**`"
+                "- **FAIL ADR row:** need `| (4) | Cega / Bridge 后置 | "
+                "**Hold**` and no PASS / 已接 Cega in that cell"
             )
+        for item in _row_self_check(adr_text):
+            failures.append(item)
+            lines.append(f"- **FAIL {item}**")
+        for hit in _fabricate_hits(adr_text):
+            failures.append(f"ADR positive claim: {hit}")
+            lines.append(f"- **FAIL fabricate ADR:** `{hit}`")
 
     hold_text = texts.get(HOLD_REL)
     if hold_text is not None:
-        if _HOLD_STATUS_RE.search(hold_text):
-            lines.append("- **ok status header:** `Status: **Hold**`")
+        first_status = _first_status_line(hold_text)
+        if first_status and first_status.startswith("Status: **Hold**"):
+            if _STATUS_FABRICATE_RE.search(first_status):
+                failures.append(
+                    "hold doc first Status line claims PASS/PROVEN/Active"
+                )
+                lines.append(
+                    "- **FAIL status:** first `Status:` must stay Hold, "
+                    "not PASS"
+                )
+            else:
+                lines.append(
+                    "- **ok status header:** first `Status:` is `**Hold**`"
+                )
         else:
-            failures.append("hold doc missing `Status: **Hold**` header")
-            lines.append("- **FAIL status:** need `Status: **Hold**` at line start")
+            failures.append(
+                "hold doc first `Status:` line is not `Status: **Hold**`"
+            )
+            lines.append(
+                "- **FAIL status:** first `Status:` must be `Status: **Hold**`"
+            )
         if "STATUS: Hold" in hold_text:
             lines.append("- **ok status phrase:** `STATUS: Hold`")
         else:
             failures.append("hold doc missing contiguous `STATUS: Hold`")
             lines.append("- **FAIL status:** need `STATUS: Hold`")
+        for hit in _fabricate_hits(hold_text):
+            failures.append(f"hold doc positive claim: {hit}")
+            lines.append(f"- **FAIL fabricate hold:** `{hit}`")
         if "no Cega" in hold_text and "不接 Cega" in hold_text:
             lines.append("- **ok no-Cega phrases:** `no Cega` / `不接 Cega`")
         else:
