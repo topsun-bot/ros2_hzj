@@ -36,6 +36,8 @@ _POLICY_CLAUSES = (
     "不改 config/fastdds.xml / SCOREBOARD",
     "不启用 Agnocast / zenoh",
     "《3》–《6》仍 Hold",
+    "AUTO ≠ 已开零拷",
+    "没有 vendor/iceoryx",
 )
 
 # Table-row labels. Substring "rcl" would also match `rclpy` in the app row.
@@ -65,7 +67,15 @@ _SINK_MARKERS = (
     "Rolling",
     "blocked",
     "psmx_iox",
-    "vendor/iceoryx",
+)
+
+# Humble client libs + Iceoryx tree must stay out of vendor/.
+# Cyclone's psmx_iox adapter source is not this list.
+ABSENT_VENDOR_TREES = (
+    Path("vendor/rcl"),
+    Path("vendor/rclcpp"),
+    Path("vendor/rclpy"),
+    Path("vendor/iceoryx"),
 )
 
 _ADR_MARKERS = (
@@ -144,6 +154,15 @@ def render(root: Path | None = None) -> tuple[str, int]:
         extra = f" ({hint})" if hint else ""
         lines.append(f"- **ok file:** `{key}`{extra}")
 
+    for rel in ABSENT_VENDOR_TREES:
+        path = root / rel
+        key = rel.as_posix()
+        if path.exists():
+            failures.append(f"Hold tree must not be vendored: `{key}`")
+            lines.append(f"- **FAIL vendored:** `{key}`")
+        else:
+            lines.append(f"- **ok absent:** `{key}`")
+
     sink_text = texts.get(SINK_REL)
     if sink_text is not None:
         found_layers = set(_LAYER_ROW_RE.findall(sink_text))
@@ -168,7 +187,10 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(f"sink doc missing policy clause(s): {joined}")
             lines.append(f"- **FAIL policy:** need {joined}")
         else:
-            lines.append("- **ok policy:** 不改 XML/SCOREBOARD; 不启用 Agnocast/zenoh; 《3》–《6》仍 Hold")
+            lines.append(
+                "- **ok policy:** 不改 XML/SCOREBOARD; 不启用 Agnocast/zenoh; "
+                "《3》–《6》仍 Hold; AUTO ≠ 已开零拷; 没有 vendor/iceoryx"
+            )
         if "Hold vs allowed" in sink_text:
             lines.append("- **ok Hold vs allowed:** contiguous phrase present")
         else:
