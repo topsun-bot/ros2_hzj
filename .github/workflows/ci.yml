@@ -33,12 +33,14 @@ jobs:
           test -f docs/architecture/latency-attribution.md
           test -f docs/architecture/feishu-risk-matrix.md
           test -f docs/architecture/feishu-executor-waitset.md
+          test -f docs/architecture/feishu-runtime-provenance.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
           test -f scripts/check_source_map.py
           test -f scripts/print_bench_gates.py
           test -f scripts/check_risk_matrix.py
           test -f scripts/check_executor_map.py
+          test -f scripts/check_runtime_provenance.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -149,6 +151,13 @@ jobs:
           python3 scripts/check_executor_map.py | grep -F 'WaitSet -> callback: mapped'
           # Paths + WaitSet/wait/take symbols only. Do not compile vendor.
 
+      - name: check_runtime_provenance.py (wiki3 §13 underlay vs vendor)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_runtime_provenance.py
+          python3 scripts/check_runtime_provenance.py | grep -F 'underlay != vendor snapshot'
+          # Docs + Humble/rolling pins only. Do not compile vendor.
+
   contracts:
     name: contracts
     runs-on: ubuntu-latest
@@ -220,6 +229,7 @@ jobs:
               Path("docs/architecture/latency-attribution.md"),
               Path("docs/architecture/feishu-risk-matrix.md"),
               Path("docs/architecture/feishu-executor-waitset.md"),
+              Path("docs/architecture/feishu-runtime-provenance.md"),
               Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),

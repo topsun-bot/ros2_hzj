@@ -6,7 +6,7 @@
 拷贝日期（与 VERSIONS 一致）：**2026-09-10**。  
 查阅补记：2026-09-12（飞书《ROS 2 源码闭环》§13 第 1 步：冻 `ROS_DISTRO` + exact manifest）。
 
-决策：[docs/architecture/feishu-middleware-adr.md](../docs/architecture/feishu-middleware-adr.md)。路径地图：[docs/architecture/ros2-source-map.md](../docs/architecture/ros2-source-map.md)。
+决策：[docs/architecture/feishu-middleware-adr.md](../docs/architecture/feishu-middleware-adr.md)。路径地图：[docs/architecture/ros2-source-map.md](../docs/architecture/ros2-source-map.md)。分层（underlay / overlay / vendor snapshot）：[docs/architecture/feishu-runtime-provenance.md](../docs/architecture/feishu-runtime-provenance.md)。
 
 ---
 
