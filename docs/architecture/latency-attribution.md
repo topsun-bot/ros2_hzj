@@ -20,6 +20,7 @@ Status: **方法文档 — 不发明数字、不重写 SCOREBOARD。**
 
 核对「加载了哪个 RMW」：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)（§6.3，身份闸，**不是**时延）。  
 核对本仓源码地图还在：[`scripts/check_source_map.py`](../../scripts/check_source_map.py)（§13.2，身份闸，**不是**时延）。  
+核对 WaitSet → callback 地图还在：[`scripts/check_executor_map.py`](../../scripts/check_executor_map.py)（§13 wait→callback，身份闸，**不是**时延）。  
 核对 bench 指针 / STATUS 还在：[`scripts/print_bench_gates.py`](../../scripts/print_bench_gates.py)（本文配套，只读，**不发明数字**）。
 
 ---
@@ -46,8 +47,8 @@ T_e2e = T_app_pub + T_rmw_pub + T_dds_write + T_transport + T_dds_ingress + T_rm
 | `T_dds_write` | Writer History / send | `DataWriterHistory` / `WriterHistory` | `dds_write_*` → `ddsi_whc_insert` | 同上。符号闸：`check_source_map.py` |
 | `T_transport` | 网 / 本机投递 | builtin UDP + 隐式 SHM（iter7 种子，**不改 XML**） | Cyclone 默认；**不**设 `CYCLONEDDS_URI` | 拓扑标签：`same-process` / `same-host` / `cross-host-UDP`。跨机 **blocked** |
 | `T_dds_ingress` | ingress → Reader History | `StatefulReader` → `ReaderHistory` | `ddsi_rhc` / `dds_rhc` | [源码地图 §2](ros2-source-map.md)。入 History ≠ callback 已跑 |
-| `T_rmw_take` | `rmw_wait` / `rmw_take` | shared `rmw_wait.cpp` / `rmw_take.cpp` | `rmw_node.cpp` → `dds_waitset` / `dds_take` | [源码地图 §3](ros2-source-map.md) |
-| `T_callback` | Executor / 用户回调 | Humble `rclcpp` / `rclpy`（**不在** vendor） | ROS 侧同左；原生链 B 不走 ROS executor | 本仓不 vendor `rcl*` |
+| `T_rmw_take` | `rmw_wait` / `rmw_take` | shared `rmw_wait.cpp` / `rmw_take.cpp` | `rmw_node.cpp` → `dds_waitset` / `dds_take` | [源码地图 §3](ros2-source-map.md)；加深：[Executor / WaitSet](feishu-executor-waitset.md) |
+| `T_callback` | Executor / 用户回调 | Humble `rclcpp` / `rclpy`（**不在** vendor） | ROS 侧同左；原生链 B 不走 ROS executor | 本仓不 vendor `rcl*`；见 WaitSet 专页 |
 
 ```mermaid
 flowchart LR
@@ -113,6 +114,7 @@ ADR 已写：§13 (3) FastDDS + Cyclone 基线「双链契约已在；bench 产�
 python3 scripts/print_bench_gates.py
 python3 scripts/prove_rmw.py
 python3 scripts/check_source_map.py
+python3 scripts/check_executor_map.py
 ```
 
 无 ROS 时三个脚本都应能 exit 0（缺必填文件则 `print_bench_gates.py` exit 1）。CI 登记见 [ci-cd-gates.md](ci-cd-gates.md)。**不要**为了本地绿去编译 vendor。
@@ -132,4 +134,5 @@ python3 scripts/check_source_map.py
 4. [ros2-source-map.md](ros2-source-map.md)
 5. [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)
 6. [docs/artifacts/bench/SCOREBOARD.md](../artifacts/bench/SCOREBOARD.md)
-7. [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py)
+7. [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py)
+8. [feishu-executor-waitset.md](feishu-executor-waitset.md)

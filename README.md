@@ -22,7 +22,8 @@
 
 # News
 
-- [2026.09.12] [PR #28](https://github.com/topsun-bot/ros2_hzj/pull/28) 时延归因闸门 + 本切飞书 wiki3 §9.4 风险矩阵：[latency-attribution.md](docs/architecture/latency-attribution.md) · [feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md)。不改 `fastdds.xml` / SCOREBOARD；不接 Agnocast / zenoh / Cega。
+- [2026.09.12] Executor · WaitSet · callback 身份闸：[feishu-executor-waitset.md](docs/architecture/feishu-executor-waitset.md) · `python3 scripts/check_executor_map.py`。Humble `rclcpp`/`rclpy` 不在 vendor。不改 XML / SCOREBOARD。
+- [2026.09.12] [PR #28](https://github.com/topsun-bot/ros2_hzj/pull/28) 时延归因闸门 + [PR #29](https://github.com/topsun-bot/ros2_hzj/pull/29) 飞书 wiki3 §9.4 风险矩阵：[latency-attribution.md](docs/architecture/latency-attribution.md) · [feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md)。不改 `fastdds.xml` / SCOREBOARD；不接 Agnocast / zenoh / Cega。
 - [2026.09.12] 飞书三份中间件计划对照本仓：[ADR](docs/architecture/feishu-middleware-adr.md) · [源码地图](docs/architecture/ros2-source-map.md)。不改 `fastdds.xml` / SCOREBOARD；不接 Agnocast / zenoh / Cega。
 - [2026.09.12] 中日公开 ROS 2 / DDS 做法只进文档：[cn-jp-ros2-absorb.md](docs/architecture/cn-jp-ros2-absorb.md)。不改 `fastdds.xml` / SCOREBOARD。
 - [2026.09.11] README 按 HoloMotion 结构重排：亮点、计划模板、Plugin 面与交付物清单（空项标 TBD，不编造链接）。
@@ -269,13 +270,13 @@ source config/env/chain_a.sh
 
 ## 文档
 
-- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [中日 ROS 2 吸收](docs/architecture/cn-jp-ros2-absorb.md) · [飞书中间件 ADR](docs/architecture/feishu-middleware-adr.md) · [源码地图](docs/architecture/ros2-source-map.md) · [时延归因（不抄 SCOREBOARD 数字）](docs/architecture/latency-attribution.md) · [风险矩阵 §9.4（不打分）](docs/architecture/feishu-risk-matrix.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
+- [R0 接口冻结](docs/architecture/ros2-dds-r0-interface-freeze.md) · [NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md) · [中日 ROS 2 吸收](docs/architecture/cn-jp-ros2-absorb.md) · [飞书中间件 ADR](docs/architecture/feishu-middleware-adr.md) · [源码地图](docs/architecture/ros2-source-map.md) · [Executor / WaitSet](docs/architecture/feishu-executor-waitset.md) · [时延归因（不抄 SCOREBOARD 数字）](docs/architecture/latency-attribution.md) · [风险矩阵 §9.4（不打分）](docs/architecture/feishu-risk-matrix.md) · [Transports](docs/usage/transports/index.md) · [DDS 安装（链 B 参考）](docs/usage/transports/dds.md)
 - [Bench 怎么跑](docs/usage/benchmark-dds.md) · [Bench 产物](docs/artifacts/bench/README.md)
 - [env helper](config/env/README.md) · [fastdds.xml 说明](config/fastdds.zh.md) · [vendor SHA](vendor/VERSIONS.md)
 
 ## CI
 
-Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。bench 指针 / 跨机 STATUS：`python3 scripts/print_bench_gates.py`（无 ROS；见 [latency-attribution.md](docs/architecture/latency-attribution.md)）。§9.4 层序 / Hold 标记：`python3 scripts/check_risk_matrix.py`（无 ROS；见 [feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md)）。
+Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。WaitSet → callback：`python3 scripts/check_executor_map.py`（无 ROS；见 [feishu-executor-waitset.md](docs/architecture/feishu-executor-waitset.md)）。bench 指针 / 跨机 STATUS：`python3 scripts/print_bench_gates.py`（无 ROS；见 [latency-attribution.md](docs/architecture/latency-attribution.md)）。§9.4 层序 / Hold 标记：`python3 scripts/check_risk_matrix.py`（无 ROS；见 [feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md)）。
 
 # Citation
 

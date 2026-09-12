@@ -39,13 +39,13 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | §13 | 飞书要求 | 本切 |
 |-----|----------|------|
 | (1) | 冻 `ROS_DISTRO` + exact manifest | [`vendor/MANIFEST.md`](../../vendor/MANIFEST.md)。运行时目标 = Humble（[`docker/ros/`](../../docker/ros/)）。vendor 树 = rolling / master 快照，SHA **只**在 [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)。 |
-| (2) | 复现 publish / ingress→History / wait→callback 三条链 | **只画地图**：[ros2-source-map.md](ros2-source-map.md)。不编造已复现、不跑 vendor 编译。`publish()` 返回 **不是**端到端送达。 |
+| (2) | 复现 publish / ingress→History / wait→callback 三条链 | **只画地图**：[ros2-source-map.md](ros2-source-map.md)。wait→callback 加深：[feishu-executor-waitset.md](feishu-executor-waitset.md)。不编造已复现、不跑 vendor 编译。`publish()` 返回 **不是**端到端送达。 |
 | (3) | FastDDS + Cyclone 基线 | 双链契约已在；bench 产物另册。本切 **不**重写 XML、**不**改 SCOREBOARD。 |
 | (4) | Cega / Bridge 后置 | **Hold**。不接 Cega，不改 `dimos_bridge` 运行时模块。 |
 | (5) | 一次一层 | 本切 = 文档 + 证明脚本 + CI 登记。下一层另开 PR。 |
 | (6) | CI + 灰度 | CI 检查新文档路径 / 相对链接，并跑 `prove_rmw.py`。**不**编译 vendor。 |
 
-§9.4 风险矩阵：DDS XML / 环境变量 **第一优先**（本切只读现网契约，不改 [`config/fastdds.xml`](../../config/fastdds.xml)）；fork `rcl` / `rclcpp` / DDS core **最后**（本仓甚至没有 vendor `rcl` / `rclcpp`）。本仓清单：[feishu-risk-matrix.md](feishu-risk-matrix.md)。
+§9.4 风险矩阵：DDS XML / 环境变量 **第一优先**（本切只读现网契约，不改 [`config/fastdds.xml`](../../config/fastdds.xml)）；Executor / WaitSet / callback **居中**（身份地图见 [feishu-executor-waitset.md](feishu-executor-waitset.md)，不是风险打分）；fork `rcl` / `rclcpp` / DDS core **最后**（本仓甚至没有 vendor `rcl` / `rclcpp`）。本仓清单：[feishu-risk-matrix.md](feishu-risk-matrix.md)。
 
 ---
 
@@ -98,5 +98,6 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 6. [nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)
 7. [ros2-source-map.md](ros2-source-map.md)
 8. [feishu-risk-matrix.md](feishu-risk-matrix.md) — wiki3 §9.4 层序 × Hold（不打分）
-9. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
-10. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py)
+9. [feishu-executor-waitset.md](feishu-executor-waitset.md) — wiki3 §13 wait→callback 身份地图
+10. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
+11. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py)

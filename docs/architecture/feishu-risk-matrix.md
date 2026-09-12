@@ -23,7 +23,8 @@ Status: **清单 — 不发明风险分数、不重写 SCOREBOARD。**
 核对「加载了哪个 RMW」：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)（§6.3，身份闸，**不是**风险分）。  
 核对本仓源码地图还在：[`scripts/check_source_map.py`](../../scripts/check_source_map.py)。  
 核对 bench 指针 / STATUS 还在：[`scripts/print_bench_gates.py`](../../scripts/print_bench_gates.py)。  
-核对本清单层序 / Hold 标记还在：[`scripts/check_risk_matrix.py`](../../scripts/check_risk_matrix.py)（本文配套，只读，**不打分**）。
+核对本清单层序 / Hold 标记还在：[`scripts/check_risk_matrix.py`](../../scripts/check_risk_matrix.py)（本文配套，只读，**不打分**）。  
+核对 WaitSet → callback 身份地图还在：[`scripts/check_executor_map.py`](../../scripts/check_executor_map.py)。
 
 ---
 
@@ -41,7 +42,7 @@ Status: **清单 — 不发明风险分数、不重写 SCOREBOARD。**
 | 1 | **env / XML** | 第一优先：先对齐发行版环境与现网 XML，再谈代码 | [`config/env/`](../../config/env/)（必须显式 `source` / apply）；链 A 契约种子 [`config/fastdds.xml`](../../config/fastdds.xml) | **只读现网契约。** 不改 XML，不静默写 `os.environ` |
 | 2 | **RMW** | 用 `RMW_IMPLEMENTATION` 切换；先量化再谈自研 | 链 A `rmw_fastrtps_cpp` / 链 B `rmw_cyclonedds_cpp`；身份闸 [`prove_rmw.py`](../../scripts/prove_rmw.py) | **无自定义 RMW。** Agnocast / `rmw_zenoh` **Hold** |
 | 3 | **DDS knobs** | 旋钮只动一层；高吞吐同机不要默认 Cyclone **网络** XML | 链 A 旋钮已冻在 iter7 XML；链 B 不设 `CYCLONEDDS_URI`。数字只在 SCOREBOARD **指针** | **不发明新旋钮、不重记账。** 中日公开 knobs 只对照：[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) |
-| 4 | **Executor / memory** | 差异化可下沉到 Executor / 内存，但排在 XML / RMW / DDS knobs 之后 | Humble `rclcpp` / `rclpy` **不在** `vendor/`。源码地图只标到 `rmw_wait` / `rmw_take` | **不 fork Executor。** Loaned / Data Sharing / 内存补丁 **不落地** |
+| 4 | **Executor / memory** | 差异化可下沉到 Executor / 内存，但排在 XML / RMW / DDS knobs 之后 | Humble `rclcpp` / `rclpy` **不在** `vendor/`。源码地图只标到 `rmw_wait` / `rmw_take`；加深：[feishu-executor-waitset.md](feishu-executor-waitset.md) | **不 fork Executor。** Loaned / Data Sharing / 内存补丁 **不落地** |
 | 5 | **core forks** | 最后：fork `rcl` / `rclcpp` / Fast-DDS / Cyclone 核心 | 本仓 **无** vendor `rcl` / `rclcpp`。`vendor/Fast-DDS` / `vendor/CycloneDDS` 是对照快照 | **本切不做。** Rolling 源码直接覆盖 Humble = **严禁** |
 
 ```mermaid

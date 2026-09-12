@@ -70,7 +70,7 @@ flowchart TD
 
 ## 3. Wait → callback 链
 
-ROS executor（Humble `rclcpp` / `rclpy`，**不在 vendor/**）循环：`rmw_wait` → 就绪则 `rmw_take` → 调订阅回调。
+ROS executor（Humble `rclcpp` / `rclpy`，**不在 vendor/**）循环：`rmw_wait` → 就绪则 `rmw_take` → 调订阅回调。加深（双链 WaitSet / 原生 listener）：[feishu-executor-waitset.md](feishu-executor-waitset.md)。
 
 | 步骤 | 链 A | 链 B |
 |------|------|------|
@@ -93,7 +93,7 @@ ROS executor（Humble `rclcpp` / `rclpy`，**不在 vendor/**）循环：`rmw_wa
 
 核对「进程到底加载了哪个 RMW / `.so`」：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)（飞书 §6.3）。无 ROS 时仍退出 0。
 
-机械核对本页引用的本仓路径 + 少量允许清单符号（WriterHistory `add_change`、StatefulReader `process_data_msg` / `change_received`、`rmw.h` 标识符等）：[`scripts/check_source_map.py`](../../scripts/check_source_map.py)。
+机械核对本页引用的本仓路径 + 少量允许清单符号（WriterHistory `add_change`、StatefulReader `process_data_msg` / `change_received`、`rmw.h` 标识符、WaitSet / `rmw_wait` / `dds_take` 等）：[`scripts/check_source_map.py`](../../scripts/check_source_map.py)。WaitSet → callback 专页：[`scripts/check_executor_map.py`](../../scripts/check_executor_map.py)。
 
 ```bash
 python3 scripts/check_source_map.py
