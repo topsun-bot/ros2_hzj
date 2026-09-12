@@ -36,6 +36,7 @@ jobs:
           test -f docs/architecture/feishu-runtime-provenance.md
           test -f docs/architecture/unitree-sdk2-dds-swap.md
           test -f docs/architecture/feishu-three-chain-repro.md
+          test -f docs/architecture/feishu-sink-layers.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
           test -f scripts/check_source_map.py
@@ -45,6 +46,7 @@ jobs:
           test -f scripts/check_runtime_provenance.py
           test -f scripts/check_unitree_cyclone_swap.py
           test -f scripts/check_three_chain_repro.py
+          test -f scripts/check_sink_layers.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -176,6 +178,13 @@ jobs:
           python3 scripts/check_three_chain_repro.py | grep -F 'three-chain repro: blocked (map only)'
           # Honesty markers only. Do not invent a reproduce run or percentiles.
 
+      - name: check_sink_layers.py (Feishu RMW/DDS/Executor sink)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_sink_layers.py
+          python3 scripts/check_sink_layers.py | grep -F 'sink layers: mapped (Hold vs allowed)'
+          # Docs + layer/Hold markers only. Do not compile vendor. Do not edit XML.
+
   contracts:
     name: contracts
     runs-on: ubuntu-latest
@@ -250,6 +259,7 @@ jobs:
               Path("docs/architecture/feishu-runtime-provenance.md"),
               Path("docs/architecture/unitree-sdk2-dds-swap.md"),
               Path("docs/architecture/feishu-three-chain-repro.md"),
+              Path("docs/architecture/feishu-sink-layers.md"),
               Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
