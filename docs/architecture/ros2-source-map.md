@@ -87,7 +87,7 @@ ROS executor（Humble `rclcpp` / `rclpy`，**不在 vendor/**）循环：`rmw_wa
 | 飞书常写的层 | 本仓 |
 |--------------|------|
 | `rcl` / `rclcpp` / `rclpy` 源码 | **无** vendor。复现这三层请用 Humble 发行版，不要拿 rolling `rmw_*.h` 去覆盖 `/opt/ros/humble`。 |
-| Cega / 自研 Bridge | **Hold**（ADR §2） |
+| Cega / 自研 Bridge | **Hold**（ADR §13(4)；[feishu-cega-bridge-hold.md](feishu-cega-bridge-hold.md)） |
 | Agnocast / zenoh / eCAL / DPDK / Isaac | **不在树内**；Hold |
 | 把三条链测出分位数并当根因 | **不是本文。** bench 另册；跨机 UDP 仍 blocked |
 
