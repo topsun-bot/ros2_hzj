@@ -21,8 +21,15 @@ python3 config/env/load.py print-b
 - 《3》–《6》 (bench score loops, Mac HIL, Promptfoo, CVE) stay out of scope.
 - Do not change `dimos_bridge` DDS behavior or vendor sources.
 
+## Auto-review
+
+GitHub Copilot auto-reviews via ruleset `copilot-auto-review`（`review_on_push` + drafts）。
+Cursor Bugbot / cloud-agent review is also requested on `pr-opened` / `pr-pushed`（规则：[`.cursor/BUGBOT.md`](.cursor/BUGBOT.md)）。
+Copilot **Approve** 是否计入合入所需审批，是 Settings 开关（Settings → Copilot → Code review）。本页**不**声称它已经算 required approval。
+
 ## Docs
 
 - [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md) — CI jobs, Hold boundary, `allow-hold-bypass`
 - [docs/architecture/feishu-middleware-adr.md](docs/architecture/feishu-middleware-adr.md) — Feishu middleware ADR
 - [docs/architecture/latency-attribution.md](docs/architecture/latency-attribution.md) — wiki3 §12 / §13.3 stage method (no SCOREBOARD number edits)
+- [`.cursor/BUGBOT.md`](.cursor/BUGBOT.md) — Copilot / Bugbot review rules

@@ -83,7 +83,19 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ---
 
-## 6. 本地核对
+## 6. Auto-review（Copilot / Bugbot）
+
+GitHub Copilot 通过仓库 ruleset **`copilot-auto-review`** 自动审 PR：`review_on_push` + drafts（已核：该 ruleset 对全部分支 `active`）。
+
+Cursor Bugbot / cloud-agent review 也在 `pr-opened` / `pr-pushed` 上请求。项目规则：[`.cursor/BUGBOT.md`](../../.cursor/BUGBOT.md)。
+
+Copilot **Approve** 是否计入合入所需审批，是 **Settings 开关**（Settings → Copilot → Code review）。本页**未核**该开关，因此**不**声称 Copilot Approve 已经算 required approval。人类批准 merge 仍是默认。
+
+**不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
+
+---
+
+## 7. 本地核对
 
 仓库根：
 
@@ -113,7 +125,7 @@ python3 config/env/load.py print-b
 
 ---
 
-## 7. 相关文档
+## 8. 相关文档
 
 - [feishu-middleware-adr.md](feishu-middleware-adr.md) — 飞书三份中间件计划 → 本仓已决
 - [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — 中日公开做法对照（权威吸收文，不落旋钮）
@@ -121,3 +133,4 @@ python3 config/env/load.py print-b
 - [latency-attribution.md](latency-attribution.md) — wiki3 §12 分段公式 × 双链（不抄 SCOREBOARD 数字）
 - [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) — 双链契约
 - [AGENTS.md](../../AGENTS.md) — agent 一页纸
+- [`.cursor/BUGBOT.md`](../../.cursor/BUGBOT.md) — Copilot / Bugbot 审 PR 规则

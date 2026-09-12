@@ -22,6 +22,7 @@
 
 # News
 
+- [2026.09.12] Copilot / Cursor 自动审：ruleset `copilot-auto-review`；规则 [`.cursor/BUGBOT.md`](.cursor/BUGBOT.md)。不改 `fastdds.xml` / SCOREBOARD。
 - [2026.09.12] 飞书三份中间件计划对照本仓：[ADR](docs/architecture/feishu-middleware-adr.md) · [源码地图](docs/architecture/ros2-source-map.md)。不改 `fastdds.xml` / SCOREBOARD；不接 Agnocast / zenoh / Cega。
 - [2026.09.12] 中日公开 ROS 2 / DDS 做法只进文档：[cn-jp-ros2-absorb.md](docs/architecture/cn-jp-ros2-absorb.md)。不改 `fastdds.xml` / SCOREBOARD。
 - [2026.09.11] README 按 HoloMotion 结构重排：亮点、计划模板、Plugin 面与交付物清单（空项标 TBD，不编造链接）。
@@ -274,7 +275,7 @@ source config/env/chain_a.sh
 
 ## CI
 
-Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。bench 指针 / 跨机 STATUS：`python3 scripts/print_bench_gates.py`（无 ROS；见 [latency-attribution.md](docs/architecture/latency-attribution.md)）。
+Hold 阶段闸门（`structure` / `contracts` / `boundary`）见 [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md)。工作流：[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。源码地图机械核对：`python3 scripts/check_source_map.py`（无 ROS；见 [ros2-source-map.md](docs/architecture/ros2-source-map.md)）。bench 指针 / 跨机 STATUS：`python3 scripts/print_bench_gates.py`（无 ROS；见 [latency-attribution.md](docs/architecture/latency-attribution.md)）。Copilot 自动审：ruleset `copilot-auto-review`（`review_on_push` + drafts）；Bugbot 规则 [`.cursor/BUGBOT.md`](.cursor/BUGBOT.md)。
 
 # Citation
 
