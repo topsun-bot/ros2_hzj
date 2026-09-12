@@ -38,6 +38,7 @@ jobs:
           test -f docs/architecture/feishu-three-chain-repro.md
           test -f docs/architecture/feishu-sink-layers.md
           test -f docs/architecture/feishu-dual-chain-baseline.md
+          test -f docs/architecture/feishu-dod-evidence.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
           test -f scripts/check_source_map.py
@@ -49,6 +50,7 @@ jobs:
           test -f scripts/check_three_chain_repro.py
           test -f scripts/check_sink_layers.py
           test -f scripts/check_dual_chain_baseline.py
+          test -f scripts/check_dod_evidence.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -195,6 +197,13 @@ jobs:
           python3 scripts/check_dual_chain_baseline.py | grep -F 'same-topology XML tuning is paused'
           # Docs + env contract markers only. Do not invent percentiles.
 
+      - name: check_dod_evidence.py (wiki3 §6.3 DoD unmet / blocked)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_dod_evidence.py
+          python3 scripts/check_dod_evidence.py | grep -F 'dod evidence: unmet (blocked)'
+          # Honesty markers only. Do not invent PASS / PROVEN / this-host measured-delta.
+
   contracts:
     name: contracts
     runs-on: ubuntu-latest
@@ -271,6 +280,7 @@ jobs:
               Path("docs/architecture/feishu-three-chain-repro.md"),
               Path("docs/architecture/feishu-sink-layers.md"),
               Path("docs/architecture/feishu-dual-chain-baseline.md"),
+              Path("docs/architecture/feishu-dod-evidence.md"),
               Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),

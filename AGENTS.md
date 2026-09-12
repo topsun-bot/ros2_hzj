@@ -15,6 +15,7 @@ python3 scripts/check_unitree_cyclone_swap.py
 python3 scripts/check_three_chain_repro.py
 python3 scripts/check_sink_layers.py
 python3 scripts/check_dual_chain_baseline.py
+python3 scripts/check_dod_evidence.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -40,3 +41,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/feishu-three-chain-repro.md](docs/architecture/feishu-three-chain-repro.md) — wiki3 §13(2) three-chain reproduce: map ≠ reproduce; `STATUS: blocked` on this host (no Humble runtime)
 - [docs/architecture/feishu-sink-layers.md](docs/architecture/feishu-sink-layers.md) — Feishu 《通信中间件》 sink layers (app / rcl / rmw / DDS / executor / memory): Hold vs allowed; no XML
 - [docs/architecture/feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone baseline pointer (no XML rewrite; SCOREBOARD pointer only; same-topology XML tuning is paused)
+- [docs/architecture/feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) — wiki3 §6.3 product DoD honesty (`DoD: unmet` / `STATUS: blocked`; `prove_rmw.py` is env/string, not modified `.so`)

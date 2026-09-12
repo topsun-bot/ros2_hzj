@@ -22,6 +22,7 @@
 
 # News
 
+- [2026.09.12] 飞书 wiki3 §6.3 产品 DoD 仍 **unmet / STATUS: blocked**：[feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) · `python3 scripts/check_dod_evidence.py`。实编、modified `.so`、本机 baseline-vs-change、回滚、产品验收阈均未满足。`prove_rmw.py` 只是 env / 字符串身份闸。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] 飞书 §13(3) 双链基线指针：[feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) · `python3 scripts/check_dual_chain_baseline.py`。SCOREBOARD current-best pointer only；same-topology XML tuning is paused；跨机 UDP `STATUS: blocked`；three-chain map≠reproduce；Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL。不改 XML / SCOREBOARD。
 - [2026.09.12] 飞书《通信中间件》差异化下沉层：[feishu-sink-layers.md](docs/architecture/feishu-sink-layers.md) · `python3 scripts/check_sink_layers.py`。app / rcl / rmw / DDS / executor / memory 的 Hold vs allowed。派生自 ADR + 源码地图 + Executor 地图，不是 live Feishu excerpt。三条链 map ≠ reproduce；Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] 飞书 wiki3 §13(2) 三条链复现：**map ≠ reproduce**，本主机 `STATUS: blocked`：[feishu-three-chain-repro.md](docs/architecture/feishu-three-chain-repro.md) · `python3 scripts/check_three_chain_repro.py`。有地图（[源码地图](docs/architecture/ros2-source-map.md) · [WaitSet](docs/architecture/feishu-executor-waitset.md)），未执行 publish / History / wait→callback。不编造 PASS / 时延。不改 XML / SCOREBOARD。
