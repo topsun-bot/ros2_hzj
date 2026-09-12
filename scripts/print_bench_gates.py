@@ -103,7 +103,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     hits = _cross_host_hits(root)
     if hits:
-        lines.append(f"- **cross-host:** blocked ({', '.join(hits)})")
+        lines.append(f"- **cross-host: blocked** ({', '.join(hits)})")
     else:
         failures.append("no STATUS: blocked marker for cross-host")
         lines.append("- **FAIL cross-host:** STATUS blocked marker not found")
