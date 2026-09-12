@@ -55,7 +55,7 @@ Humble 发行版 `.so` 才是默认加载对象。`vendor/rmw_fastrtps` / `vendo
 |----|------|----------|
 | RMW（ROS 侧名） | `rmw_cyclonedds_cpp` | [`config/env/chain_b.sh`](../../config/env/chain_b.sh) |
 | 域 | Cyclone **域 0** / `ROS_DOMAIN_ID=0` | 与 DimOS `DDSConfig.domain_id` / Unitree `ChannelFactoryInitialize(0)` 对齐 |
-| Cyclone XML | 默认 **不**设 `CYCLONEDDS_URI` | 本仓没有现网 Cyclone XML。高吞吐同机不要默认 Cyclone **网络**配置（ADR） |
+| Cyclone XML | 默认 **`unset CYCLONEDDS_URI`** | 对齐 `load.py` `CHAIN_B_UNSET`。本仓没有现网 Cyclone XML。高吞吐同机不要默认 Cyclone **网络**配置（ADR） |
 
 原生 DimOS DDS 读的是 `DDSConfig.domain_id`（默认 0），不是这些 ROS 变量。`chain_b.sh` 只为「要用 ROS 2 RMW 对齐链 B」的操作员准备。
 
@@ -115,7 +115,7 @@ python3 scripts/prove_rmw.py
 | 本文 [`feishu-dual-chain-baseline.md`](feishu-dual-chain-baseline.md) | 双链契约句、**`no XML rewrite`**、SCOREBOARD **`pointer only`**、连续句 **`same-topology XML tuning is paused`**、跨机 `STATUS: blocked`、**three-chain map≠reproduce**、Unitree **drop-in FAIL**、《3》–《6》 Hold。不写 booked ping-pong quantile tokens |
 | [feishu-middleware-adr.md](feishu-middleware-adr.md) | §13(3) 行仍写 FastDDS + Cyclone、**不重写 XML**、并指向本文 |
 | [`config/env/chain_a.sh`](../../config/env/chain_a.sh) | 锚定 `export RMW_IMPLEMENTATION=rmw_fastrtps_cpp`、`export ROS_DOMAIN_ID=42`、`export FASTRTPS_DEFAULT_PROFILES_FILE=` |
-| [`config/env/chain_b.sh`](../../config/env/chain_b.sh) | 锚定 `export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`、`export ROS_DOMAIN_ID=0`。**不** `export CYCLONEDDS_URI=`。本闸不看调用者继承的环境；inherited `CYCLONEDDS_URI` 不在本闸范围 |
+| [`config/env/chain_b.sh`](../../config/env/chain_b.sh) | 锚定 `export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`、`export ROS_DOMAIN_ID=0`、`unset CYCLONEDDS_URI`（对齐 [`load.py`](../../config/env/load.py) `CHAIN_B_UNSET`）。**不** `export CYCLONEDDS_URI=` |
 | [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) | 双链 R0 冻结页还在（`Hold` 标记） |
 | [ros2-source-map.md](ros2-source-map.md) | 三条链地图还在（map≠reproduce，不是复现报告） |
 | [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) | 0.10.2 vs 11.0.1 **drop-in FAIL** 句还在 |

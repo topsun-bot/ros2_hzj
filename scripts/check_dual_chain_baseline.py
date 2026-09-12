@@ -12,11 +12,12 @@ On failure do not print those success markers (including in ok/FAIL
 diagnostics).
 
 Does not invent booked percentile tokens (p50 / p90 / p95 / p99 or
-"Nth percentile"). Policy words such as 分位数 are allowed.
+"Nth percentile"), including labels next to Chinese text. Policy
+words such as 分位数 are allowed.
 Does not prove fastdds.xml / SCOREBOARD contents are unchanged —
 those files are existence-only here; the `boundary` job owns the freeze.
-Does not inspect the caller's inherited environment: chain_b.sh must
-not `export CYCLONEDDS_URI=`; an already-set URI is out of scope.
+chain_b.sh must `unset CYCLONEDDS_URI` (same as load.py CHAIN_B_UNSET)
+and must not `export CYCLONEDDS_URI=`.
 Style follows scripts/check_unitree_cyclone_swap.py / check_risk_matrix.py.
 """
 
@@ -93,13 +94,16 @@ _EXPORT_CHAIN_B = (
     re.compile(r"(?m)^\s*export\s+ROS_DOMAIN_ID=0\s*$"),
 )
 
-# Booked tokens only. Policy language (分位数 / "percentile reprint") is OK.
+# Booked tokens only. ASCII lookarounds so 链A的p99=… still matches;
+# Python \b treats CJK as word chars. Policy words (分位数) are OK.
 _PERCENTILE_RE = re.compile(
-    r"(?i)\b(?:p(?:50|90|95|99(?:\.\d+)?)|(?:50|90|95|99)(?:st|nd|rd|th)\s+percentile)\b"
+    r"(?i)(?:(?<![A-Za-z0-9_])p(?:50|90|95|99(?:\.\d+)?)(?![A-Za-z0-9_.])|"
+    r"(?:50|90|95|99)(?:st|nd|rd|th)\s+percentile)"
 )
 _EXPORT_CYCLONE_URI_RE = re.compile(
     r"(?m)^\s*export\s+CYCLONEDDS_URI\s*="
 )
+_UNSET_CYCLONE_URI_RE = re.compile(r"(?m)^\s*unset\s+CYCLONEDDS_URI\s*$")
 
 
 def _repo_root() -> Path:
@@ -216,10 +220,13 @@ def render(root: Path | None = None) -> tuple[str, int]:
         if _EXPORT_CYCLONE_URI_RE.search(chain_b_text):
             failures.append("chain_b.sh exports CYCLONEDDS_URI (helper must not set it)")
             lines.append("- **FAIL chain B:** helper must not export CYCLONEDDS_URI")
+        elif _UNSET_CYCLONE_URI_RE.search(chain_b_text) is None:
+            failures.append("chain_b.sh missing anchored unset CYCLONEDDS_URI")
+            lines.append("- **FAIL chain B:** need anchored unset CYCLONEDDS_URI")
         else:
             lines.append(
-                "- **ok chain B:** helper does not export CYCLONEDDS_URI "
-                "(inherited env out of scope)"
+                "- **ok chain B:** helper unsets CYCLONEDDS_URI "
+                "(aligns with load.py CHAIN_B_UNSET)"
             )
 
     lines.append("")
@@ -233,7 +240,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             "job owns the content freeze. Cross-host stays blocked.",
             "three-chain stays map-only. Unitree 0.10.2 vs vendor 11.0.1",
             "stays drop-in FAIL. 《3》–《6》 stay Hold. This cut does not",
-            "rewrite XML. Inherited CYCLONEDDS_URI is out of scope.",
+            "rewrite XML. chain_b.sh unsets CYCLONEDDS_URI.",
             "",
         ]
     )
