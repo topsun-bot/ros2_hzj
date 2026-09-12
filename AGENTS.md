@@ -17,6 +17,7 @@ python3 scripts/check_sink_layers.py
 python3 scripts/check_dual_chain_baseline.py
 python3 scripts/check_dod_evidence.py
 python3 scripts/check_cega_bridge_hold.py
+python3 scripts/check_ci_gray.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -30,6 +31,7 @@ python3 config/env/load.py print-b
 - 《3》–《6》 (bench score loops, Mac HIL, Promptfoo, CVE) stay out of scope.
 - Do not change `dimos_bridge` DDS behavior or vendor sources.
 - Do not integrate Cega / rewrite Bridge runtime (wiki3 §13(4) Hold).
+- Humans merge; agents stop before merge/production (wiki3 §13(6) CI + gray). No auto-merge.
 
 ## Docs
 
@@ -45,3 +47,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone baseline pointer (no XML rewrite; SCOREBOARD pointer only; same-topology XML tuning is paused)
 - [docs/architecture/feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) — wiki3 §6.3 product DoD honesty (`DoD: unmet` / `STATUS: blocked`; `prove_rmw.py` is env/string, not modified `.so`)
 - [docs/architecture/feishu-cega-bridge-hold.md](docs/architecture/feishu-cega-bridge-hold.md) — wiki3 §13(4) Cega / Bridge deferred Hold (no Cega; no `dimos_bridge` runtime edits)
+- [docs/architecture/feishu-ci-gray.md](docs/architecture/feishu-ci-gray.md) — wiki3 §13(6) CI + gray process gate (required checks green + humans merge + no auto-merge; no vendor compile; no XML)

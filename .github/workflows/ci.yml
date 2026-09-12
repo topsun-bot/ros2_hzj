@@ -40,6 +40,7 @@ jobs:
           test -f docs/architecture/feishu-dual-chain-baseline.md
           test -f docs/architecture/feishu-dod-evidence.md
           test -f docs/architecture/feishu-cega-bridge-hold.md
+          test -f docs/architecture/feishu-ci-gray.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
           test -f scripts/check_source_map.py
@@ -53,6 +54,7 @@ jobs:
           test -f scripts/check_dual_chain_baseline.py
           test -f scripts/check_dod_evidence.py
           test -f scripts/check_cega_bridge_hold.py
+          test -f scripts/check_ci_gray.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -213,6 +215,13 @@ jobs:
           python3 scripts/check_cega_bridge_hold.py | grep -F '§13(4) Cega / Bridge: Hold'
           # Docs + Hold markers only. Do not integrate Cega or edit dimos_bridge runtime.
 
+      - name: check_ci_gray.py (wiki3 §13(6) CI + gray process gate)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_ci_gray.py
+          python3 scripts/check_ci_gray.py | grep -F '§13(6) CI + gray: process gate'
+          # Docs + process-gate markers only. Do not compile vendor. Do not edit XML.
+
   contracts:
     name: contracts
     runs-on: ubuntu-latest
@@ -291,6 +300,7 @@ jobs:
               Path("docs/architecture/feishu-dual-chain-baseline.md"),
               Path("docs/architecture/feishu-dod-evidence.md"),
               Path("docs/architecture/feishu-cega-bridge-hold.md"),
+              Path("docs/architecture/feishu-ci-gray.md"),
               Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),
