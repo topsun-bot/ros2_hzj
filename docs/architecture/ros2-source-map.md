@@ -92,3 +92,11 @@ ROS executor（Humble `rclcpp` / `rclpy`，**不在 vendor/**）循环：`rmw_wa
 | 把三条链测出分位数并当根因 | **不是本文。** bench 另册；跨机 UDP 仍 blocked |
 
 核对「进程到底加载了哪个 RMW / `.so`」：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)（飞书 §6.3）。无 ROS 时仍退出 0。
+
+机械核对本页引用的本仓路径 + 少量允许清单符号（WriterHistory `add_change`、StatefulReader `process_data_msg` / `change_received`、`rmw.h` 标识符等）：[`scripts/check_source_map.py`](../../scripts/check_source_map.py)。
+
+```bash
+python3 scripts/check_source_map.py
+```
+
+无 ROS 时仍退出 0。行号过期但符号还在 → 警告；文件或符号消失 → 失败。只解析本文件，不扫整棵文档树。
