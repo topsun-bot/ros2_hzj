@@ -9,7 +9,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | Cyclone 工业级 fork 研究 | https://topsunhzj.feishu.cn/docx/SrokdQU4DovvdAxutNDcXByMn5e | 高吞吐同机不要默认 Cyclone **网络**配置。Agnocast / eCAL / DPDK-XDP / `rmw_zenoh` / Unitree 控环剥离 DDS 是行业选型建议，**不是**本切交付。本仓映射见下表，**不 vendor**。 |
 | 《ROS 2 源码闭环》 | https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf | 不重写整套中间件；差异化下沉到 RMW / DDS / Executor / 内存。执行顺序 §13、风险矩阵 §9.4、运行时证明 §6.3。**严禁** Rolling 源码直接覆盖 Humble。 |
 
-本仓契约仍是两条独立栈：[R0 接口冻结](ros2-dds-r0-interface-freeze.md)。§13(3) 双链基线指针（不重写 XML）：[feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md)。中日公开做法只对照、不落旋钮：[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)。NITROS 仍是同进程 GPU：[nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)。vendor 语义冻结：[vendor/MANIFEST.md](../../vendor/MANIFEST.md)。运行时分层（underlay / overlay / vendor snapshot）：[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。链路上的真实文件：[ros2-source-map.md](ros2-source-map.md)。三条链复现（**map ≠ reproduce**，`STATUS: blocked`）：[feishu-three-chain-repro.md](feishu-three-chain-repro.md)。差异化下沉层（app / rcl / rmw / DDS / executor / memory；Hold vs allowed）：[feishu-sink-layers.md](feishu-sink-layers.md)。Unitree 自带 Cyclone 0.10.2 **不是** vendor 11.0.1 的 drop-in：[unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。
+本仓契约仍是两条独立栈：[R0 接口冻结](ros2-dds-r0-interface-freeze.md)。§13(3) 双链基线指针（不重写 XML）：[feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md)。中日公开做法只对照、不落旋钮：[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)。NITROS 仍是同进程 GPU：[nitros-vs-dual-chain.md](nitros-vs-dual-chain.md)。vendor 语义冻结：[vendor/MANIFEST.md](../../vendor/MANIFEST.md)。运行时分层（underlay / overlay / vendor snapshot）：[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。链路上的真实文件：[ros2-source-map.md](ros2-source-map.md)。三条链复现（**map ≠ reproduce**，`STATUS: blocked`）：[feishu-three-chain-repro.md](feishu-three-chain-repro.md)。差异化下沉层（app / rcl / rmw / DDS / executor / memory；Hold vs allowed）：[feishu-sink-layers.md](feishu-sink-layers.md)。产品 DoD（wiki3 §6.3，**DoD: unmet / `STATUS: blocked`**）：[feishu-dod-evidence.md](feishu-dod-evidence.md)。Unitree 自带 Cyclone 0.10.2 **不是** vendor 11.0.1 的 drop-in：[unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
@@ -28,7 +28,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 
 混用默认值是 **discovery 失败**，不是单栈时延 bug。应用代码继续写 `rclpy` / `ROSTransport` / `DDSTransport`，不感知底下换了哪份 `.so`。
 
-《通信中间件》的「马后炮」在本仓的落点：对照编译 vendor、中间件行为补丁、把评测数字当根因，仍 **Hold**。先证明加载了哪个 RMW（§6.3 / [`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)），再谈自研。
+《通信中间件》的「马后炮」在本仓的落点：对照编译 vendor、中间件行为补丁、把评测数字当根因，仍 **Hold**。先证明加载了哪个 RMW（§6.3 / [`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)），再谈自研。产品 DoD（改库实编、modified `.so` 加载、本机 baseline-vs-change、回滚、产品验收阈）仍 **DoD: unmet / `STATUS: blocked`**：[feishu-dod-evidence.md](feishu-dod-evidence.md)。`prove_rmw.py` 是 env / 字符串身份闸，**不是** modified `.so` 证明。
 
 ---
 
@@ -43,7 +43,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | (3) | FastDDS + Cyclone 基线 | 双链契约已在；bench 产物另册。本切 **不**重写 XML、**不**改 SCOREBOARD。指针：[feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md)（SCOREBOARD current-best **pointer only**；same-topology XML tuning is paused）。 |
 | (4) | Cega / Bridge 后置 | **Hold**。不接 Cega，不改 `dimos_bridge` 运行时模块。 |
 | (5) | 一次一层 | 本切 = 文档 + 证明脚本 + CI 登记。下沉面拆层见 [feishu-sink-layers.md](feishu-sink-layers.md)（Hold vs allowed）。下一层另开 PR。 |
-| (6) | CI + 灰度 | 三个 required job 名不变：`structure` / `contracts` / `boundary`。路径 + 相对链接 + 现网检查器：`prove_rmw.py`、`check_source_map.py`、`print_bench_gates.py`、`check_risk_matrix.py`、`check_executor_map.py`、`check_runtime_provenance.py`、`check_unitree_cyclone_swap.py`、`check_three_chain_repro.py`、`check_sink_layers.py`、`check_dual_chain_baseline.py`。**不**编译 vendor。 |
+| (6) | CI + 灰度 | 三个 required job 名不变：`structure` / `contracts` / `boundary`。路径 + 相对链接 + 现网检查器：`prove_rmw.py`、`check_source_map.py`、`print_bench_gates.py`、`check_risk_matrix.py`、`check_executor_map.py`、`check_runtime_provenance.py`、`check_unitree_cyclone_swap.py`、`check_three_chain_repro.py`、`check_sink_layers.py`、`check_dual_chain_baseline.py`、`check_dod_evidence.py`（§6.3 产品 DoD 仍 unmet / blocked）。**不**编译 vendor。 |
 
 §9.4 风险矩阵：DDS XML / 环境变量 **第一优先**（本切只读现网契约，不改 [`config/fastdds.xml`](../../config/fastdds.xml)）；Executor / WaitSet / callback **居中**（身份地图见 [feishu-executor-waitset.md](feishu-executor-waitset.md)，不是风险打分）；fork `rcl` / `rclcpp` / DDS core **最后**（本仓甚至没有 vendor `rcl` / `rclcpp`）。本仓清单：[feishu-risk-matrix.md](feishu-risk-matrix.md)。
 
@@ -105,5 +105,6 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 12. [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) — Unitree 0.10.2 vs vendor 11.0.1（drop-in FAIL / wire UNPROVEN）
 13. [feishu-sink-layers.md](feishu-sink-layers.md) — 《通信中间件》下沉层 Hold vs allowed（不改 XML）
 14. [feishu-dual-chain-baseline.md](feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone 基线指针（不重写 XML；SCOREBOARD pointer only）
-15. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
-16. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/check_runtime_provenance.py](../../scripts/check_runtime_provenance.py) · [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py) · [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py) · [scripts/check_sink_layers.py](../../scripts/check_sink_layers.py) · [scripts/check_dual_chain_baseline.py](../../scripts/check_dual_chain_baseline.py)
+15. [feishu-dod-evidence.md](feishu-dod-evidence.md) — wiki3 §6.3 产品 DoD（`DoD: unmet` / `STATUS: blocked`；`prove_rmw` = env / 字符串）
+16. [vendor/MANIFEST.md](../../vendor/MANIFEST.md) · [vendor/VERSIONS.md](../../vendor/VERSIONS.md)
+17. [config/env/README.md](../../config/env/README.md) · [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/print_bench_gates.py](../../scripts/print_bench_gates.py) · [scripts/check_risk_matrix.py](../../scripts/check_risk_matrix.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) · [scripts/check_runtime_provenance.py](../../scripts/check_runtime_provenance.py) · [scripts/check_unitree_cyclone_swap.py](../../scripts/check_unitree_cyclone_swap.py) · [scripts/check_three_chain_repro.py](../../scripts/check_three_chain_repro.py) · [scripts/check_sink_layers.py](../../scripts/check_sink_layers.py) · [scripts/check_dual_chain_baseline.py](../../scripts/check_dual_chain_baseline.py) · [scripts/check_dod_evidence.py](../../scripts/check_dod_evidence.py)
