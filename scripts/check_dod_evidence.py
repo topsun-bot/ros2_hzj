@@ -86,10 +86,15 @@ _FIVE_ITEMS = (
 
 # A prohibition on the same line ("do not write STATUS: PASS") is
 # allowed; a positive STATUS: PASS / DoD: met / measured-delta is not.
+# Do not treat unmet/blocked as prohibition words — otherwise
+# `DoD: unmet — STATUS: PASS` would stay green.
 _PROHIBITION_RE = re.compile(
     r"(不要|禁止|不得|不是|do not|not write|not claim|不得把|不要把|"
-    r"禁止把|未测|没有|无\b|unmet|blocked)",
+    r"禁止把|不发明|未测|没有)",
     re.IGNORECASE,
+)
+_STATUS_LINE_RE = re.compile(
+    r"(?im)^Status:\s*.*DoD:\s*unmet.*STATUS:\s*blocked"
 )
 _STATUS_FABRICATE_RE = re.compile(
     r"(?i)STATUS:\s*\*?\s*(PASS|PROVEN|OK|SUCCESS|met)\b"
@@ -101,10 +106,13 @@ _FABRICATE_RES = (
     re.compile(
         r"(?i)(dod evidence|产品\s*DoD)\s*[:：]\s*(PASS|PROVEN|OK|met)\b"
     ),
-    re.compile(r"(?i)measured[- ]delta\s*[:：]?\s*(PASS|PROVEN|OK|yes)\b"),
     re.compile(
-        r"(?i)(this host|本机|本自动化主机).{0,40}(measured[- ]delta|测过的"
-        r"\s*delta|baseline-vs-change.{0,20}(PASS|PROVEN|测出))"
+        r"(?i)measured[- ]delta\s*[:：]\s*(PASS|PROVEN|OK|yes|met)\b"
+    ),
+    re.compile(
+        r"(?i)(this[- ]host|本机|本自动化主机).{0,24}"
+        r"(measured[- ]delta|baseline-vs-change).{0,16}"
+        r"(PASS|PROVEN|OK|测出)"
     ),
     re.compile(
         r"(?i)(Humble\s+runtime\s+(existed|was present|ran)\s+here|"
@@ -219,6 +227,12 @@ def render(root: Path | None = None) -> tuple[str, int]:
         else:
             failures.append(f"DoD doc missing contiguous `{STATUS_BLOCKED}`")
             lines.append("- **FAIL status:** need contiguous STATUS blocked marker")
+
+        if _STATUS_LINE_RE.search(dod_text):
+            lines.append("- **ok status line:** Status header keeps DoD unmet + STATUS blocked")
+        else:
+            failures.append("DoD doc Status header is not DoD: unmet / STATUS: blocked")
+            lines.append("- **FAIL status line:** Status header must keep DoD unmet + STATUS blocked")
 
         ok_items, item_detail = _has_five_items(dod_text)
         if ok_items:
