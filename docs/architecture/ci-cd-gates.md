@@ -33,13 +33,14 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ### 1.1 Claude code review（advisory，不是闸门）
 
-工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action@v1` 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上读 [AGENTS.md](../../AGENTS.md) + PR diff，以一条 sticky 评论给出审查意见（Hold 边界、诚实标记、脚本无 ROS 可跑、CI/文档一致性、一般代码质量）。
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action@v1` 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上读 [AGENTS.md](../../AGENTS.md) + PR diff，每次 run 以 **一条** PR 评论（`gh pr comment`）给出审查意见（Hold 边界、诚实标记、脚本只读审阅、CI/文档一致性、一般代码质量）。
 
 - **只评论，不 approve / request changes / merge。** 人类批准 merge 不变（§5）。
 - **不要**把 `claude-review` 设为 required status check。三个闸门仍是 `structure` / `contracts` / `boundary`。
 - 跳过 draft PR 与 fork PR（fork 拿不到 secret）。
 - 需要仓库 secret `ANTHROPIC_API_KEY`。缺 secret 时该 job 红，但不影响三个闸门。
-- 权限：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`；工具白名单只放 `gh pr/issue` 读 + `gh pr comment` + `python3 scripts/*` / `config/env/load.py`。
+- 权限：`contents: read`、`pull-requests: write`、`id-token: write`。工具白名单**只有** `gh pr view` / `gh pr diff` / `gh pr comment`。
+- **不执行 PR 检出里的任何代码**（不跑 `python3 scripts/*`、不跑 `config/env/load.py`）：该 job 持有 API key / 写权限 token / OIDC token，而检出内容由 PR 控制。脚本正确性只靠读；真正执行留给无 secret 的 `structure` / `contracts` job。
 
 ---
 

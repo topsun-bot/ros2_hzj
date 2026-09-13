@@ -3,6 +3,11 @@ name: claude-code-review
 # Advisory AI code review on pull requests. Not a Hold gate: it does not
 # replace `structure` / `contracts` / `boundary` in ci.yml and must not be
 # added to required status checks (see docs/architecture/ci-cd-gates.md §1.1).
+#
+# Security posture: this job holds ANTHROPIC_API_KEY, a write-scoped GITHUB_TOKEN
+# and an OIDC token. It must therefore never execute code from the PR checkout
+# (no python3 / scripts from the PR tree). Claude reads the diff and files only;
+# the tool allowlist below is limited to `gh pr view|diff|comment`.
 
 on:
   pull_request:
@@ -25,7 +30,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +40,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          use_sticky_comment: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -44,7 +47,10 @@ jobs:
             You are reviewing a pull request for `ros2_hzj`, TOPSUN's ROS 2 / DDS
             dual-chain workspace. Read `AGENTS.md` first; it is the one-page
             contract for this repository. Then read the PR diff with
-            `gh pr diff` and review it.
+            `gh pr diff` and review it. The PR branch is already checked out
+            in the working directory: read files as needed, but do NOT run
+            any script, test, or program from the checkout. This job holds
+            credentials and the checkout is PR-controlled.
 
             Focus on, in this order:
             1. Hold boundary. Flag any change to `config/fastdds.xml`,
@@ -56,9 +62,9 @@ jobs:
                measured numbers, percentiles, PASS / PROVEN claims, or
                cross-host results. `STATUS: blocked` / `DoD: unmet` style
                markers must stay truthful to what was actually run.
-            3. Correctness of scripts under `scripts/` and `config/env/`
-               (they must run without ROS installed; `load.py` import must
-               not write `os.environ`).
+            3. Correctness of scripts under `scripts/` and `config/env/`,
+               by reading them (they must work without ROS installed;
+               `load.py` import must not write `os.environ`).
             4. CI consistency: new docs / scripts referenced in
                `.github/workflows/ci.yml` and `docs/architecture/ci-cd-gates.md`
                actually exist and relative links resolve.
@@ -69,9 +75,10 @@ jobs:
             If nothing is wrong, say so briefly. Write the review in the
             same language as the PR description (Chinese or English).
 
-            Post the review as a single PR comment using
-            `gh pr comment` with your review text. Do not approve, request
-            changes, or merge; a human decides that.
+            Post the review as exactly one PR comment using
+            `gh pr comment` with your review text. Only post the GitHub
+            comment; do not submit the review as a message. Do not approve,
+            request changes, or merge; a human decides that.
 
           claude_args: |
-            --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*),Bash(python3 scripts/*),Bash(python3 config/env/load.py:*)"
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
