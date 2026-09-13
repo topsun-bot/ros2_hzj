@@ -92,7 +92,8 @@ jobs:
           # captured above; symlink changes still show there as mode 120000)
           # so no committed link can point the read-only tools at a
           # credential file.
-          find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print -delete \
+          # (-exec rm rather than -delete: GNU find rejects -delete with -prune.)
+          find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print -exec rm -f {} + \
             | sed 's/^/removed symlink: /'
 
           # Read sandbox for the reviewer's file tools. Deny wins over allow;
