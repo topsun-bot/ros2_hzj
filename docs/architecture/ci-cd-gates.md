@@ -33,14 +33,14 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ### 1.1 Claude code review（advisory，不是闸门）
 
-工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action`（钉在 commit SHA，注释标 `v1.0.223`）在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上审阅 PR diff，把意见写进 action 自建的 **一条** tracking 评论（`track_progress: true` + `update_claude_comment` 工具）。审查重点：Hold 边界、诚实标记、脚本只读审阅、CI/文档一致性、一般代码质量。
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action`（钉在 commit SHA，注释标 `v1.0.223`）在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上审阅 PR diff，把意见写进 action 自建的 **一条** tracking 评论（`track_progress: true` + `update_claude_comment` 工具）。审查重点：Hold 边界（[AGENTS.md](../../AGENTS.md)「Hold — do not」全表：XML / SCOREBOARD 冻结、Agnocast / zenoh 路径、《3》–《6》 不实现、`dimos_bridge` DDS 行为与 vendor 不改、不接 Cega / 不重写 Bridge 运行时）、诚实标记、脚本只读审阅、CI/文档一致性、一般代码质量。
 
 - **只评论，不 approve / request changes / merge。** 人类批准 merge 不变（§5）。
 - **不要**把 `claude-review` 设为 required status check。三个闸门仍是 `structure` / `contracts` / `boundary`。
 - 跳过 draft PR 与 fork PR（fork 拿不到 secret）。
 - 需要 secret `ANTHROPIC_API_KEY`。缺 secret 时该 job 红，但不影响三个闸门。
 - 权限：`contents: read`、`pull-requests: write`、`id-token: write`。
-- **输入由可信步骤准备**：action 之前的一个 `run` 步骤用固定参数把 `gh pr diff <本 PR 号> --repo <本仓>` 和 **base 分支**的 [AGENTS.md](../../AGENTS.md)（`gh api …/contents/AGENTS.md?ref=<base sha>`）写到 `$RUNNER_TEMP/review/`。模型只读这两个文件 + 工作区；**不给模型任何 Bash / `gh` 工具**，所以它查不了别的 PR / 别的仓，也没有 `gh pr comment --body-file` 这类外泄路径。PR 若改 `AGENTS.md`，按 diff 当数据审，不当政策用。
+- **输入由可信步骤准备**：action 之前的一个 `run` 步骤用固定参数把 diff（`gh api …/compare/<event base sha>...<event head sha>`，钉在触发事件的 SHA 上，不随 PR 新提交漂移；compare API 的 diff 最多 300 个文件）和 **base 分支**的 [AGENTS.md](../../AGENTS.md)（`gh api …/contents/AGENTS.md?ref=<base sha>`）写到 `$RUNNER_TEMP/review/`。模型只读这两个文件 + 工作区；**不给模型任何 Bash / `gh` 工具**，所以它查不了别的 PR / 别的仓，也没有 `gh pr comment --body-file` 这类外泄路径。PR 若改 `AGENTS.md`，按 diff 当数据审，不当政策用。
 - 工作区是 PR **merge ref**（base + PR 合并结果），不是 PR head；prompt 明说「只有 `pr.diff` 里的才算 PR 改动」。
 - Hold 边界一律标 blocking，**不看标签**；`allow-hold-bypass` 例外由 `boundary` job 和人类判定，所以本工作流不需要 `labeled` / `unlabeled` 触发。
 - **不执行 PR 检出里的任何代码**（不跑 `python3 scripts/*`、不跑 `config/env/load.py`）：该 job 持有 API key / 写权限 token / OIDC token，而检出内容由 PR 控制。脚本正确性只靠读；真正执行留给无 secret 的 `structure` / `contracts` job。
