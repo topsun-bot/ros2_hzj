@@ -1,0 +1,77 @@
+name: claude-code-review
+
+# Advisory AI code review on pull requests. Not a Hold gate: it does not
+# replace `structure` / `contracts` / `boundary` in ci.yml and must not be
+# added to required status checks (see docs/architecture/ci-cd-gates.md §1.1).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    name: claude-review
+    # Skip drafts (review when the author says it is ready) and forks
+    # (secrets are not available to fork PRs).
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request for `ros2_hzj`, TOPSUN's ROS 2 / DDS
+            dual-chain workspace. Read `AGENTS.md` first; it is the one-page
+            contract for this repository. Then read the PR diff with
+            `gh pr diff` and review it.
+
+            Focus on, in this order:
+            1. Hold boundary. Flag any change to `config/fastdds.xml`,
+               `docs/artifacts/bench/SCOREBOARD.md`, `dimos_bridge` DDS
+               behavior, or `vendor/` sources, and any path that introduces
+               Agnocast / zenoh. These are frozen unless the PR carries the
+               `allow-hold-bypass` label with explicit human approval.
+            2. Honesty markers. Docs and check scripts must not invent
+               measured numbers, percentiles, PASS / PROVEN claims, or
+               cross-host results. `STATUS: blocked` / `DoD: unmet` style
+               markers must stay truthful to what was actually run.
+            3. Correctness of scripts under `scripts/` and `config/env/`
+               (they must run without ROS installed; `load.py` import must
+               not write `os.environ`).
+            4. CI consistency: new docs / scripts referenced in
+               `.github/workflows/ci.yml` and `docs/architecture/ci-cd-gates.md`
+               actually exist and relative links resolve.
+            5. Ordinary code quality: bugs, unclear naming, missing tests.
+
+            Be concise and concrete. Point at file paths and lines. Do not
+            restate the diff. Mark each finding as blocking or optional.
+            If nothing is wrong, say so briefly. Write the review in the
+            same language as the PR description (Chinese or English).
+
+            Post the review as a single PR comment using
+            `gh pr comment` with your review text. Do not approve, request
+            changes, or merge; a human decides that.
+
+          claude_args: |
+            --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*),Bash(python3 scripts/*),Bash(python3 config/env/load.py:*)"
