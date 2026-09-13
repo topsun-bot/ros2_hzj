@@ -15,6 +15,11 @@ name: claude-code-review
 #   home dotfiles (the API key lives in the reviewer's own environment, so
 #   /proc/self/environ must be unreadable). Symlinks are stripped from the
 #   workspace so a committed link cannot point the reader elsewhere.
+# - PR-controlled Claude Code configuration is neither loaded nor present:
+#   `--setting-sources user` skips project/local settings (hooks,
+#   apiKeyHelper), `--strict-mcp-config` ignores any .mcp.json,
+#   `--disable-slash-commands` skips project skills, and the trusted step
+#   deletes .claude/, .mcp.json and CLAUDE.md from the workspace.
 # - The PR diff and the review policy (AGENTS.md from the *base* branch) are
 #   built by a trusted step with fixed arguments at the event's merge commit.
 # - The review is written into the action-managed tracking comment via the
@@ -96,6 +101,17 @@ jobs:
           find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print -exec rm -f {} + \
             | sed 's/^/removed symlink: /'
 
+          # Remove PR-controlled Claude Code configuration from the workspace
+          # (diff already captured; the review still sees these changes in
+          # pr.diff). Project settings can carry hooks / apiKeyHelper,
+          # .mcp.json can start stdio servers, CLAUDE.md is auto-loaded as
+          # instructions. The CLI flags below also disable these sources;
+          # deleting the files is belt and braces.
+          find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o \
+            \( -name .claude -o -name .claude-plugin -o -name .mcp.json \
+               -o -name CLAUDE.md -o -name CLAUDE.local.md \) -print -prune -exec rm -rf {} + \
+            | sed 's/^/removed claude config: /'
+
           # Read sandbox for the reviewer's file tools. Deny wins over allow;
           # `blockReadsOutsideWorkingDirectories` confines Read/Grep/Glob to
           # the workspace plus --add-dir; the deny list is belt and braces.
@@ -162,7 +178,7 @@ jobs:
             1. Hold boundary. Apply every rule in the "Hold — do not" section
                of `AGENTS.base.md`. Flag as blocking any change to
                `config/fastdds.xml`, `docs/artifacts/bench/SCOREBOARD.md`,
-               `dimos_bridge` DDS behavior or runtime, or `vendor/` sources;
+               `dimos_bridge` DDS behavior, or `vendor/` sources;
                any path that introduces Agnocast / zenoh; any implementation
                of the out-of-scope items 《3》–《6》 (bench score loops, Mac
                HIL, Promptfoo, CVE audit); and any Cega integration or Bridge
@@ -195,7 +211,15 @@ jobs:
           # not one). The settings file (built by the trusted step) turns on
           # blockReadsOutsideWorkingDirectories and carries the deny list;
           # --add-dir is the only directory readable besides the workspace.
+          # --setting-sources user: never load project/local settings from the
+          #   PR tree (hooks, apiKeyHelper, permission grants).
+          # --strict-mcp-config: only the action's own --mcp-config servers;
+          #   a PR-supplied .mcp.json is ignored.
+          # --disable-slash-commands: no project skills from the PR tree.
           claude_args: |
+            --setting-sources user
+            --strict-mcp-config
+            --disable-slash-commands
             --settings ${{ env.REVIEW_DIR }}/settings.json
             --add-dir ${{ env.REVIEW_DIR }}
             --allowedTools "Read,Glob,Grep,LS,mcp__github_comment__update_claude_comment"
