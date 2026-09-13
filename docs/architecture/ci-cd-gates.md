@@ -33,14 +33,17 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ### 1.1 Claude code review（advisory，不是闸门）
 
-工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action@v1` 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上读 [AGENTS.md](../../AGENTS.md) + PR diff，每次 run 以 **一条** PR 评论（`gh pr comment`）给出审查意见（Hold 边界、诚实标记、脚本只读审阅、CI/文档一致性、一般代码质量）。
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action`（钉在 commit SHA，注释标 `v1.0.223`）在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上读 [AGENTS.md](../../AGENTS.md) + PR diff，把审查意见写进 action 自建的 **一条** tracking 评论（`track_progress: true` + `update_claude_comment` 工具）。审查重点：Hold 边界、诚实标记、脚本只读审阅、CI/文档一致性、一般代码质量。
 
 - **只评论，不 approve / request changes / merge。** 人类批准 merge 不变（§5）。
 - **不要**把 `claude-review` 设为 required status check。三个闸门仍是 `structure` / `contracts` / `boundary`。
 - 跳过 draft PR 与 fork PR（fork 拿不到 secret）。
-- 需要仓库 secret `ANTHROPIC_API_KEY`。缺 secret 时该 job 红，但不影响三个闸门。
-- 权限：`contents: read`、`pull-requests: write`、`id-token: write`。工具白名单**只有** `gh pr view` / `gh pr diff` / `gh pr comment`。
+- 需要 secret `ANTHROPIC_API_KEY`。缺 secret 时该 job 红，但不影响三个闸门。
+- 权限：`contents: read`、`pull-requests: write`、`id-token: write`。额外工具白名单**只有** `gh pr view` / `gh pr diff`（带显式 PR 号 + `--repo`；checkout 是 detached HEAD，不能靠当前分支推断 PR）。**不放** `gh pr comment`：它接受 `--body-file`，prompt injection 可让模型把本地任意文件贴出去；评论只走固定参数的 `update_claude_comment`。
 - **不执行 PR 检出里的任何代码**（不跑 `python3 scripts/*`、不跑 `config/env/load.py`）：该 job 持有 API key / 写权限 token / OIDC token，而检出内容由 PR 控制。脚本正确性只靠读；真正执行留给无 secret 的 `structure` / `contracts` job。
+- `actions/checkout` 用 `persist-credentials: false`，token 不落 `.git/config`。
+- **信任边界**：`pull_request` 工作流的 YAML 取自 PR merge ref，同仓 PR 可以改这个文件本身。job 跑在 GitHub Environment **`claude-review`** 里：把 `ANTHROPIC_API_KEY` 放到该 environment（而不是仓库级）并按需加 protection rules（required reviewers / 限定分支），就得到比「有 push 权限」更强的审批边界。不加 rules 时 environment 是透明的，行为同仓库级 secret。
+- 升级 action 时改 SHA 并更新注释里的版本号；不要回到可变 tag。
 
 ---
 
