@@ -25,6 +25,12 @@ name: claude-code-review
 # - The review is written into the action-managed tracking comment via the
 #   fixed-argument `update_claude_comment` MCP tool, not via `gh pr comment`.
 # - `persist-credentials: false` keeps the token out of `.git/config`.
+# - `id-token: write` is used: with no `github_token` input the action
+#   exchanges a GitHub OIDC token for a short-lived Claude GitHub App token
+#   (the App must be installed on this repository). That exchange also
+#   validates the workflow server-side and skips runs on PRs that modify
+#   this file, which is part of the trust boundary. To avoid the App, pass
+#   `github_token: ${{ github.token }}` and drop `id-token: write` instead.
 # - Both actions are pinned to immutable commit SHAs; bump them deliberately.
 # - The job runs in the `claude-review` GitHub Environment. `pull_request`
 #   workflows are evaluated from the PR merge ref, so a same-repository PR can
@@ -138,7 +144,10 @@ jobs:
             }
           }
           JSON
-          python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$REVIEW_DIR/settings.json"
+          # Validate with jq, not python: `python3 -c` puts the cwd (the
+          # PR-controlled workspace) on sys.path, so a committed json.py or
+          # sitecustomize.py would execute here.
+          jq -e . "$REVIEW_DIR/settings.json" > /dev/null
           wc -c "$REVIEW_DIR/pr.diff" "$REVIEW_DIR/AGENTS.base.md" "$REVIEW_DIR/settings.json"
 
       - name: Claude Code review

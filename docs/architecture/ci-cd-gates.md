@@ -38,8 +38,8 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - **只评论，不 approve / request changes / merge。** 人类批准 merge 不变（§5）。
 - **不要**把 `claude-review` 设为 required status check。三个闸门仍是 `structure` / `contracts` / `boundary`。
 - 跳过 draft PR 与 fork PR（fork 拿不到 secret）。
-- 需要 secret `ANTHROPIC_API_KEY`。缺 secret 时该 job 红，但不影响三个闸门。
-- 权限：`contents: read`、`pull-requests: write`、`id-token: write`。
+- 需要 secret `ANTHROPIC_API_KEY`，以及仓库装好 **Claude GitHub App**（<https://github.com/apps/claude>）。缺 secret 时该 job 红，但不影响三个闸门；没装 App 时 OIDC 换 token 失败，job 同样红。
+- 权限：`contents: read`、`pull-requests: write`、`id-token: write`。`id-token: write` **是在用的**：未传 `github_token` 时 action 用 GitHub OIDC token 换取短期的 Claude App token 来写评论；这一步还会在服务端校验工作流，PR 若改了本工作流文件则 run 被跳过（信任边界的一部分）。不想装 App 可改传 `github_token: ${{ github.token }}` 并去掉 `id-token: write`（评论作者会变成 `github-actions[bot]`，且失去上述服务端校验）。
 - **checkout 钉在事件的 merge commit**（`ref: ${{ github.sha }}`，`fetch-depth: 2` 带上 base tip 与 PR head 两个 parent），不用会漂移的 `refs/pull/N/merge`；可信步骤先断言 `HEAD^1 == base.sha`、`HEAD^2 == head.sha`。
 - **输入由可信步骤准备**：action 之前的一个 `run` 步骤用固定参数把 diff（本地 `git diff <base sha> HEAD`，完整、无 compare API 的 300 文件上限，与 `boundary` job 的 base…HEAD 同形）和 **base 分支**的 [AGENTS.md](../../AGENTS.md)（`gh api …/contents/AGENTS.md?ref=<base sha>`）写到 `$HOME/review-inputs/`。PR 若改 `AGENTS.md`，按 diff 当数据审，不当政策用。
 - **工具边界靠 flag 强制，不靠 prompt**：`--allowedTools` 只有 `Read` / `Glob` / `Grep` / `LS` + 固定参数的 `update_claude_comment`；`--disallowedTools` 明确封 `Bash` / `Edit` / `Write` / `WebFetch` / `WebSearch` / `Task` / file_ops / inline comment。模型查不了别的 PR / 别的仓，也没有 `gh pr comment --body-file` 这类外泄路径。
