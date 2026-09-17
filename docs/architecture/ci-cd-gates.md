@@ -83,7 +83,25 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ---
 
-## 6. 本地核对
+## 6. Claude code review（建议性，不是闸门）
+
+两条独立工作流，和 `ci.yml` 互不影响（独立 workflow、独立 concurrency group）：
+
+| 工作流 | 触发 | 作用 |
+|--------|------|------|
+| [`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml) | `pull_request`（`opened` / `synchronize`） | 自动出一份审查意见（sticky comment，同一条评论滚动更新） |
+| [`.github/workflows/claude.yml`](../../.github/workflows/claude.yml) | 评论 / review / issue 里出现 `@claude` | 答疑，不改代码 |
+
+- **认证**：仓库 secret `CLAUDE_CODE_OAUTH_TOKEN`（优先）或 `ANTHROPIC_API_KEY`，二选一即可。两个都没配 → preflight 打 notice 跳过，**不会红**。fork PR 拿不到 secret，同样跳过。
+- **不要**把 `claude review (advisory)` / `claude (mention)` 加进 required status checks。required 仍然只有 `structure`、`contracts`、`boundary`（§5）。AI 审查有不确定性，不当硬闸门。
+- Claude 的意见**不替代** `boundary`。它不是 Hold 闸；它也**不得**自己贴 `allow-hold-bypass`（§4 说过：那是人类动作）。
+- **权限**：两条工作流都只给 `contents: read`。Claude 在本仓只评审 / 答疑，不改文件、不推分支、不合入（§5「人类批准 merge」不变）。
+- 审查 prompt 钉住本仓口径：Hold 边界（冻结 XML / SCOREBOARD、`agnocast`·`zenoh`、`dimos_bridge` 运行时、`vendor/`、Cega）、诚实标记（`STATUS: blocked` / `DoD: unmet` / `drop-in: FAIL` / `wire: UNPROVEN` 不得被改乐观；不发明分位数与 SHA；map ≠ reproduce）、双链契约（域 42 / 域 0、`load.py` 不写 `os.environ`、`prove_rmw.py` 无 ROS 时 exit 0）、新增文档 / 脚本要回 `ci.yml` 登记。
+- 模型不在工作流里钉死（用 action 默认）。要钉版本时在 `claude_args` 里加 `--model <id>`。
+
+---
+
+## 7. 本地核对
 
 仓库根：
 
@@ -140,7 +158,7 @@ python3 config/env/load.py print-b
 
 ---
 
-## 7. 相关文档
+## 8. 相关文档
 
 - [feishu-middleware-adr.md](feishu-middleware-adr.md) — 飞书三份中间件计划 → 本仓已决
 - [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — 中日公开做法对照（权威吸收文，不落旋钮）
@@ -157,3 +175,4 @@ python3 config/env/load.py print-b
 - [feishu-risk-matrix.md](feishu-risk-matrix.md) — wiki3 §9.4 层序 × Hold（不打风险分）
 - [ros2-dds-r0-interface-freeze.md](ros2-dds-r0-interface-freeze.md) — 双链契约
 - [AGENTS.md](../../AGENTS.md) — agent 一页纸
+- [`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml) / [`.github/workflows/claude.yml`](../../.github/workflows/claude.yml) — Claude code review（§6，建议性，不进 required checks）
