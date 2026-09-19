@@ -1,0 +1,115 @@
+# evals/promptfooconfig.yaml
+#
+# 《5》Promptfoo evaluation suite for ros2_hzj.
+#
+# This repo is a ROS 2 / DDS middleware workspace, not an LLM app. There is
+# no prompt on the DDS wire, so we map "assertions about DDS behavior" onto
+# promptfoo's custom-provider abstraction:
+#
+#   * provider  : local-script (evals/localScriptProvider.mjs) runs a
+#                 scripts/check_*.py (or prove_rmw.py / print_bench_gates.py)
+#                 with python3 and returns its stdout as `output`.
+#   * prompt    : the path to the gate script (rendered from {{script}}).
+#   * assertion : `contains` the script's own "healthy" stdout marker.
+#                 A non-zero exit code is already a provider `error`, so the
+#                 case fails even without an explicit exit-code assertion.
+#
+# Hold boundary: this suite only *runs* the existing read-only gate scripts.
+# It does not edit config/fastdds.xml, docs/artifacts/bench/SCOREBOARD.md,
+# any vendor tree, or dimos_bridge runtime code.
+
+description: >
+  《5》Promptfoo seed evals for ros2_hzj gate scripts. Each case runs one
+  scripts/*.py as a local-script provider and asserts its stdout marker.
+
+prompts:
+  - '{{script}}'
+
+providers:
+  # Path is resolved relative to this config file's directory (evals/).
+  - id: './localScriptProvider.mjs'
+
+tests:
+  - description: 'prove_rmw.py: env/string identity gate exits 0 with ROS unset'
+    vars:
+      script: scripts/prove_rmw.py
+    assert:
+      - type: contains
+        value: 'ROS not loaded'
+
+  - description: 'check_source_map.py: source map healthy'
+    vars:
+      script: scripts/check_source_map.py
+    assert:
+      - type: contains
+        value: 'Source map healthy'
+
+  - description: 'print_bench_gates.py: bench gates healthy (SCOREBOARD pointer, cross-host blocked)'
+    vars:
+      script: scripts/print_bench_gates.py
+    assert:
+      - type: contains
+        value: 'Bench gates healthy'
+
+  - description: 'check_risk_matrix.py: risk matrix healthy'
+    vars:
+      script: scripts/check_risk_matrix.py
+    assert:
+      - type: contains
+        value: 'Risk matrix healthy'
+
+  - description: 'check_executor_map.py: executor WaitSet->callback map healthy'
+    vars:
+      script: scripts/check_executor_map.py
+    assert:
+      - type: contains
+        value: 'Executor map healthy'
+
+  - description: 'check_runtime_provenance.py: underlay vs vendor snapshot healthy'
+    vars:
+      script: scripts/check_runtime_provenance.py
+    assert:
+      - type: contains
+        value: 'Runtime provenance healthy'
+
+  - description: 'check_unitree_cyclone_swap.py: Unitree 0.10.2 vs vendor 11.0.1 record healthy'
+    vars:
+      script: scripts/check_unitree_cyclone_swap.py
+    assert:
+      - type: contains
+        value: 'Unitree Cyclone swap record healthy'
+
+  - description: 'check_three_chain_repro.py: three-chain map != reproduce, STATUS blocked'
+    vars:
+      script: scripts/check_three_chain_repro.py
+    assert:
+      - type: contains
+        value: 'Three-chain reproduce record healthy'
+
+  - description: 'check_sink_layers.py: sink layers mapped Hold vs allowed'
+    vars:
+      script: scripts/check_sink_layers.py
+    assert:
+      - type: contains
+        value: 'Sink-layer record healthy'
+
+  - description: 'check_dual_chain_baseline.py: dual-chain baseline pointer-only, no XML rewrite'
+    vars:
+      script: scripts/check_dual_chain_baseline.py
+    assert:
+      - type: contains
+        value: 'Dual-chain baseline healthy'
+
+  - description: 'check_dod_evidence.py: product DoD unmet, STATUS blocked'
+    vars:
+      script: scripts/check_dod_evidence.py
+    assert:
+      - type: contains
+        value: 'Product DoD evidence healthy'
+
+  - description: 'check_cega_bridge_hold.py: Cega / Bridge Hold'
+    vars:
+      script: scripts/check_cega_bridge_hold.py
+    assert:
+      - type: contains
+        value: 'Cega / Bridge Hold healthy'
