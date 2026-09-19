@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 import sys
+from _repo import repo_root, read_utf8
 
 
 PROVENANCE_REL = Path("docs/architecture/feishu-runtime-provenance.md")
@@ -72,21 +73,6 @@ _ENV_DISTRO_RE = re.compile(
 )
 
 
-def _repo_root() -> Path:
-    cwd = Path.cwd()
-    if (cwd / PROVENANCE_REL).is_file() or (cwd / MANIFEST_REL).is_file():
-        return cwd.resolve()
-    here = Path(__file__).resolve().parent
-    candidate = here.parent
-    if (candidate / PROVENANCE_REL).is_file() or (candidate / MANIFEST_REL).is_file():
-        return candidate
-    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
-
-
-def _read(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
-
-
 def _dockerfile_pins_humble(text: str) -> tuple[bool, str]:
     found = _ENV_DISTRO_RE.findall(text)
     if not found:
@@ -113,7 +99,7 @@ def _versions_rows(text: str) -> list[str]:
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
-    root = (root or _repo_root()).resolve()
+    root = (root or repo_root(PROVENANCE_REL, MANIFEST_REL)).resolve()
     lines = [
         "# check_runtime_provenance (wiki3 §13 underlay vs vendor)",
         "",
@@ -135,7 +121,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(f"missing file `{key}`")
             lines.append(f"- **FAIL missing:** `{key}`")
             continue
-        texts[rel] = _read(path)
+        texts[rel] = read_utf8(path)
         extra = ""
         if rel == PROVE_RMW_REL:
             extra = " (wiki3 §6.3 identity; not vendor path)"

@@ -37,6 +37,8 @@ from pathlib import Path
 import re
 import sys
 
+from _repo import repo_root, read_utf8
+
 SCRIPTS_REL = Path("scripts")
 HELPER_NAME = "_freeze_paths.py"
 SELF_NAME = "check_frozen_path_literals.py"
@@ -54,17 +56,6 @@ _FROZEN_PATH_RE = re.compile(
 SUCCESS_MARKER = "Frozen-path literals healthy"
 
 
-def _repo_root() -> Path:
-    cwd = Path.cwd()
-    if (cwd / SCRIPTS_REL / HELPER_NAME).is_file():
-        return cwd.resolve()
-    here = Path(__file__).resolve().parent
-    candidate = here.parent
-    if (candidate / SCRIPTS_REL / HELPER_NAME).is_file():
-        return candidate
-    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
-
-
 def _hits_in(text: str) -> list[tuple[int, str]]:
     hits: list[tuple[int, str]] = []
     for match in _FROZEN_PATH_RE.finditer(text):
@@ -78,7 +69,7 @@ def _hits_in(text: str) -> list[tuple[int, str]]:
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
-    root = (root or _repo_root()).resolve()
+    root = (root or repo_root(SCRIPTS_REL / HELPER_NAME)).resolve()
     scripts_dir = root / SCRIPTS_REL
     lines = [
         "# check_frozen_path_literals (modernization plan §5.3 rule 1)",
@@ -101,7 +92,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             f"`{SELF_NAME}` is this checker)"
         )
         for path in targets:
-            text = path.read_text(encoding="utf-8", errors="replace")
+            text = read_utf8(path)
             for line_no, source in _hits_in(text):
                 rel = path.relative_to(root).as_posix()
                 failures.append(f"{rel}:{line_no} hardcodes a frozen Path(...)")
