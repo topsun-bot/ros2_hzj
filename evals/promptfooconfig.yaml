@@ -253,3 +253,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '6 negative, 2 healthy, 1 mutation'
+
+  # Negative self-test for the Unitree Cyclone-swap honesty guard (eval-only,
+  # not a CI gate). The positive #7 run only proves the current record prints
+  # the marker; it cannot prove the checks still fire. This case copies the
+  # five real files into a tempdir and asserts the guard catches a flipped
+  # drop-in/wire verdict, a tampered quoted DDS_VERSION 0.10.2, a changed
+  # vendored Cyclone SHA / CMake project() VERSION pin, and a deleted swap
+  # doc; stays green on a healthy copied tree and the real repo; and a CMake
+  # regex widened to drop the VERSION pin demonstrably silences the check.
+  - description: 'unitree_swap_guard_selftest.py: the Unitree swap honesty verdict actually fires on tampering (negative regression, tempdir-only)'
+    vars:
+      script: evals/unitree_swap_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'unitree swap guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '5 negative, 2 healthy, 1 mutation'
