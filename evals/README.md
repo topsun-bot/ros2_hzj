@@ -13,12 +13,13 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 20 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 21 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
 | `dual_chain_env_guard_selftest.py` | 双链 env 交叉断言 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里造最小 `load.py`/`chain_*.sh`/wrapper 树，断言四类交叉检查对域漂移/shell 漂移/wrapper 伪造/import 写环境/`CYCLONEDDS_URI` 违规必报、对健康树与真实仓不误报 |
 | `unitree_swap_guard_selftest.py` | Unitree Cyclone 交换裁决 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件复制进 `tempfile` 再逐个变异，断言裁决句翻转/引文篡改/vendor SHA 与 CMake `project()` 版本钉被改/文档删除必报、健康树不误报 |
+| `source_map_guard_selftest.py` | ros2-source-map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里造最小 map/vendor 树，断言 map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN 不 FAIL、健康树不误报 |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -31,12 +32,12 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（20 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（21 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
-  交叉断言 guard 的负向自测用例（#19），以及 1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
-  （#20，均见下文专节）：
+  交叉断言 guard 的负向自测用例（#19）、1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
+  （#20），以及 1 个 ros2-source-map guard 的负向自测用例（#21，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -60,6 +61,29 @@
   | 18 | `evals/frozen_guard_selftest.py` | `frozen guard selftest: PASS`、`6 must-flag, 7 non-flag, 2 render cases`（guard 对违禁 `Path(...)` 必报、对允许提及不误报、豁免真源、render 退出码正确） |
 | 19 | `evals/dual_chain_env_guard_selftest.py` | `dual-chain env guard selftest: PASS`、`6 negative, 2 healthy, 1 mutation`（env 四类交叉检查对漂移必报、对健康树与真实仓不误报、检测器被改宽即红） |
 | 20 | `evals/unitree_swap_guard_selftest.py` | `unitree swap guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（裁决句翻转/引文篡改/vendor SHA·CMake 版本钉被改/文档删除必报、健康树不误报、CMake 正则被改宽即漏报） |
+| 21 | `evals/source_map_guard_selftest.py` | `source map guard selftest: PASS`、`4 negative, 1 warn-only, 2 healthy, 1 mutation`（map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN、健康树不误报、符号查找被改宽即漏报） |
+
+### ros2-source-map 负向自测（#21，eval-only）
+
+- #2 的正向运行与 #17 指纹只证明**当前健康树渲染为绿**，证明不了 `check_source_map.py`（wiki3 §13.2）
+  的各项检查**仍然会触发**。该 guard 保证 `docs/architecture/ros2-source-map.md` 仍指向真实在树文件、
+  且被追踪的 vendor 符号（如 Fast-DDS `WriterHistory.cpp` 的 `add_change`、rmw 的 `rmw_publish` 等）
+  未被重写/删除。若有人删掉 map、清空引用、指向已删文件或删掉钉版符号，而检测器被相应改宽，所有正向
+  运行（gate、#2、#17 指纹，比对的都是健康树输出）都会继续全绿，source map 却已悄悄不再描述 vendor 代码。
+- source map 的最小夹具很小（一个 map + 一个 vendor 文件），故 `source_map_guard_selftest.py` 不像
+  Unitree 自测那样复制真实文件，而是在 `tempfile` 里手写最小树，驱动可注入的 `render(root=...)`，
+  **不改动仓库**、纯标准库：
+  - **4 个负向场景**：N1 删除 map（报 FAIL map missing）；N2 map 只剩散文、提不出任何在树路径
+    （报 FAIL no in-repo paths extracted）；N3 map 引用不存在的 `vendor/not/there.cpp`（报 FAIL missing）；
+    N4 被引用的 vendor 文件删掉 allowlisted 符号 `add_change`（报 FAIL symbol）；
+  - **1 个 warn-only 契约**：map 引用 `...WriterHistory.cpp:999` 而行号故意陈旧、符号仍在时，必须打印
+    `WARN stale line` 但 **exit 0**（锁定文档承诺的"陈旧行号只告警"，防止它被悄悄收紧成 FAIL）；
+  - **2 个健康对照**：真实仓 `render()` 与最小健康临时树都必须 exit 0 且打印 `Source map healthy`
+    （证明手写夹具有效，负向场景不会因错误原因失败）；
+  - **1 个变异**：把 `_md_paths.symbol_lines` monkeypatch 成"恒返回命中"后，N4 必须**漏报**（被篡改树
+    打印 `ok symbol`、exit 0），恢复后必须重新报 FAIL symbol——证明 N4 确实依赖检测器里的符号查找。
+- 与 #17/#18/#19/#20 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure
+  枚举、不需要 ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### Unitree Cyclone 交换裁决负向自测（#20，eval-only）
 

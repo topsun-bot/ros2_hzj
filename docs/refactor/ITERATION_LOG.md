@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 20 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 21 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -1015,4 +1015,87 @@
    与现有层重复则不做，避免低价值断言堆砌。
 3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18+#19+#20+eval 回归并在日志标注「等待新指令」，
+   不制造无意义提交。
+
+---
+
+## 轮次 15 — 2026-09-20 06:17（Asia/Shanghai）《5》深化：ros2-source-map guard 负向自测沉淀为 eval 用例 #21
+
+> 定时任务第 15 轮。分支 `test/source-map-guard-selftest`，PR 编号以实际返回为准。
+> 开工核对：本循环无在途 PR（#66/#67 已 squash-merge，main HEAD `ced21c2`；`gh pr list` 中 #65/#61/#56/#46
+> 等均为他人 claude/cursor/codex 自动审查类 PR，未触碰）；`gh auth status` 复核 active 账号
+> `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有 workflow 但对本仓
+> 403——ci.yml 接线 / fingerprint·#18·#19·#20 进 CI / §5.3 规则 2 机器化继续阻塞；CVE 修复仍待批准。
+> 本轮执行轮次 14「下一步候选 2」：评估并沉淀 **#2 ros2-source-map guard** 的负向能力（轮次 14 剩余风险 4
+> 明确点名的最后一个未评估核心 guard；与 #18/#19/#20 同构、不依赖授权、不越界）。
+
+### 背景 / 覆盖缺口取证（先证与 #2/#17 不重复）
+- #2 是**正向**用例：跑真实仓 `check_source_map.py`，断言 `Source map healthy` + `allowlisted symbols ok:`；
+  #17 指纹比对的也是健康树全文。两者都证明不了 guard 的四类 FAIL 检查在被篡改时**仍会触发**。该 guard
+  （wiki3 §13.2）保证 `docs/architecture/ros2-source-map.md` 仍指向真实在树文件、且被追踪的 vendor 符号
+  （Fast-DDS `WriterHistory.cpp` 的 `add_change`、rmw 的 `rmw_publish/rmw_take/rmw_wait`、Cyclone 的
+  `dds_take/ddsi_whc_insert` 等）未被重写/删除。
+- 若有人删掉 map、清空全部引用、指向已删文件、或从 vendor 文件删掉钉版符号，而检测器被相应改宽，所有正向
+  运行（gate、#2、#17）都会继续全绿，source map 却已悄悄不再描述 vendor 代码——与 #18/#19/#20 同类的
+  "guard 失效但全绿"盲区。
+- 可行性探针（一次性 /tmp，先逐字取真实 FAIL 行再写脚本）：最小夹具只需一个 map + 一个 vendor 文件
+  （source map 不像 Unitree 交换文档带 18 个连续 marker，故采用**手写最小树**而非复制真实文件），
+  `render(root=...)` 可注入，四类 FAIL 与一个 warn-only 契约全部如预期触发。
+
+### 本轮改动（一项重点改进，仅 evals/；不改任何 gate/生产代码、不碰 ci.yml）
+- **新增 `evals/source_map_guard_selftest.py`（eval-only，纯标准库，tempdir-only，不是 gate）**：不进
+  `run_all_gates.GATES`、不被 CI structure 枚举、无需 ci.yml 接线（不受 workflow scope 阻塞）。在
+  `tempfile` 里手写最小树（`docs/architecture/ros2-source-map.md` + 一个 allowlisted key
+  `vendor/Fast-DDS/src/cpp/rtps/history/WriterHistory.cpp`），驱动可注入的 `render(root=...)`：
+  1. **4 个负向场景**：N1 删除 map（`FAIL: map missing`）；N2 map 只剩散文、提不出任何在树路径
+     （`FAIL: no in-repo paths extracted`）；N3 map 引用不存在的 `vendor/not/there.cpp`（`FAIL missing`）；
+     N4 被引用文件删掉 allowlisted 符号 `add_change`（`FAIL symbol`）；
+  2. **1 个 warn-only 契约**：map 引用 `...WriterHistory.cpp:999`、行号故意陈旧而符号仍在 L1 时，必须打印
+     `WARN stale line` 但 **exit 0**——锁定文档承诺的"陈旧行号只告警、不 FAIL"，防止它被悄悄收紧成 FAIL
+     （这是 #18/#19/#20 没有的双向契约：既防改宽漏报，也防改严误报）；
+  3. **2 个健康对照**：真实仓 `render()` 与最小健康临时树都必须 exit 0 且打印 `Source map healthy`
+     （证明手写夹具有效，负向场景不会因错误原因失败）；
+  4. **1 个变异**：monkeypatch `_md_paths.symbol_lines` 为"恒返回命中 [1]"后，N4 必须**漏报**（被篡改树
+     打印 `ok symbol`、exit 0），恢复后必须重新报 `FAIL symbol`——证明 N4 确实依赖检测器里的符号查找。
+- `evals/promptfooconfig.yaml`：新增用例 **#21**（断言 `source map guard selftest: PASS` + 计数短语
+  `4 negative, 1 warn-only, 2 healthy, 1 mutation`，锁夹具数、防悄悄删负向样本）；用例 20→21。
+- `evals/README.md`：文件表加自测脚本、用例数 20→21、seed 用例说明加 #21、用例表加 #21 行、新增
+  「ros2-source-map 负向自测（#21）」小节（为何 #2 正向证明不了检查会触发、手写最小树策略、4/1/2/1 清单、
+  warn-only 双向契约、变异验证、eval-only 定位）。
+- **未做（Hold/边界）**：未改 `check_source_map.py`、`_md_paths.py` 或任何 gate（正常仓 stdout 零变化）；
+  未碰 ci.yml、fastdds.xml、SCOREBOARD.md、vendor、`dimos_bridge`；未启用 zenoh/Agnocast/Cega；无框架/
+  依赖/API 变更；不新增 gate（不加剧"本地 13 vs CI 12"背离）。
+
+### 负向有效性验证（证明自测不是摆设）
+- 一次性 /tmp 探针逐场景打印真实输出：4 个负向场景 exit 1 且 FAIL 家族正确；stale 行号场景 exit 0 且
+  含 `WARN stale line`；monkeypatch 恒命中后 N4 漏报（exit 0、`ok symbol`），恢复后 exit 1、`FAIL symbol`。
+- 正式脚本：`python3 evals/source_map_guard_selftest.py` → negative 4/4、warn-only 1/1、healthy 2/2、
+  mutation 1/1，PASS、exit 0。
+
+### 分数前后对比
+- Gate：**13/13（100%）**，与轮次 14 持平（未改任何 gate，run_all_gates 不受影响）。
+- 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
+- #18 frozen、#19 env、#20 unitree 负向自测：均仍 PASS。
+- Eval：**20 → 21 用例，21/21 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#21 PASS，Duration 2s）。
+- `py_compile evals/source_map_guard_selftest.py` 通过。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint/#18/#19/#20/#21 进 CI、§5.3
+   规则 2 机器化仍无法落地；五个 eval-only 严格/负向层（#17/#18/#19/#20/#21）目前都只在本地/本循环把关，未进
+   GitHub required checks。
+3. #21 手写最小树只覆盖 allowlist 的一个 key（WriterHistory.cpp/add_change）；其余 15 个 allowlisted 符号的
+   消失由**同一** `check_cited_paths` 符号循环统一处理，N4 变异已证明该循环失效即漏报，故不逐符号堆夹具
+   （有意的克制，避免低价值断言堆砌）；executor map（`check_executor_map.py`）是 `check_cited_paths` 的另一个
+   消费方但带 `reject_bare_words`/`absent_keys` 两个独有分支，其独有分支的负向行为尚未覆盖。
+4. 真·双链 pub/sub / p99 / 跨机 UDP / 三链复现本机仍 blocked（无 Humble runtime）。
+
+### 下一步（轮次 16 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope，用离线备份补仅含 ci.yml 接线的独立 PR（frozen gate
+   test-f + 运行 step；纯标准库、无需 npx 联网的 fingerprint_check.py 与四个 guard selftest 比整套 promptfoo
+   更适合先纳入 CI），回填 ci-cd-gates.md §1、删 §6 pending；接线后再做 §5.3 规则 2 机器化。
+2. 评估 executor map 两个独有分支（`reject_bare_words` 裸词拒绝、`absent_keys` 缺席引用不要求存在）的负向
+   沉淀：先证与 #5 正向、#17 指纹、#21（共享符号循环部分）不重复，只覆盖独有分支；重复则不做。
+3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
+4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18+#19+#20+#21+eval 回归并在日志标注「等待新指令」，
    不制造无意义提交。

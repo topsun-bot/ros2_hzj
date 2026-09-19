@@ -271,3 +271,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '5 negative, 2 healthy, 1 mutation'
+
+  # Negative self-test for the ros2-source-map honesty guard (eval-only, not a
+  # CI gate). The positive #2 run only proves the current map renders healthy;
+  # it cannot prove the checks still fire. This case builds minimal temp trees
+  # and asserts the guard catches a deleted map, an empty (path-less) map, a
+  # cited path missing on disk, and a removed allowlisted symbol; that a stale
+  # cited line number still warns only (exit 0) while the symbol exists; that
+  # the real repo and a minimal healthy tree stay green; and that an
+  # always-hit symbol lookup demonstrably silences the symbol FAIL.
+  - description: 'source_map_guard_selftest.py: the source-map checks actually fire on tampering (negative regression, tempdir-only)'
+    vars:
+      script: evals/source_map_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'source map guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '4 negative, 1 warn-only, 2 healthy, 1 mutation'
