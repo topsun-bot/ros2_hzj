@@ -289,3 +289,22 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '4 negative, 1 warn-only, 2 healthy, 1 mutation'
+
+  # Negative self-test for the Executor/WaitSet map guard (eval-only, not a
+  # CI gate). Covers only the executor-unique branches the #21 source-map
+  # self-test does not share: a Humble rcl/rclcpp/rclpy tree appearing under
+  # vendor/ (FAIL vendored), missing identity markers / Feishu URLs, an
+  # allowlisted file no longer cited, and a required doc missing; plus the
+  # two executor-only parse_map parameters (absent_keys filters absent-tree
+  # citations, reject_bare_words rejects prose words). The real repo and a
+  # minimal healthy tree stay green; emptying ABSENT_VENDOR_TREES
+  # demonstrably silences the vendored-tree check.
+  - description: 'executor_map_guard_selftest.py: the executor-map checks actually fire on tampering (negative regression, tempdir-only)'
+    vars:
+      script: evals/executor_map_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'executor map guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '5 negative, 2 parse-guard, 2 healthy, 1 mutation'
