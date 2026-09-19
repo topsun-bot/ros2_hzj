@@ -1,8 +1,15 @@
 name: claude-code-review
 
-# Advisory AI review on every non-draft PR. Not a required status check:
-# structure / contracts / boundary in ci.yml stay the merge gate, and a
-# human still approves the merge (ci-cd-gates.md §5).
+# Advisory AI review on same-repo, non-draft PRs. Not a required status
+# check: structure / contracts / boundary in ci.yml stay the merge gate, and
+# a human still approves the merge (ci-cd-gates.md §5).
+#
+# Trust model: `pull_request` runs the workflow from the PR merge ref, so
+# only people who already have push access (and could edit main's workflows
+# anyway) can change it. Fork PRs get no secrets and a read-only token, so
+# they are skipped explicitly below instead of failing on a missing key.
+# `pull_request_target` is deliberately NOT used: it would run a write token
+# against untrusted checkout content.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -20,14 +27,24 @@ concurrency:
 jobs:
   review:
     name: review
-    if: github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          # The model reads this checkout; keep GITHUB_TOKEN out of .git/config.
+          # The action authenticates its own gh / GitHub API calls.
+          persist-credentials: false
 
       - name: Claude Code review
+        # TODO(maintainer): pin to an immutable commit SHA of the v1 release
+        # (`git ls-remote https://github.com/anthropics/claude-code-action v1`)
+        # and let Dependabot bump it. This action receives ANTHROPIC_API_KEY
+        # and PR write permissions; a mutable tag can change privileged code
+        # without a reviewed change here.
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
