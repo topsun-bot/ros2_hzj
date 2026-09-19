@@ -112,3 +112,59 @@
    check_executor_map.py（407 行）同构的 md 路径解析/符号查找/WARN-FAIL 渲染；
    仍要求 stdout 逐字节不变。
 2. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁）。
+
+---
+
+## 轮次 2 — 2026-09-19 17:51（Asia/Shanghai）Step 3：抽 _md_paths.py 收敛 md 引用解析
+
+> 用户手动「确认，立即执行」，未等 18:07 定时触发。分支 `refactor/md-paths-helper`，PR #50。
+
+### 本轮改动（一项重点改进，纯提取重构，行为不变）
+- 新增 `scripts/_md_paths.py`（256 行，下划线前缀辅助模块，不进 CI 命令清单）：
+  - 共享：`REPO_PREFIXES`、`LINK_RE`/`FENCE_RE`/`TICK_PATH_RE`/`FILE_LINE_RE`、
+    `repo_root(map_rel)`（锚点参数化）、`ident_re`/`symbol_lines`（标识符正则缓存）、
+    `looks_like_repo_path`、`to_repo_rel`、`parse_map`、`read_utf8`、
+    `check_cited_paths`（cited 路径存在性 + allowlist 符号检查 + stale WARN 渲染循环）。
+  - 两个调用方的**行为差异显式参数化保留**，不做静默统一：
+    - `reject_bare_words=True`（仅 executor）：裸 prose 词（无 `/` 无后缀，如
+      `` `dimos_bridge` ``）不算路径引用；source_map 保持 False（原行为）。
+    - `absent_keys=`（仅 executor）：作为"应当缺席"引用的 `vendor/rcl*` 不要求存在；
+      source_map 传空（原行为）。
+- check_source_map.py：320 → **143 行**（-177）；check_executor_map.py：407 →
+  **225 行**（-182）；两脚本合计删 381 行重复、新增 helper 256 行，净 -125 行，
+  md 引用解析/符号检查从此单点维护。
+- render 主体（executor 的 REQUIRED_DOCS / DOC_MARKERS / FEISHU_URLS /
+  ABSENT_VENDOR_TREES / uncited 检查、source_map 的 map-missing 早退）**不抽取**，
+  保持各自语义边界清晰。
+- 顺带消除 executor 原 `_parse_map` link 循环缺少 `line = None` 初始化、可能残留
+  上一迭代行号的隐患，统一为带初始化版本；实测当前文档未触发该路径（stdout 不变）。
+
+### 验证（行为不变证据）
+- **stdout 逐字节对比**：12 个 gate 脚本重构前后输出 `cmp` 全部 IDENTICAL，exit 全 0
+  （基线 /tmp/iter1_after，重构后 /tmp/iter2_after）。
+- `python3 -m compileall`：新模块 + 两个改写脚本编译通过；无残留未用 import
+  （`re` 已随辅助块移除，`Path`/`sys` 仍被常量与 main 使用）。
+- `python3 scripts/run_all_gates.py`：**12/12 exit 0，marker 12/12**。
+- promptfoo 0.123.1：**12 passed (100%) / 0 failed / 0 errors，Duration 1s**。
+- CI 兼容性同轮次 1 结论（structure 为 `test -f` 清单；contracts/boundary 同目录 import 可用）。
+- 本轮无新增行为，未新增 eval 用例（两个被改脚本本就被现有 12 用例覆盖）。
+
+### 分数
+- Gate：12/12（100%），与轮次 1 持平（纯去重不应改变分数）。
+- Eval：12/12（100%），与轮次 1 持平。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、
+   飞书 3380004、bench 依赖未锁）。
+2. `check_cited_paths` 现在是两个闸门的公共渲染路径，后续修改必须同时回归两个脚本；
+   stdout cmp 目前靠手动 /tmp 基线，尚未沉淀为仓内可复跑回归。
+3. executor link 行号解析旧隐患虽消除，但当前 markdown 无覆盖该分支的真实样本；
+   属于 eval 对真实 DDS 行为断言覆盖不足的一部分。
+
+### 下一步（轮次 3 候选）
+1. Step 4：双链域常量（domain 42 / 0、rmw 标识、XML 路径）单一真源——计划标注
+   "需小心"：chain_a.sh/chain_b.sh 的字面 `export` 串被 check_dual_chain_baseline
+   锚定，**不得**改成 `source config/env/load.py`；先做只影响 Python 侧的收敛。
+2. 或把"重构前后 stdout 逐字节 cmp"沉淀为可复跑回归（先评估与现有 gate 是否重复，
+   避免造死代码）。
+3. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁）。
