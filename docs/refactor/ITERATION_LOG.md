@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 14 个 DDS 行为断言用例（custom provider 跑 gate 脚本 + stdout contains 断言） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 16 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -402,4 +402,71 @@
 2. ci.yml 接线完成后再做 §5.3 规则 2 机器化（新无下划线 `scripts/*.py` 必须登记 CI 与
    ci-cd-gates §1/§6）——接线前做会与 frozen gate 的"故意未登记 CI"pending 状态自相矛盾。
 3. stdout 指纹/负向漂移沉淀为仓内可复跑回归（先评估与 run_all_gates 的重复度）。
+4. 视批准情况推进 CVE 修复独立 PR。
+
+---
+
+## 轮次 6 — 2026-09-19 21:21（Asia/Shanghai）《5》深化：eval 锁定双链真值 + blocked/Hold 实质契约断言
+
+> 定时任务第 6 轮。分支 `feat/eval-chain-contract-assertions`，PR #54。
+> `workflow` scope 仍未授予（ci.yml 接线继续阻塞），本轮**不新增 gate、不碰 ci.yml、不改任何
+> gate/生产代码**，只深化《5》Promptfoo 套件对**真实双链/DDS 契约行为**的断言覆盖（任务明确的
+> 深化方向："扩大 eval 对真实 DDS 行为断言的覆盖，而非放水"）。
+
+### 背景 / 当前行为
+- 轮次 0–5 后 14 个 eval 用例中，13 个 gate 用例大多只 `contains` 一个健康 marker；marker 只证明
+  "脚本跑到了成功分支"，锁不住关键**裁决句 / blocked 诚实性 / Hold 短语**——若有人把 Unitree 裁决
+  从 `drop-in FAIL` 翻成 PASS、把三链复现 / DoD 的 blocked 改成已通过、或偷接 Cega，只要 marker 仍在，
+  eval 层不会红。
+- eval 此前**完全没有**直接执行双链可执行真源 `config/env/load.py`（provider 只接受单脚本路径、
+  不能带 `print-a` 参数），链 A=`rmw_fastrtps_cpp/42/fastdds.xml`、链 B=`rmw_cyclonedds_cpp/0`
+  只被 gate 间接覆盖。
+
+### 本轮改动（一项重点改进，仅 evals/ 三个文件）
+- `evals/localScriptProvider.mjs`：`callApi` 把 prompt 按空白拆成 argv
+  （`execFileSync('python3', argv, …)`），支持 `config/env/load.py print-a` 这类带参数命令；
+  无空格的旧用例 argv 长度仍为 1，**向后完全兼容**（原 14 用例路径不变即全过）；同步更新注释。
+- `evals/promptfooconfig.yaml`（14 → **16** 用例）：
+  - **新增 #15/#16**：直接跑 `load.py print-a` / `print-b`，断言链 A
+    `RMW_IMPLEMENTATION=rmw_fastrtps_cpp`、`ROS_DOMAIN_ID=42`、profiles 含 `config/fastdds.xml`，
+    链 B `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`、`ROS_DOMAIN_ID=0`（绝对路径只断言 `config/fastdds.xml`
+    后缀，避免机器相关）。
+  - 给 9 个既有 gate 用例补**实质契约短语**（断言串全部取自脚本真实 stdout 逐字，非计划快照）：
+    executor `WaitSet -> callback: mapped`；provenance `underlay != vendor snapshot`；
+    unitree `drop-in: FAIL / wire: UNPROVEN`；three-chain `map ≠ reproduce` + `STATUS: blocked`；
+    sink `sink layers: mapped (Hold vs allowed)`；dual-baseline `pointer only (no XML rewrite)` +
+    `same-topology XML tuning is paused`；env 交叉检查补 `ok env truth:` + `rmw_fastrtps_cpp/42` +
+    `rmw_cyclonedds_cpp/0` + `CYCLONEDDS_URI in CHAIN_B_UNSET`；dod `DoD: unmet`；cega `no Cega`。
+- `evals/README.md`：用例表 14→16 并逐行登记新增断言；provider 机制改为"argv 拆分、可带 CLI 参数"；
+  运行命令由 `promptfoo@latest` 固定为 `promptfoo@0.123.1`（与本循环固定命令对齐，消除版本漂移）。
+
+### 验证（行为不变 / 断言有效证据）
+- promptfoo 0.123.1：**16 passed (100%) / 0 failed / 0 errors，Duration 1s**
+  （eval ID `eval-Q6t-2026-09-19T13:19:38`）；#15/#16 经增强后的 provider 正确执行带参数命令并
+  命中链真值；原 14 用例在 argv 增强后仍全过（向后兼容）。
+- 所有新增断言串先从脚本真实 stdout grep 取证再写入，无凭空字符串。
+- `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**（本轮未改任何 gate，
+  回归确认无连带影响）。
+- 本轮无生产代码改动，gate 数仍 13、无 stdout 指纹变化；不新增 gate，故不加剧"本地 gate vs
+  CI 枚举"背离，也不需要 ci.yml 接线（不受 `workflow` scope 阻塞）。
+
+### 分数
+- Gate：13/13（100%），与轮次 5 持平。
+- Eval：**14 → 16 用例，16/16（100%）**；9 个用例从单 marker 升级为 marker + 实质契约，
+  新增 2 个双链真值用例——覆盖深度提升，而非数字放水。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、
+   bench 依赖未锁）。
+2. **[凭证·仍阻塞]** `workflow` scope 未授予：第 13 个 gate 的 ci.yml 接线仍离线备份
+   （`~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`），CI 仍只枚举原 12 gate。
+3. **Promptfoo 目前是本地验收层，CI 不运行它**（structure/contracts/boundary 无 eval step）；
+   若未来要在 CI 跑 eval，需评估 runner 联网 npx / 缓存策略，属独立改动。
+4. eval 仍是"跑静态 gate 脚本 + stdout 断言"，无法替代真·双链 pub/sub / p99（本机无 Humble，blocked）。
+
+### 下一步（轮次 7 候选）
+1. **（阻塞解除后最高优先）** 授予 `workflow` scope，补仅含 ci.yml 接线的独立 PR，回填
+   ci-cd-gates.md §1、删除 §6 pending 说明。
+2. ci.yml 接线后做 §5.3 规则 2 机器化（新无下划线 `scripts/*.py` 登记完整性静态核对）。
+3. stdout 指纹 / 负向漂移沉淀为仓内可复跑回归（先评估与 run_all_gates 的重复度，避免死代码）。
 4. 视批准情况推进 CVE 修复独立 PR。
