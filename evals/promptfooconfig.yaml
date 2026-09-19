@@ -100,6 +100,19 @@ tests:
       - type: contains
         value: 'Dual-chain baseline healthy'
 
+  - description: 'check_dual_chain_baseline.py: load.py is single source of truth, cross-checks shell copies + wrapper'
+    vars:
+      script: scripts/check_dual_chain_baseline.py
+    assert:
+      - type: contains
+        value: 'chain_a.sh exports match load.py CHAIN_A'
+      - type: contains
+        value: 'chain_b.sh exports match load.py CHAIN_B'
+      - type: contains
+        value: 'dual_chain_env.py re-exports match load.py'
+      - type: contains
+        value: 'import leaves os.environ unchanged'
+
   - description: 'check_dod_evidence.py: product DoD unmet, STATUS blocked'
     vars:
       script: scripts/check_dod_evidence.py
