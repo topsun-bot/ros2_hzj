@@ -37,26 +37,45 @@ tests:
       - type: contains
         value: 'ROS not loaded'
 
-  - description: 'check_source_map.py: source map healthy'
+  - description: 'check_source_map.py: source map healthy; allowlisted DDS/RMW symbols must still resolve in vendor sources'
     vars:
       script: scripts/check_source_map.py
     assert:
       - type: contains
         value: 'Source map healthy'
+      - type: contains
+        # Locks the symbol allowlist check (rmw_publish/take, dds_take, WaitSet,
+        # ...): a vendor rewrite/drop that removes a traced API fails the eval.
+        value: 'allowlisted symbols ok:'
 
-  - description: 'print_bench_gates.py: bench gates healthy (SCOREBOARD pointer, cross-host blocked)'
+  - description: 'print_bench_gates.py: bench gates healthy; cross-host blocked, no fabricated latency numbers / P99 summing'
     vars:
       script: scripts/print_bench_gates.py
     assert:
       - type: contains
         value: 'Bench gates healthy'
+      - type: contains
+        # Cross-host latency is blocked on this host; must not be flipped to a pass.
+        value: 'cross-host: blocked'
+      - type: contains
+        # Methodology honesty: segment P99s must never be summed into a chain P99.
+        value: 'Do not sum segment P99s'
 
-  - description: 'check_risk_matrix.py: risk matrix healthy'
+  - description: 'check_risk_matrix.py: risk matrix healthy; §9.4 layer order, no invented risk scores, cross-host blocked'
     vars:
       script: scripts/check_risk_matrix.py
     assert:
       - type: contains
         value: 'Risk matrix healthy'
+      - type: contains
+        # §9.4 layer checklist anchor: env/XML is the first layer.
+        value: '§9.4: env/XML first'
+      - type: contains
+        # Honesty: this record carries no made-up risk percentages.
+        value: 'Do not invent risk percentages'
+      - type: contains
+        # Cross-host evidence stays blocked (single-line phrase).
+        value: 'Cross-host stays blocked'
 
   - description: 'check_executor_map.py: executor WaitSet->callback map healthy'
     vars:
