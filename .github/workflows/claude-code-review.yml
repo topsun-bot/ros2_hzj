@@ -33,7 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to an immutable commit (v4.4.0); bump deliberately after review.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 1
 
@@ -69,9 +70,10 @@ jobs:
 
             Output: write in 中文, keep code identifiers and paths in English.
             Post exactly one top-level summary (verdict, blockers, then nits) with
-            `gh pr comment <PR NUMBER> --edit-last --create-if-none --body-file <file>`
-            so re-runs on new pushes update the same comment instead of adding
-            another one. Use `mcp__github_inline_comment__create_inline_comment`
+            `gh pr comment <PR NUMBER> --edit-last --create-if-none --body-file -`,
+            feeding the Markdown on stdin via a quoted heredoc (no temp file is
+            needed or allowed), so re-runs on new pushes update the same comment
+            instead of adding another one. Use `mcp__github_inline_comment__create_inline_comment`
             (with `confirmed: true`) for line-specific findings. If there is nothing
             to flag, say so in one short comment. Only post GitHub comments; do not
             return the review as plain text and do not modify files.
