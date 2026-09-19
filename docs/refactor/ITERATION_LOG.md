@@ -721,3 +721,58 @@
 2. 给 `evals/results/BASELINE.md` 加"初始基线存档"状态指针（不改历史数字），消除 12 vs 17 的误导。
 3. 视批准情况推进 CVE 修复独立 PR。
 4. 无授权且文档债务清完后，不制造低价值改动，做一次完整 gate+eval 回归并在日志标注「等待新指令」。
+
+---
+
+## 轮次 11 — 2026-09-20 02:10（Asia/Shanghai）《5》文档债务：旧 BASELINE 标注为初始基线存档
+
+> 定时任务第 11 轮。分支 `docs/baseline-archive-status-pointer`，PR #60。
+> 开工核对：本循环无在途 PR（#59 已 squash-merge，main HEAD `070032a`）；`gh auth status` 复核
+> active 账号 `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有
+> workflow 但对本仓 403——ci.yml 接线 / fingerprint 进 CI / 规则 2 机器化继续阻塞；CVE 修复仍待批准。
+> 本轮按轮次 10 候选 2 行动，做**纯文档、行为不变**的小步：消除旧基线文件"12 用例 / @latest"与
+> 当前"17 用例 / 固定 0.123.1"并存却无说明的误导。只改 `evals/results/BASELINE.md`。
+
+### 背景 / 文档债务取证
+- `evals/results/BASELINE.md` 是 2026-09-19 套件刚落地时的**首次**运行存档：12 个 seed 用例、
+  命令写 `promptfoo@latest`（实际缓存 0.123.1）。迭代 3/4/6/7/8 后套件已扩到 17 用例、命令固定
+  `promptfoo@0.123.1`，但该文件没有任何"这是旧快照"的提示，新读者可能误以为 12/12 与 @latest 是现状。
+- 处理原则（轮次 10 日志已定）：**加状态指针，不回改历史数字**——存档的价值就在于保留首次基线原貌。
+
+### 本轮改动（一项重点改进，仅 1 个文档，+9/−0）
+- 在 `evals/results/BASELINE.md` 标题下新增 blockquote「状态：初始基线存档（historical snapshot，
+  勿当当前基线）」：说明本文件是首次运行存档（12 用例、命令写 @latest、实际 0.123.1），历史数字原样
+  保留不回改；套件已扩到 17 用例（env 交叉断言 / frozen gate / 双链真值 print-a·print-b / 全量 stdout
+  指纹 #17）、命令固定 0.123.1；当前权威口径与最新分数指向 `../../docs/refactor/ITERATION_LOG.md`
+  顶部「评分口径」与各轮记录，用例清单指向 `../README.md`、配置指向 `../promptfooconfig.yaml`。
+- 结果区 12/12、eval ID、`baseline_raw.txt` 引用等历史内容**一字未改**。
+
+### 验证
+- 新增 3 个相对链接目标（ITERATION_LOG.md / evals README.md / promptfooconfig.yaml）连同既有
+  baseline_raw.txt 共 4 个逐一 `test -e` 均存在。核对 ci.yml：contracts 的 md-link 检查是显式文件
+  枚举（275–306 行），**不含 `evals/results/**`**，故本文件不在该 CI 检查面，链接正确性靠本地自检。
+- `python3 scripts/run_all_gates.py`：**13/13 all gates green**（docs-only，不碰脚本/evals 执行面）。
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（BASELINE.md 不是任何 gate/load.py 的 stdout，
+  fixtures 不动）。
+- promptfoo 0.123.1：**17/17 passed (100%) / 0 failed / 0 errors**（provider 跑脚本、yaml 不引用 results/）。
+
+### 分数
+- Gate：13/13（100%），与轮次 10 持平（纯文档，不应改分）。
+- Eval：17/17（100%），与轮次 10 持平。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint 进 CI、§5.3 规则 2
+   机器化均无法落地；这是当前最高价值但被外部授权卡住的一项，需用户本机
+   `gh auth refresh -h github.com -s workflow`。
+3. `evals/results/` 与 `docs/refactor/` 均不在 CI md-link 枚举面，这两个目录的链接正确性仍靠本地自检 / 本循环把关。
+4. 静态契约 + 全文指纹两层已较完备，剩余增量价值主要在 CI 接线或真·Humble Linux 主机实测；不依赖授权的
+   纯文档/低风险清理项正在减少，后续不应为凑改动制造低价值断言。
+
+### 下一步（轮次 12 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope，用离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`
+   补仅含 ci.yml 接线的独立 PR（frozen gate test-f + 运行 step；评估把纯 python 的 fingerprint_check.py
+   先于整套 promptfoo 纳入 CI），回填 ci-cd-gates.md §1、删 §6 pending；接线后再做 §5.3 规则 2 机器化。
+2. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
+3. 4 份飞书文档授权后补读对齐《2》。
+4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
