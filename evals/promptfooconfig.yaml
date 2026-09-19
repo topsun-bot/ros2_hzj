@@ -204,3 +204,18 @@ tests:
         value: 'RMW_IMPLEMENTATION=rmw_cyclonedds_cpp'
       - type: contains
         value: 'ROS_DOMAIN_ID=0'
+
+  # Full-stdout fingerprint regression (eval-only, not a CI gate): re-runs all
+  # 13 gates + load.py print-a|b and compares normalized stdout byte-for-byte
+  # against committed evals/fixtures/. Catches unintended output drift that
+  # exit-code + single-marker checks cannot see. Regenerate reviewed changes
+  # with `python3 evals/fingerprint_check.py --update`.
+  - description: 'fingerprint_check.py: every gate/load.py stdout matches the committed, normalized baseline'
+    vars:
+      script: evals/fingerprint_check.py
+    assert:
+      - type: contains
+        value: 'stdout fingerprint: stable'
+      - type: contains
+        # Locks the covered command count so dropping a command fails the eval.
+        value: '**commands:** 15'

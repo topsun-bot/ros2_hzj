@@ -1,0 +1,20 @@
+# check_risk_matrix (wiki3 §9.4)
+
+- **ok file:** `docs/architecture/feishu-risk-matrix.md` (layer checklist; no risk scores)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md`
+- **ok file:** `docs/architecture/ros2-dds-r0-interface-freeze.md`
+- **ok file:** `docs/architecture/ros2-source-map.md`
+- **ok file:** `docs/architecture/latency-attribution.md`
+- **ok file:** `docs/architecture/ci-cd-gates.md`
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (current-best pointer; numbers not printed)
+- **ok file:** `config/fastdds.xml` (read-only contract seed; content not edited)
+- **§9.4: env/XML first**
+
+Filesystem + Hold markers only. This is **not** a risk score,
+not a percentile, and not Feishu field proof.
+Do not invent risk percentages. SCOREBOARD is the current-best
+**pointer**; this script does not copy its numbers.
+fastdds.xml is read-only; Agnocast / zenoh / Cega / custom RMW
+stay Hold. Rolling ≠ Humble. Cross-host stays blocked.
+
+Risk matrix healthy: required docs + §9.4 layer/Hold markers exist. Exit 0.

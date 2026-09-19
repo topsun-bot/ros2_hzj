@@ -1,0 +1,23 @@
+# check_three_chain_repro (wiki3 §13(2) map ≠ reproduce)
+
+- **ok file:** `docs/architecture/feishu-three-chain-repro.md` (map ≠ reproduce + STATUS: blocked)
+- **ok file:** `docs/architecture/ros2-source-map.md` (map file still present)
+- **ok file:** `docs/architecture/feishu-executor-waitset.md` (wait→callback map still present)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md` (ADR still cites §13)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok phrase:** `map ≠ reproduce`
+- **ok status:** `STATUS: blocked`
+- **ok chains:** publish / History / wait→callback (or WaitSet/callback)
+- **ok honesty:** no PASS/PROVEN reproduce claim
+
+Filesystem + honesty markers only. This is **not** a loaded
+`.so` proof, not a percentile, and not Feishu field proof.
+A healthy source map is not a reproduce. This host has no
+ROS Humble runtime; keep STATUS: blocked. fastdds.xml /
+SCOREBOARD are existence-only in this script; the boundary
+job owns the content freeze. Agnocast / zenoh stay Hold.
+
+- **three-chain repro: blocked (map only)**
+
+Three-chain reproduce record healthy: map ≠ reproduce and STATUS: blocked (map only). Exit 0.

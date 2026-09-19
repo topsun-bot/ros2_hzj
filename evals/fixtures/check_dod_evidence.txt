@@ -1,0 +1,30 @@
+# check_dod_evidence (wiki3 §6.3 DoD: unmet)
+
+- **ok file:** `docs/architecture/feishu-dod-evidence.md` (DoD: unmet + STATUS: blocked + five items)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md` (§6.3 citation + this cut)
+- **ok file:** `docs/architecture/feishu-runtime-provenance.md` (underlay vs vendor pointer)
+- **ok file:** `docs/architecture/ros2-source-map.md` (source-map pointer still present)
+- **ok file:** `docs/architecture/latency-attribution.md` (latency method pointer still present)
+- **ok file:** `docs/architecture/unitree-sdk2-dds-swap.md` (Unitree swap pointer still present)
+- **ok file:** `scripts/prove_rmw.py` (env/string identity gate)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok phrase:** `DoD: unmet`
+- **ok status:** `STATUS: blocked`
+- **ok status line:** Status header keeps DoD unmet + STATUS blocked
+- **ok items:** five product DoD items named (all expected unmet)
+- **ok honesty:** no PASS/PROVEN/measured-delta/Humble-here claim
+- **ok no invented booked percentile tokens**
+
+Filesystem + honesty markers only. This is **not** a loaded
+modified `.so` proof, not a this-host measured-delta, and not
+Feishu field proof. prove_rmw.py stays an env/string identity
+gate. SCOREBOARD is the current-best pointer; this script does
+not copy its numbers. fastdds.xml / SCOREBOARD are
+existence-only in this script; the boundary job owns the
+content freeze. Cross-host stays blocked. 《3》–《6》 stay Hold.
+This cut does not claim Humble runtime existed here.
+
+- **dod evidence: unmet (blocked)**
+
+Product DoD evidence healthy: five items stay unmet, STATUS is blocked, prove_rmw stays env/string, and this host does not claim a measured-delta or Humble runtime. Exit 0.

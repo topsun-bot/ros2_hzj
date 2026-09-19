@@ -1,0 +1,28 @@
+# check_unitree_cyclone_swap (Unitree 0.10.2 vs vendor 11.0.1)
+
+- **ok file:** `docs/architecture/unitree-sdk2-dds-swap.md` (contiguous verdict + Hold)
+- **ok file:** `vendor/VERSIONS.md` (opened; Cyclone pin checked on the SHA row)
+- **ok file:** `vendor/CycloneDDS/CMakeLists.txt` (opened; project() VERSION checked separately)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok VERSIONS row:** vendor/CycloneDDS/ 11.0.1 SHA e54e991f75a3e67f8e628da3171122e36ea5b872 on same row
+- **ok CMake project():** project(CycloneDDS … VERSION 11.0.1 …)
+- **ok quoted 0.10.2:** `DDS_VERSION "0.10.2"`
+- **ok verdict phrase:** `drop-in FAIL / wire UNPROVEN`
+
+Filesystem + version markers only. This is **not** a loaded
+`.so` proof, not a percentile, and not Feishu field proof.
+Vendor SHA is read from the CycloneDDS 11.0.1 VERSIONS row,
+not invented here and not accepted from an unrelated line.
+drop-in of vendor 11.0.1 onto Unitree 0.10.2 is FAIL.
+Not an in-place overwrite: default stays bundled 0.10.2.
+Legal replace path is unitree_sdk2_hzj + opt-in
+UNITREE_DDS_PROVIDER=external. Wire interop stays UNPROVEN.
+fastdds.xml / SCOREBOARD are existence-only in this script;
+the boundary job owns the content freeze. Agnocast / zenoh
+stay Hold. Do not copy rolling vendor onto a robot or
+/opt/ros/humble.
+
+- **drop-in: FAIL / wire: UNPROVEN**
+
+Unitree Cyclone swap record healthy: bundled 0.10.2 vs vendor 11.0.1 is not drop-in; default stays bundled; legal path is unitree_sdk2_hzj + UNITREE_DDS_PROVIDER=external; wire interop remains UNPROVEN. Exit 0.

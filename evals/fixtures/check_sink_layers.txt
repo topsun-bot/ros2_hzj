@@ -1,0 +1,31 @@
+# check_sink_layers (Feishu RMW/DDS/Executor sink)
+
+- **ok file:** `docs/architecture/feishu-sink-layers.md` (layers + Hold vs allowed + no XML/SCOREBOARD rewrite)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md` (differentiation sink still named)
+- **ok file:** `docs/architecture/ros2-source-map.md` (three-chain map ≠ reproduce pointer target)
+- **ok file:** `docs/architecture/feishu-executor-waitset.md` (WaitSet / callback identity map)
+- **ok file:** `docs/architecture/unitree-sdk2-dds-swap.md` (Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok absent:** `vendor/rcl`
+- **ok absent:** `vendor/rclcpp`
+- **ok absent:** `vendor/rclpy`
+- **ok absent:** `vendor/iceoryx`
+- **ok layers:** table rows | **app** | **rcl** | **rmw** | **DDS** | **executor** | **memory** |
+- **ok policy:** 不改 XML/SCOREBOARD; 不启用 Agnocast/zenoh; 《3》–《6》仍 Hold; AUTO ≠ 已开零拷; 没有 vendor/iceoryx
+- **ok Hold vs allowed:** contiguous phrase present
+- **ok three-chain pointer:** `map ≠ reproduce`
+- **ok Unitree pointer:** `drop-in FAIL`
+
+Filesystem + Hold markers only. This is **not** a loaded
+`.so` proof, not a percentile, and not Feishu field proof.
+Live Feishu was not fetched; the sink doc must stay derived
+from the in-repo ADR + source map + executor map.
+fastdds.xml / SCOREBOARD are existence-only in this script;
+the boundary job owns the content freeze. Agnocast / zenoh
+stay Hold. Three-chain stays map ≠ reproduce. Unitree 0.10.2
+vs vendor 11.0.1 stays drop-in FAIL. Do not rewrite XML.
+
+- **sink layers: mapped (Hold vs allowed)**
+
+Sink-layer record healthy: app / rcl / rmw / DDS / executor / memory stay marked Hold vs allowed; Agnocast / zenoh stay Hold. fastdds.xml / SCOREBOARD are existence-only here — the boundary job owns the content freeze. Exit 0.

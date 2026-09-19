@@ -1,0 +1,20 @@
+# prove_rmw (wiki3 §6.3)
+
+- **ROS_DISTRO:** `(unset)`
+- **RMW_IMPLEMENTATION:** `(unset)`
+- **ROS_DOMAIN_ID:** `(unset)`
+- **FASTRTPS_DEFAULT_PROFILES_FILE:** `(unset)`
+- **CYCLONEDDS_URI:** `(unset)`
+- **rclpy:** not importable (ModuleNotFoundError: No module named 'rclpy')
+- **rmw identifier (runtime):** `(not loaded)`
+- **which ros2:** `(not on PATH)`
+- **which ldd:** `(not on PATH)`
+
+- **librmw_*.so:** (none on PATH / LD_LIBRARY_PATH / AMENT_PREFIX_PATH /opt/ros/$ROS_DISTRO)
+
+Env and filesystem facts only. This is **not** end-to-end delivery,
+not a latency measurement, and not Feishu field proof.
+`RMW_IMPLEMENTATION` in the environment is a request; the runtime
+identifier (if rclpy loaded) is what the process actually linked.
+
+ROS not loaded: rclpy is not importable and no librmw_*.so was found. Env printed above is still valid. Exit 0.

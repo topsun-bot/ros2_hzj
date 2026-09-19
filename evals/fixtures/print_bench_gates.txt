@@ -1,0 +1,16 @@
+# print_bench_gates (wiki3 §12 / §13.3)
+
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (current-best pointer; numbers not printed)
+- **ok file:** `docs/artifacts/bench/README.md`
+- **ok file:** `scripts/bench/README.md`
+- **ok file:** `docs/architecture/latency-attribution.md`
+- **ok dir:** `docs/artifacts/bench/2026-09-11-cross-host/`
+- **cross-host: blocked** (docs/artifacts/bench/SCOREBOARD.md, docs/artifacts/bench/README.md, docs/artifacts/bench/2026-09-11-cross-host/README.md, docs/artifacts/bench/2026-09-11-cross-host/BLOCKED.txt)
+
+Filesystem + STATUS markers only. This is **not** a latency
+measurement, not a percentile reprint, and not Feishu field proof.
+Do not sum segment P99s. Same-host tables are not cross-host proof.
+SCOREBOARD is the current-best **pointer**; this script does not
+copy its numbers.
+
+Bench gates healthy: SCOREBOARD / README pointers exist and cross-host STATUS is blocked. Exit 0.
