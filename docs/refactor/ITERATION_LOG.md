@@ -168,3 +168,69 @@
 2. 或把"重构前后 stdout 逐字节 cmp"沉淀为可复跑回归（先评估与现有 gate 是否重复，
    避免造死代码）。
 3. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁）。
+
+---
+
+## 轮次 3 — 2026-09-19 18:18（Asia/Shanghai）Step 4：env 单一真源交叉一致性检查
+
+> 定时任务第 3 轮（18:07 档）。分支 `refactor/env-source-truth-crosscheck`，PR #51。
+> 本轮是**行为增强**（新增一致性断言），不是纯提取：被增强 gate 的 stdout 有意新增 4 行；
+> 其余 11 个 gate stdout 仍要求逐字节不变。
+
+### 背景 / 当前行为
+- 计划 §1 盘点：双链契约值（A=rmw_fastrtps_cpp/域 42/fastdds.xml、
+  B=rmw_cyclonedds_cpp/域 0）在**三处**各写一遍——`config/env/load.py`、
+  `chain_a.sh`/`chain_b.sh` 字面 export、`dimos_bridge/dual_chain_env.py` 薄包装
+  （B 面 `dds_topics.py` 第四处由 contracts job 断言，本轮不动）。
+- 旧 `check_dual_chain_baseline.py` 只对 shell 做**单侧字面锚定**，从不读 load.py：
+  若 load.py 的 42 被改成 43 而 shell 不动，全部 gate 仍绿——真源漂移不可见。
+
+### 本轮改动（一项重点改进）
+- `scripts/check_dual_chain_baseline.py` 新增「env 单一真源」段（importlib 加载，
+  零第三方依赖，vanilla 可跑），4 条新断言：
+  1. **env truth**：load.py `CHAIN_A/CHAIN_B` 值等于契约（rmw 标识、域 42/0、
+     profiles 解析到真实 `config/fastdds.xml`、`CYCLONEDDS_URI` 在 `CHAIN_B_UNSET`），
+     且 import load.py + wrapper 前后 `os.environ` 四个相关键快照不变（import 纯净）；
+  2. **env cross-check A**：解析 chain_a.sh 字面 export（去引号、`${_ROS2_HZJ_ROOT}`
+     归一化）与 load.py `CHAIN_A` 逐项相等，含 profiles 绝对路径等价；
+  3. **env cross-check B**：chain_b.sh 的 RMW/域与 `CHAIN_B` 相等；
+  4. **env wrapper**：`dimos_bridge/dual_chain_env.py` 的 `CHAIN_A/CHAIN_B` 与
+     `chain_a_env()/chain_b_env()` 与 load.py 等值。
+  任一项失败 → FAIL 行 + exit 1；两个既有 success marker 仅在全绿时打印（语义不变）。
+- `dimos_bridge/dual_chain_env.py`：按 Step 4 计划补 **docstring 注释**，明确
+  load.py 是唯一可执行真源、薄包装不得复制常量（零代码行为变化；该文件无 gate
+  对其内容做整串断言，已 grep 核实）。
+- `evals/promptfooconfig.yaml`：新增第 13 个用例（同跑 check_dual_chain_baseline，
+  4 条 contains 断言锁定新交叉检查的健康输出）；`evals/README.md` 用例表 12→13。
+- **未做（Hold）**：chain_a.sh/chain_b.sh 一字未改（baseline 与 boundary job 锚定
+  字面 export，禁止 `source load.py`）；未碰 load.py 契约值、fastdds.xml、dds_topics.py。
+
+### 负向测试（证明新断言不是摆设，/tmp 夹具，未入仓）
+- A. load.py 域 42→43、shell 保持 42：**抓到** `FAIL env truth` +
+  `FAIL env cross-check chain_a.sh != load.py CHAIN_A`，exit 1；
+- B. wrapper 重导出伪造值：**抓到** `FAIL env wrapper`，exit 1；
+- C. load.py import 时写 `os.environ`：**抓到** `import mutated os.environ`，exit 1；
+- D. 健康夹具：4 行 env ok 全亮。
+
+### 分数前后对比
+- Gate：**12/12（100%）**，脚本数不变（增强现有 gate，未新增脚本，CI 枚举无需改）。
+- Eval：**12 → 13 用例，13/13 passed (100%)，0 failed / 0 errors，1s**。
+- 其余 11 个未改 gate：stdout 逐字节 `cmp` 全部 IDENTICAL。
+- `python3 -m compileall`（scripts + dual_chain_env.py + load.py）通过；
+  `load.py print-a/print-b` 输出契约不变。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、
+   飞书 3380004、bench 依赖未锁）。
+2. 第四处真源 `dds_topics.py`（B 面）与 load.py 之间仍无直接交叉断言；目前由
+   contracts job 分别断言两侧常量值（42/0），属于 B 面 Hold，不在本步合并。
+3. 负向测试夹具是一次性 /tmp 脚本，未沉淀为仓内回归；stdout 指纹/负向漂移的
+   可复跑化仍是后续候选。
+
+### 下一步（轮次 4 候选）
+1. 计划 §5.3 第 1 条静态一致性检查：`scripts/check_*.py` 不得再硬编码
+   `config/fastdds.xml` / `docs/artifacts/bench/SCOREBOARD.md` 字面量（helper 除外），
+   防止 Step 2 去重回潮——评估作为新 gate（gate 数 12→13，需同步 ci.yml/structure/
+   run_all_gates/ci-cd-gates.md/eval）还是并入现有 gate。
+2. 或 stdout 指纹/负向漂移可复跑回归（先评估与现有 gate 重复度，避免造死代码）。
+3. 视批准情况推进 CVE 修复独立 PR。
