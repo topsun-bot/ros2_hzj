@@ -848,7 +848,7 @@
 
 ## 轮次 13 — 2026-09-20 04:15（Asia/Shanghai）《5》深化：双链 env 交叉断言负向自测沉淀为 eval 用例 #19
 
-> 定时任务第 13 轮。分支 `test/dual-chain-env-guard-selftest`，PR 编号以实际返回为准。
+> 定时任务第 13 轮。分支 `test/dual-chain-env-guard-selftest`，PR #63（已 squash-merge，main HEAD `141963f`）。
 > 开工核对：本循环无在途 PR（#62 已 squash-merge，main HEAD `5547cb3`）；`gh auth status` 复核
 > active 账号 `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有
 > workflow 但对本仓 403——ci.yml 接线 / fingerprint·#18·#19 进 CI / §5.3 规则 2 机器化继续阻塞；
@@ -904,8 +904,9 @@
 - Gate：**13/13（100%）**，与轮次 12 持平（未改任何 gate，run_all_gates 不受影响）。
 - 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
 - #18 frozen 负向自测：仍 PASS（6 must-flag / 7 non-flag / 2 render）。
-- Eval：**18 → 19 用例，19/19 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#19 PASS）。
+- Eval：**18 → 19 用例，19/19 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#19 PASS，eval ID `eval-1m3-2026-09-19T20:20:41`）。
 - `py_compile evals/dual_chain_env_guard_selftest.py` 通过。
+- **合并后回归（main HEAD `141963f`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，pending 可忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18 与 #19 负向自测均 PASS、promptfoo **19/19 (100%) / 0 failed / 0 errors**。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
