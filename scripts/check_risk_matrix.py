@@ -12,6 +12,8 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+from _freeze_paths import FASTDDS_XML_REL as XML_REL, SCOREBOARD_REL
+
 
 MATRIX_REL = Path("docs/architecture/feishu-risk-matrix.md")
 ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
@@ -19,8 +21,6 @@ R0_REL = Path("docs/architecture/ros2-dds-r0-interface-freeze.md")
 MAP_REL = Path("docs/architecture/ros2-source-map.md")
 METHOD_REL = Path("docs/architecture/latency-attribution.md")
 GATES_REL = Path("docs/architecture/ci-cd-gates.md")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
-XML_REL = Path("config/fastdds.xml")
 
 # Layer / Hold phrases the matrix must keep. Not scores.
 _MATRIX_MARKERS = (

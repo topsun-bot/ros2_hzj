@@ -19,14 +19,19 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import (
+    FASTDDS_XML_REL as XML_REL,
+    SCOREBOARD_EXISTENCE_NOTE,
+    SCOREBOARD_REL,
+    XML_EXISTENCE_NOTE,
+)
+
 
 SINK_REL = Path("docs/architecture/feishu-sink-layers.md")
 ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
 MAP_REL = Path("docs/architecture/ros2-source-map.md")
 EXEC_REL = Path("docs/architecture/feishu-executor-waitset.md")
 SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
-XML_REL = Path("config/fastdds.xml")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "sink layers: mapped (Hold vs allowed)"
 
@@ -132,8 +137,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
         (MAP_REL, _MAP_MARKERS, "three-chain map ≠ reproduce pointer target"),
         (EXEC_REL, _EXEC_MARKERS, "WaitSet / callback identity map"),
         (SWAP_REL, _SWAP_MARKERS, "Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL"),
-        (XML_REL, (), "existence only; content freeze is boundary"),
-        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+        (XML_REL, (), XML_EXISTENCE_NOTE),
+        (SCOREBOARD_REL, (), SCOREBOARD_EXISTENCE_NOTE),
     )
     texts: dict[Path, str] = {}
     for rel, markers, hint in required:

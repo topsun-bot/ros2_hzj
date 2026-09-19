@@ -21,13 +21,18 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import (
+    FASTDDS_XML_REL as XML_REL,
+    SCOREBOARD_EXISTENCE_NOTE,
+    SCOREBOARD_REL,
+    XML_EXISTENCE_NOTE,
+)
+
 
 REPRO_REL = Path("docs/architecture/feishu-three-chain-repro.md")
 MAP_REL = Path("docs/architecture/ros2-source-map.md")
 WAITSET_REL = Path("docs/architecture/feishu-executor-waitset.md")
 ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
-XML_REL = Path("config/fastdds.xml")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "three-chain repro: blocked (map only)"
 MAP_NE_REPRODUCE = "map ≠ reproduce"
@@ -142,8 +147,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
         (MAP_REL, ("publish", "History"), "map file still present"),
         (WAITSET_REL, ("WaitSet", "callback"), "wait→callback map still present"),
         (ADR_REL, ("§13",), "ADR still cites §13"),
-        (XML_REL, (), "existence only; content freeze is boundary"),
-        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+        (XML_REL, (), XML_EXISTENCE_NOTE),
+        (SCOREBOARD_REL, (), SCOREBOARD_EXISTENCE_NOTE),
     )
     texts: dict[Path, str] = {}
     for rel, markers, hint in required:

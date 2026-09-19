@@ -22,6 +22,13 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import (
+    FASTDDS_XML_REL as XML_REL,
+    SCOREBOARD_EXISTENCE_NOTE,
+    SCOREBOARD_REL,
+    XML_EXISTENCE_NOTE,
+)
+
 
 DOD_REL = Path("docs/architecture/feishu-dod-evidence.md")
 ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
@@ -30,8 +37,6 @@ MAP_REL = Path("docs/architecture/ros2-source-map.md")
 METHOD_REL = Path("docs/architecture/latency-attribution.md")
 SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
 PROVE_RMW_REL = Path("scripts/prove_rmw.py")
-XML_REL = Path("config/fastdds.xml")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "dod evidence: unmet (blocked)"
 DOD_UNMET = "DoD: unmet"
@@ -187,8 +192,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
         (METHOD_REL, ("wiki", "DoD"), "latency method pointer still present"),
         (SWAP_REL, ("drop-in FAIL",), "Unitree swap pointer still present"),
         (PROVE_RMW_REL, ("wiki3 §6.3", "ROS not loaded"), "env/string identity gate"),
-        (XML_REL, (), "existence only; content freeze is boundary"),
-        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+        (XML_REL, (), XML_EXISTENCE_NOTE),
+        (SCOREBOARD_REL, (), SCOREBOARD_EXISTENCE_NOTE),
     )
     existence_only = {XML_REL, SCOREBOARD_REL}
     texts: dict[Path, str] = {}
