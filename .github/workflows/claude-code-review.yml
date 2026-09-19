@@ -11,7 +11,6 @@ permissions:
   contents: read
   pull-requests: write
   issues: read
-  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -32,6 +31,9 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 显式用本 workflow 的 GITHUB_TOKEN 评论，不走 OIDC / Claude GitHub App 换 token，
+          # 因此不需要 id-token: write。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
