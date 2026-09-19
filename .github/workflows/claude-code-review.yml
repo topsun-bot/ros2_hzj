@@ -13,6 +13,8 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  # gh pr comment goes through the issue-comment API, which needs issues: write.
+  issues: write
   id-token: write
 
 concurrency:
@@ -34,7 +36,8 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@v1
+      # Pinned to an immutable commit (v1.0.231); bump deliberately after review.
+      - uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           use_sticky_comment: true
