@@ -5,9 +5,11 @@
 // This repository is a ROS 2 / DDS middleware workspace. The DDS layer has
 // no "prompt" concept, so we map the LLM-eval abstraction onto the repo's
 // existing gate scripts: the promptfoo "prompt" is, by convention, a path
-// (relative to the repo root) to one of the scripts under scripts/. We
-// execute it with python3, capture stdout/stderr/exit code, and hand stdout
-// back as the provider "output".
+// (relative to the repo root) to one of the scripts under scripts/, optionally
+// followed by whitespace-separated CLI arguments, e.g.
+// `config/env/load.py print-a` or `scripts/prove_rmw.py`. We split the prompt
+// on whitespace into argv and execute it with python3, capture
+// stdout/stderr/exit code, and hand stdout back as the provider "output".
 //
 // promptfoo loads custom providers by `new Module(config)`, so the default
 // export is a class (not a plain object) exposing id() + callApi().
@@ -39,16 +41,19 @@ export default class LocalScriptProvider {
   }
 
   async callApi(prompt) {
-    const script = String(prompt || '').trim();
-    if (!script) {
+    const command = String(prompt || '').trim();
+    // First whitespace-delimited token is the script path; any following
+    // tokens are CLI arguments (e.g. `config/env/load.py print-a`).
+    const argv = command.split(/\s+/).filter(Boolean);
+    if (argv.length === 0) {
       return {
         output: '',
-        error: 'local-script: empty prompt (expected a scripts/*.py path as the prompt)',
+        error: 'local-script: empty prompt (expected a script path, optionally with args)',
       };
     }
 
     try {
-      const stdout = execFileSync('python3', [script], {
+      const stdout = execFileSync('python3', argv, {
         cwd: repoRoot,
         timeout: 30000,
         encoding: 'utf8',
@@ -63,7 +68,7 @@ export default class LocalScriptProvider {
       const code = err && typeof err.status === 'number' ? err.status : 'unknown';
       return {
         output: stdout + (stderr ? '\n' + stderr : ''),
-        error: `local-script: ${script} exited with code ${code}: ${err && err.message}`,
+        error: `local-script: ${command} exited with code ${code}: ${err && err.message}`,
       };
     }
   }
