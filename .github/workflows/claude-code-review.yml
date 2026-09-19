@@ -39,6 +39,20 @@ jobs:
           # The action authenticates its own gh / GitHub API calls.
           persist-credentials: false
 
+      # Trusted step: materialize the PR diff as a file inside the workspace so
+      # the model needs no shell at all. The model never gets Bash, so a
+      # prompt injection in PR content has no `gh ... --body-file` / `$(...)`
+      # path to publish credentials.
+      - name: Write PR diff for the reviewer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          mkdir -p .pr-review
+          gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" > .pr-review/pr.diff
+          wc -l .pr-review/pr.diff
+
       - name: Claude Code review
         # TODO(maintainer): pin to an immutable commit SHA of the v1 release
         # (`git ls-remote https://github.com/anthropics/claude-code-action v1`)
@@ -48,13 +62,17 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Tracking comment on the PR; the model updates it via a text-only MCP
+          # tool instead of running `gh pr comment`.
+          track_progress: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
             You are reviewing a pull request in `ros2_hzj`, a ROS 2 / DDS
             dual-chain workspace. Read `AGENTS.md` and
-            `docs/architecture/ci-cd-gates.md` first, then `gh pr diff`.
+            `docs/architecture/ci-cd-gates.md` first, then the PR diff at
+            `.pr-review/pr.diff` (pre-generated; you have no shell).
 
             Review for, in this order:
             1. Hold boundary violations (block-level findings):
@@ -75,8 +93,15 @@ jobs:
             Docs *mentioning* Agnocast / zenoh are fine; only new *paths* count.
 
             Use `mcp__github_inline_comment__create_inline_comment` for
-            line-specific findings and `gh pr comment` for one short summary.
-            If there are no findings, post a single short comment saying so.
-            Never approve, request changes, or merge.
+            line-specific findings and `mcp__github_comment__update_claude_comment`
+            to write one short summary into the tracking comment. If there are
+            no findings, say so in the tracking comment.
+            Never approve, request changes, or merge. Never quote environment
+            variables, tokens, or anything outside the repository checkout.
+          # Text-only publish channels (inline comment + tracking comment) and
+          # read-only file access. No Bash. Reads outside the checkout are
+          # denied so /proc/self/environ, the runner temp dir (holds the
+          # action's MCP config) and dotfiles cannot be echoed into a comment.
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,mcp__github_comment__update_claude_comment,Read,Grep,Glob"
+            --disallowedTools "Bash,Read(//proc/**),Read(//dev/**),Read(//sys/**),Read(//etc/**),Read(~/**),Read(/${{ runner.temp }}/**)"
