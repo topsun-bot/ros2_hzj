@@ -64,6 +64,8 @@ tests:
     assert:
       - type: contains
         value: 'Executor map healthy'
+      - type: contains
+        value: 'WaitSet -> callback: mapped'
 
   - description: 'check_runtime_provenance.py: underlay vs vendor snapshot healthy'
     vars:
@@ -71,20 +73,28 @@ tests:
     assert:
       - type: contains
         value: 'Runtime provenance healthy'
+      - type: contains
+        value: 'underlay != vendor snapshot'
 
-  - description: 'check_unitree_cyclone_swap.py: Unitree 0.10.2 vs vendor 11.0.1 record healthy'
+  - description: 'check_unitree_cyclone_swap.py: Unitree 0.10.2 vs vendor 11.0.1 record healthy; drop-in FAIL / wire UNPROVEN verdict must not be silently flipped'
     vars:
       script: scripts/check_unitree_cyclone_swap.py
     assert:
       - type: contains
         value: 'Unitree Cyclone swap record healthy'
+      - type: contains
+        value: 'drop-in: FAIL / wire: UNPROVEN'
 
-  - description: 'check_three_chain_repro.py: three-chain map != reproduce, STATUS blocked'
+  - description: 'check_three_chain_repro.py: three-chain map != reproduce, STATUS blocked (must not fabricate a reproduce PASS without a Humble host)'
     vars:
       script: scripts/check_three_chain_repro.py
     assert:
       - type: contains
         value: 'Three-chain reproduce record healthy'
+      - type: contains
+        value: 'map ≠ reproduce'
+      - type: contains
+        value: 'STATUS: blocked'
 
   - description: 'check_sink_layers.py: sink layers mapped Hold vs allowed'
     vars:
@@ -92,18 +102,34 @@ tests:
     assert:
       - type: contains
         value: 'Sink-layer record healthy'
+      - type: contains
+        value: 'sink layers: mapped (Hold vs allowed)'
 
-  - description: 'check_dual_chain_baseline.py: dual-chain baseline pointer-only, no XML rewrite'
+  - description: 'check_dual_chain_baseline.py: dual-chain baseline pointer-only, no XML rewrite; same-topology XML tuning paused'
     vars:
       script: scripts/check_dual_chain_baseline.py
     assert:
       - type: contains
         value: 'Dual-chain baseline healthy'
+      - type: contains
+        value: 'dual-chain baseline: pointer only (no XML rewrite)'
+      - type: contains
+        value: 'same-topology XML tuning is paused'
 
   - description: 'check_dual_chain_baseline.py: load.py is single source of truth, cross-checks shell copies + wrapper'
     vars:
       script: scripts/check_dual_chain_baseline.py
     assert:
+      - type: contains
+        # One line encodes the real chain values: A=rmw_fastrtps_cpp/42 +
+        # fastdds.xml, B=rmw_cyclonedds_cpp/0, CYCLONEDDS_URI in CHAIN_B_UNSET.
+        value: 'ok env truth:'
+      - type: contains
+        value: 'rmw_fastrtps_cpp/42'
+      - type: contains
+        value: 'rmw_cyclonedds_cpp/0'
+      - type: contains
+        value: 'CYCLONEDDS_URI in CHAIN_B_UNSET'
       - type: contains
         value: 'chain_a.sh exports match load.py CHAIN_A'
       - type: contains
@@ -113,19 +139,23 @@ tests:
       - type: contains
         value: 'import leaves os.environ unchanged'
 
-  - description: 'check_dod_evidence.py: product DoD unmet, STATUS blocked'
+  - description: 'check_dod_evidence.py: product DoD unmet, STATUS blocked (must not claim the product DoD is met)'
     vars:
       script: scripts/check_dod_evidence.py
     assert:
       - type: contains
         value: 'Product DoD evidence healthy'
+      - type: contains
+        value: 'DoD: unmet'
 
-  - description: 'check_cega_bridge_hold.py: Cega / Bridge Hold'
+  - description: 'check_cega_bridge_hold.py: Cega / Bridge Hold (no Cega integration, no runtime edits)'
     vars:
       script: scripts/check_cega_bridge_hold.py
     assert:
       - type: contains
         value: 'Cega / Bridge Hold healthy'
+      - type: contains
+        value: 'no Cega'
 
   - description: 'check_frozen_path_literals.py: no second Path(...) copy of frozen Hold paths'
     vars:
@@ -133,3 +163,25 @@ tests:
     assert:
       - type: contains
         value: 'Frozen-path literals healthy'
+
+  # Direct executable source of truth for the dual-chain contract. These two
+  # cases pass CLI args through the local-script provider (argv split).
+  - description: 'load.py print-a: Chain A is rmw_fastrtps_cpp / ROS_DOMAIN_ID 42 / config/fastdds.xml'
+    vars:
+      script: config/env/load.py print-a
+    assert:
+      - type: contains
+        value: 'RMW_IMPLEMENTATION=rmw_fastrtps_cpp'
+      - type: contains
+        value: 'ROS_DOMAIN_ID=42'
+      - type: contains
+        value: 'config/fastdds.xml'
+
+  - description: 'load.py print-b: Chain B is rmw_cyclonedds_cpp / ROS_DOMAIN_ID 0'
+    vars:
+      script: config/env/load.py print-b
+    assert:
+      - type: contains
+        value: 'RMW_IMPLEMENTATION=rmw_cyclonedds_cpp'
+      - type: contains
+        value: 'ROS_DOMAIN_ID=0'
