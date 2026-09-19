@@ -66,3 +66,49 @@
    （仅删计划中标注且有验证映射的条目；删后重跑 12 gate + 12 eval，必须保持 100%）。
 2. 为 `requirements-chain-b.txt` 补锁（生成 lock 文件，不改 Hold 文件）。
 3. 飞书文档权限恢复后补读，回填《2》对齐差异。
+
+---
+
+## 轮次 1 — 2026-09-19 17:18（Asia/Shanghai）Step 2：提取冻结路径公共辅助
+
+### 本轮改动（一项重点改进，纯提取重构，行为不变）
+- 新增 `scripts/_freeze_paths.py`（下划线前缀，不进 CI 命令清单）：冻结路径
+  `FASTDDS_XML_REL`、`SCOREBOARD_REL` 与两条 existence-only hint 常量的**单一真源**。
+- 8 个闸门脚本删除本地重复定义，改为 import：
+  - 6 个三元组脚本（check_three_chain_repro / check_dod_evidence /
+    check_unitree_cyclone_swap / check_cega_bridge_hold / check_sink_layers /
+    check_dual_chain_baseline）：路径常量 + 两条 hint 字面量收敛；
+  - check_risk_matrix：仅路径常量（它对两文件做内容断言，不用 existence hint）；
+  - print_bench_gates：仅 SCOREBOARD 路径常量。
+- 消除 §1.2 盘点的 7–8 份 `XML_REL/SCOREBOARD_REL` 拷贝与 6 份 hint 串拷贝。
+- 与计划的偏差（有依据）：计划提到的 `check_existence(rel)` 辅助**未引入**——各脚本
+  存在性失败渲染文案不同、无独立重复模式，强加会变成无调用者的死代码，与重构目标矛盾；
+  本轮只收敛真正重复的常量与串。
+- 机械化替换带命中次数断言（每处恰好 1 次命中，否则中止不写盘）。
+
+### 验证（行为不变证据）
+- **stdout 逐字节对比**：12 个 gate 脚本重构前后输出 `cmp` 全部 IDENTICAL，exit 全 0。
+- `python3 -m compileall`：新模块 + 全部脚本编译通过。
+- `python3 scripts/run_all_gates.py`：**12/12 exit 0，marker 12/12**。
+- promptfoo 0.123.1：**12 passed (100%) / 0 failed / 0 errors，Duration 0s**。
+- CI 兼容性已核对：structure job 为 `test -f` 存在性清单（不限制新增文件）；
+  contracts/boundary job 以 `python3 scripts/<gate>.py` 从仓库根调用，
+  `sys.path[0]=scripts/`，同目录 import 可用。
+- 本轮无新增行为，未新增 eval 用例（被改的 8 个脚本本就被现有 12 用例覆盖）。
+
+### 分数
+- Gate：12/12（100%），与轮次 0 持平（本轮目标是去重，不应改变分数）。
+- Eval：12/12（100%），与轮次 0 持平。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、
+   飞书 3380004、bench 依赖未锁）。
+2. 本轮只做 A 面（我们自己的脚本）；Step 3（抽 `_md_paths.py` 收敛
+   check_source_map/check_executor_map 的 md 路径解析）为下一候选。
+3. 冗余 PR #47 已关闭并删除分支（内容已由 #48 合并）。
+
+### 下一步（轮次 2 候选）
+1. Step 3：抽 `scripts/_md_paths.py`，收敛 check_source_map.py（320 行）与
+   check_executor_map.py（407 行）同构的 md 路径解析/符号查找/WARN-FAIL 渲染；
+   仍要求 stdout 逐字节不变。
+2. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁）。
