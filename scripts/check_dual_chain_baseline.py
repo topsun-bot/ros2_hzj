@@ -18,11 +18,17 @@ Does not prove fastdds.xml / SCOREBOARD contents are unchanged —
 those files are existence-only here; the `boundary` job owns the freeze.
 chain_b.sh must `unset CYCLONEDDS_URI` (same as load.py CHAIN_B_UNSET)
 and must not `export CYCLONEDDS_URI=`.
+config/env/load.py is the single executable source of truth: this gate
+imports it and cross-checks its CHAIN_A/CHAIN_B values against the literal
+shell export copies and the dimos_bridge/dual_chain_env.py thin wrapper,
+and asserts importing load.py / the wrapper does not mutate os.environ.
 Style follows scripts/check_unitree_cyclone_swap.py / check_risk_matrix.py.
 """
 
 from __future__ import annotations
 
+import importlib.util
+import os
 from pathlib import Path
 import re
 import sys
@@ -112,6 +118,30 @@ _EXPORT_CYCLONE_URI_RE = re.compile(
 )
 _UNSET_CYCLONE_URI_RE = re.compile(r"(?m)^\s*unset\s+CYCLONEDDS_URI\s*$")
 
+# Single executable source of truth for the dual-chain env contract
+# (modernization plan Step 4). chain_a.sh / chain_b.sh carry literal
+# export copies (anchored above and by the boundary job) and
+# dimos_bridge/dual_chain_env.py is an importlib thin wrapper; this gate
+# cross-checks that all three still agree with load.py, and that merely
+# importing load.py does not write os.environ.
+LOAD_PY_REL = Path("config/env/load.py")
+WRAPPER_REL = Path("dimos_bridge/dual_chain_env.py")
+_EXPECTED_CHAIN_A = {
+    "RMW_IMPLEMENTATION": "rmw_fastrtps_cpp",
+    "ROS_DOMAIN_ID": "42",
+}
+_EXPECTED_CHAIN_B = {
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+    "ROS_DOMAIN_ID": "0",
+}
+_ENV_WATCH_KEYS = (
+    "RMW_IMPLEMENTATION",
+    "ROS_DOMAIN_ID",
+    "FASTRTPS_DEFAULT_PROFILES_FILE",
+    "CYCLONEDDS_URI",
+)
+_SHELL_EXPORT_RE = re.compile(r"(?m)^\s*export\s+([A-Za-z_]\w*)=(.*?)\s*$")
+
 
 def _repo_root() -> Path:
     cwd = Path.cwd()
@@ -134,6 +164,26 @@ def _missing_exports(text: str, patterns: tuple[re.Pattern[str], ...]) -> list[s
         if pattern.search(text) is None:
             missing.append(pattern.pattern)
     return missing
+
+
+def _load_py_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load module at {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _shell_exports(text: str) -> dict[str, str]:
+    """Parse literal `export KEY=VALUE` lines; strip one quoting layer."""
+    exports: dict[str, str] = {}
+    for match in _SHELL_EXPORT_RE.finditer(text):
+        value = match.group(2).strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        exports[match.group(1)] = value
+    return exports
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
@@ -240,6 +290,147 @@ def render(root: Path | None = None) -> tuple[str, int]:
                 "- **ok chain B:** helper unsets CYCLONEDDS_URI "
                 "(aligns with load.py CHAIN_B_UNSET)"
             )
+
+    # Single source of truth (modernization plan Step 4): load.py values
+    # must equal the literal shell export copies and the thin wrapper's
+    # re-exports; importing either module must not mutate os.environ.
+    load_path = root / LOAD_PY_REL
+    wrapper_path = root / WRAPPER_REL
+    if not load_path.is_file():
+        failures.append(f"missing file `{LOAD_PY_REL.as_posix()}`")
+        lines.append(f"- **FAIL missing:** `{LOAD_PY_REL.as_posix()}`")
+    else:
+        before = {k: os.environ.get(k) for k in _ENV_WATCH_KEYS}
+        try:
+            env_mod = _load_py_module("ros2_hzj_env_load_gate", load_path)
+        except Exception as exc:  # gate must report, not crash
+            failures.append(f"cannot import load.py: {exc}")
+            lines.append("- **FAIL env truth:** cannot import config/env/load.py")
+            env_mod = None
+        wmod = None
+        if env_mod is not None:
+            if not wrapper_path.is_file():
+                failures.append(f"missing file `{WRAPPER_REL.as_posix()}`")
+                lines.append(f"- **FAIL missing:** `{WRAPPER_REL.as_posix()}`")
+            else:
+                try:
+                    wmod = _load_py_module("ros2_hzj_env_wrapper_gate", wrapper_path)
+                except Exception as exc:  # gate must report, not crash
+                    failures.append(f"cannot import dual_chain_env.py: {exc}")
+                    lines.append(
+                        "- **FAIL env wrapper:** cannot import "
+                        "dimos_bridge/dual_chain_env.py"
+                    )
+        after = {k: os.environ.get(k) for k in _ENV_WATCH_KEYS}
+
+        chain_a = dict(getattr(env_mod, "CHAIN_A", {})) if env_mod else {}
+        chain_b = dict(getattr(env_mod, "CHAIN_B", {})) if env_mod else {}
+        b_unset = tuple(getattr(env_mod, "CHAIN_B_UNSET", ())) if env_mod else ()
+
+        if env_mod is not None:
+            truth_bad: list[str] = []
+            for key, want in _EXPECTED_CHAIN_A.items():
+                if chain_a.get(key) != want:
+                    truth_bad.append(
+                        f"CHAIN_A[{key}]={chain_a.get(key)!r} (want {want!r})"
+                    )
+            for key, want in _EXPECTED_CHAIN_B.items():
+                if chain_b.get(key) != want:
+                    truth_bad.append(
+                        f"CHAIN_B[{key}]={chain_b.get(key)!r} (want {want!r})"
+                    )
+            profiles = chain_a.get("FASTRTPS_DEFAULT_PROFILES_FILE", "")
+            if not profiles.endswith("config/fastdds.xml") or not Path(
+                profiles
+            ).is_file():
+                truth_bad.append(
+                    "CHAIN_A profiles file does not resolve to config/fastdds.xml"
+                )
+            if "CYCLONEDDS_URI" not in b_unset:
+                truth_bad.append("CHAIN_B_UNSET missing CYCLONEDDS_URI")
+            if before != after:
+                changed = [k for k in _ENV_WATCH_KEYS if before[k] != after[k]]
+                truth_bad.append(
+                    "import mutated os.environ: " + ", ".join(changed)
+                )
+            if truth_bad:
+                failures.append("load.py env contract drift: " + "; ".join(truth_bad))
+                lines.append(
+                    "- **FAIL env truth:** load.py drifted from the dual-chain "
+                    "contract or import mutated os.environ"
+                )
+            else:
+                lines.append(
+                    "- **ok env truth:** load.py chain A rmw_fastrtps_cpp/42 + "
+                    "config/fastdds.xml; chain B rmw_cyclonedds_cpp/0; "
+                    "CYCLONEDDS_URI in CHAIN_B_UNSET; import leaves os.environ "
+                    "unchanged"
+                )
+
+        if env_mod is not None and chain_a_text is not None:
+            sh_a = _shell_exports(chain_a_text)
+            a_bad = [
+                f"{key}: shell={sh_a.get(key)!r} load.py={chain_a.get(key)!r}"
+                for key in ("RMW_IMPLEMENTATION", "ROS_DOMAIN_ID")
+                if sh_a.get(key) != chain_a.get(key)
+            ]
+            sh_profiles = sh_a.get(
+                "FASTRTPS_DEFAULT_PROFILES_FILE", ""
+            ).replace("${_ROS2_HZJ_ROOT}", str(root))
+            if Path(sh_profiles) != Path(
+                chain_a.get("FASTRTPS_DEFAULT_PROFILES_FILE", "")
+            ):
+                a_bad.append("FASTRTPS_DEFAULT_PROFILES_FILE path mismatch")
+            if a_bad:
+                failures.append(
+                    "chain_a.sh / load.py CHAIN_A drift: " + "; ".join(a_bad)
+                )
+                lines.append(
+                    "- **FAIL env cross-check:** chain_a.sh != load.py CHAIN_A"
+                )
+            else:
+                lines.append(
+                    "- **ok env cross-check:** chain_a.sh exports match "
+                    "load.py CHAIN_A"
+                )
+
+        if env_mod is not None and chain_b_text is not None:
+            sh_b = _shell_exports(chain_b_text)
+            b_bad = [
+                f"{key}: shell={sh_b.get(key)!r} load.py={chain_b.get(key)!r}"
+                for key in ("RMW_IMPLEMENTATION", "ROS_DOMAIN_ID")
+                if sh_b.get(key) != chain_b.get(key)
+            ]
+            if b_bad:
+                failures.append(
+                    "chain_b.sh / load.py CHAIN_B drift: " + "; ".join(b_bad)
+                )
+                lines.append(
+                    "- **FAIL env cross-check:** chain_b.sh != load.py CHAIN_B"
+                )
+            else:
+                lines.append(
+                    "- **ok env cross-check:** chain_b.sh exports match "
+                    "load.py CHAIN_B"
+                )
+
+        if env_mod is not None and wmod is not None:
+            wrapper_ok = (
+                dict(getattr(wmod, "CHAIN_A", {})) == chain_a
+                and dict(getattr(wmod, "CHAIN_B", {})) == chain_b
+                and wmod.chain_a_env() == dict(chain_a)
+                and wmod.chain_b_env() == dict(chain_b)
+            )
+            if wrapper_ok:
+                lines.append(
+                    "- **ok env wrapper:** dimos_bridge/dual_chain_env.py "
+                    "re-exports match load.py"
+                )
+            else:
+                failures.append("dual_chain_env.py wrapper drifted from load.py")
+                lines.append(
+                    "- **FAIL env wrapper:** re-exports != load.py"
+                )
 
     lines.append("")
     lines.extend(

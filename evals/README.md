@@ -12,7 +12,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 12 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 13 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`，返回 stdout；非 0 退出即 `error` |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -24,7 +24,7 @@
   `scripts/*.py` 路径。provider 用 `execFileSync('python3', [script], { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（12 个，每个对应一个 gate 脚本）：
+- **seed 用例**（13 个：12 个 gate 健康标记 + 1 个 env 真源交叉检查）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -38,8 +38,9 @@
   | 8 | `scripts/check_three_chain_repro.py` | `Three-chain reproduce record healthy` |
   | 9 | `scripts/check_sink_layers.py` | `Sink-layer record healthy` |
   | 10 | `scripts/check_dual_chain_baseline.py` | `Dual-chain baseline healthy` |
-  | 11 | `scripts/check_dod_evidence.py` | `Product DoD evidence healthy` |
-  | 12 | `scripts/check_cega_bridge_hold.py` | `Cega / Bridge Hold healthy` |
+  | 11 | `scripts/check_dual_chain_baseline.py` | `chain_a.sh exports match load.py CHAIN_A`、`chain_b.sh exports match load.py CHAIN_B`、`dual_chain_env.py re-exports match load.py`、`import leaves os.environ unchanged`（env 单一真源交叉检查） |
+  | 12 | `scripts/check_dod_evidence.py` | `Product DoD evidence healthy` |
+  | 13 | `scripts/check_cega_bridge_hold.py` | `Cega / Bridge Hold healthy` |
 
 - **断言语义**：
   - 退出码 0 —— 由 provider 契约保证（非 0 即 `error`，case 直接失败），不需要额外断言。

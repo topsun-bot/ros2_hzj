@@ -1,5 +1,7 @@
 """薄包装：读双链环境契约，默认不改 os.environ。
 
+``config/env/load.py`` 是双链契约（RMW 标识 / ROS_DOMAIN_ID / XML 路径）的
+唯一可执行真源；本模块只做 importlib 重新导出，不得在此复制常量。
 DimOS 已拷模块不要 import 本文件来「初始化」。需要对齐某条链时，由操作员显式
 调用 ``apply_chain_a`` / ``apply_chain_b``，或 source ``config/env/chain_*.sh``。
 """
