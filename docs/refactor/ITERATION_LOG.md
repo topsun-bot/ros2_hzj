@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 19 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 20 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -927,4 +927,91 @@
    避免低价值断言堆砌。
 3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18+#19+eval 回归并在日志标注「等待新指令」，
+   不制造无意义提交。
+
+---
+
+## 轮次 14 — 2026-09-20 05:12（Asia/Shanghai）《5》深化：Unitree 交换裁决 guard 负向自测沉淀为 eval 用例 #20
+
+> 定时任务第 14 轮。分支 `test/unitree-swap-guard-selftest`，PR 编号以实际返回为准。
+> 开工核对：本循环无在途 PR（#63/#64 已 squash-merge，main HEAD `a0cedea`；`gh pr list` 中 #65/#61/#56/#46
+> 等均为他人 claude/cursor/codex 自动审查类 PR，未触碰）；`gh auth status` 复核 active 账号
+> `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有 workflow 但对本仓
+> 403——ci.yml 接线 / fingerprint·#18·#19·#20 进 CI / §5.3 规则 2 机器化继续阻塞；CVE 修复仍待批准。
+> 本轮执行轮次 13「下一步候选 2」的另一半：轮次 13 沉淀了 env guard（#19），本轮评估并沉淀 **#7 Unitree
+> 交换裁决 guard** 的负向能力（与 #18/#19 同构、不依赖授权、不越界，且守护的是《6》CVE 结论的关键裁决）。
+
+### 背景 / 覆盖缺口取证（先证与 #7 不重复）
+- #7 是**正向**用例：跑真实仓 `check_unitree_cyclone_swap.py`，断言健康 marker 与 `drop-in: FAIL / wire:
+  UNPROVEN`。它只证明**当前记录**打印该串，证明不了 guard 的各项检查在记录被篡改时**仍会 fail**。该裁决
+  守护与《6》直接相关的诚实性：Unitree bundled Cyclone 0.10.2 对 vendor 11.0.1 不是 drop-in、默认保持
+  bundled、唯一合法替换路径是 `unitree_sdk2_hzj + UNITREE_DDS_PROVIDER=external`、wire 互通保持 UNPROVEN。
+- 若有人把交换文档裁决翻成 `drop-in PASS / wire PROVEN`、删掉引文 `DDS_VERSION "0.10.2"`、改松 vendor
+  Cyclone SHA / CMake `project() VERSION` 钉版或删除交换文档，而 guard 被相应改宽，所有正向运行（gate、
+  #7、#17 指纹，它们比对的都是健康树输出）都会继续全绿，安全裁决却已悄悄反转——与 #18/#19 同类的
+  "guard 失效但全绿"盲区。
+- 与 frozen/env 自测的差异：交换文档带 18 个连续 marker，手写最小健康文档易腐且会偏离真实记录，故本轮
+  采用**复制 guard 读取的 5 个真实文件进 tempdir、再每次只变异一个**的夹具策略，健康复制树同时充当
+  "夹具与真实树等价"的自证。
+
+### 本轮改动（一项重点改进，仅 evals/；不改任何 gate/生产代码、不碰 ci.yml）
+- **新增 `evals/unitree_swap_guard_selftest.py`（eval-only，纯标准库，tempdir-only，不是 gate）**：不进
+  `run_all_gates.GATES`、不被 CI structure 枚举、无需 ci.yml 接线（不受 workflow scope 阻塞）。复制
+  guard 读取的 5 个文件（交换文档、`vendor/VERSIONS.md`、`vendor/CycloneDDS/CMakeLists.txt`，以及在该
+  脚本里只验存在的 `config/fastdds.xml`、`SCOREBOARD.md`）进临时树，驱动可注入的 `render(root=...)`：
+  1. **5 个负向场景**：N1 连续裁决句 `drop-in FAIL / wire UNPROVEN`→`drop-in PASS / wire PROVEN`（报
+     `FAIL verdict`，且未改动的 VERSIONS/CMake 仍报 ok，证明各检查独立、不连带）；N2 引文
+     `DDS_VERSION "0.10.2"`→`"9.9.9"`（裸 0.10.2 在文档别处保留，专门引文检查仍报 `FAIL quote`）；
+     N3 vendor CycloneDDS SHA 行被改（报 `FAIL VERSIONS row`，交换文档未动故裁决句仍 ok）；N4 CMake
+     `project() VERSION 11.0.1`→9.9.9（报 `FAIL CMake project()`）；N5 删除交换文档（报 `FAIL missing`、
+     不打印 marker，VERSIONS/CMake 仍 ok）；
+  2. **2 个健康对照**：真实仓 `render()` 与一份完整复制的临时树都必须 exit 0 且打印 marker（证明复制夹具
+     本身有效、与真实树等价，否则负向场景可能因错误原因失败）；
+  3. **1 个变异**：把 `_CMAKE_PROJECT_RE` 改宽为只匹配 `project(CycloneDDS` 而不再钉 `VERSION 11.0.1`，
+     N4 必须**漏报**（被篡改树打印 `ok CMake project()`），恢复正则后必须重新抓到——证明 N4 确实依赖检测
+     器里的版本钉（"检查被改宽即漏报"），而非偶然通过。
+  - 所有变异锚点串（裁决句、引文、SHA、CMake project 行、5 个文件路径）均先 grep 真实文件逐字取证；
+    每次变异在全新 tempdir 进行，只读真实仓、绝不写仓。
+- `evals/promptfooconfig.yaml`：新增用例 **#20**（断言 `unitree swap guard selftest: PASS` + 计数短语
+  `5 negative, 2 healthy, 1 mutation`，锁夹具数、防悄悄删负向样本）；用例 19→20。
+- `evals/README.md`：文件表加自测脚本、用例数 19→20、用例表加 #20 行、新增「Unitree Cyclone 交换裁决
+  负向自测（#20）」小节（为何 #7 正向证明不了检查会触发、复制真实文件夹具策略、5/2/1 清单、变异验证、
+  eval-only 定位）。
+- **未做（Hold/边界）**：未改 `check_unitree_cyclone_swap.py` 或任何 gate（正常仓 stdout 零变化）；未碰
+  ci.yml、fastdds.xml、SCOREBOARD.md、vendor、`dimos_bridge`；未启用 zenoh/Agnocast/Cega；无框架/依赖/
+  API 变更；不新增 gate（不加剧"本地 13 vs CI 12"背离）。
+
+### 负向有效性验证（证明自测不是摆设）
+- `python3 evals/unitree_swap_guard_selftest.py` → negative 5/5、healthy 2/2、mutation 1/1，PASS、exit 0。
+- 变异方向刻意选"改宽"（与威胁模型"等值/正则比较被改宽"一致）：去掉 CMake 版本钉后被篡改树打印
+  `ok CMake project()`（漏报），恢复后重新 `FAIL CMake project()`——证明该负向场景确实依赖版本钉。
+
+### 分数前后对比
+- Gate：**13/13（100%）**，与轮次 13 持平（未改任何 gate，run_all_gates 不受影响）。
+- 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
+- #18 frozen、#19 env 负向自测：均仍 PASS。
+- Eval：**19 → 20 用例，20/20 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#20 PASS，Duration 2s）。
+- `py_compile evals/unitree_swap_guard_selftest.py` 通过。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint/#18/#19/#20 进 CI、§5.3
+   规则 2 机器化仍无法落地；四个 eval-only 严格/负向层（#17/#18/#19/#20）目前都只在本地/本循环把关，未进
+   GitHub required checks。
+3. #20 复制的是真实文件，若交换文档/VERSIONS/CMake 的**合法演进**改变了变异锚点串（如未来 vendor 升级
+   Cyclone 版本），自测会因锚点 `old not found` 显式 RuntimeError 失败——这是有意的 fail-loud，提示同步
+   夹具；但意味着 vendor 升级 PR 需要同步更新本自测锚点。
+4. #2 source-map allowlisted 符号检查是否存在同类"可被改宽但正向全绿"盲区尚未评估（其符号解析在
+   `_md_paths.check_cited_paths`，构造负向夹具更复杂，留下一轮）；真·双链 pub/sub / p99 / 跨机 UDP 本机仍 blocked。
+
+### 下一步（轮次 15 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope，用离线备份补仅含 ci.yml 接线的独立 PR（frozen gate
+   test-f + 运行 step；纯标准库、无需 npx 联网的 fingerprint_check.py、frozen_guard_selftest.py、
+   dual_chain_env_guard_selftest.py、unitree_swap_guard_selftest.py 比整套 promptfoo 更适合先纳入 CI），
+   回填 ci-cd-gates.md §1、删 §6 pending；接线后再做 §5.3 规则 2 机器化。
+2. 评估 #2 source-map allowlisted 符号检查（`_md_paths.check_cited_paths`）的负向沉淀可行性：先证与 #2
+   正向、#17 指纹不重复，且能在 tempdir 构造"vendor 丢符号/引用路径缺失被改宽漏报"夹具；若复杂度过高或
+   与现有层重复则不做，避免低价值断言堆砌。
+3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
+4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18+#19+#20+eval 回归并在日志标注「等待新指令」，
    不制造无意义提交。
