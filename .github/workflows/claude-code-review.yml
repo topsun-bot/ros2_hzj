@@ -43,18 +43,28 @@ jobs:
           # The action authenticates its own gh / GitHub API calls.
           persist-credentials: false
 
-      # Trusted step: materialize the PR diff as a file so the model needs no
-      # shell at all. The file goes in a fresh mktemp directory that is a
-      # SIBLING of the checkout (…/work/<repo>/claude-review.XXXXXX): a PR
-      # cannot pre-plant a file or symlink there, and it is not runner.temp
-      # (which the model is denied). The exact path is handed to the prompt.
-      - name: Stage PR diff outside the PR-controlled tree
+      # Trusted step, two jobs:
+      # 1. Strip every symlink from the PR checkout (outside .git). Git lets a
+      #    PR add a symlink to /proc/self/environ or the runner temp dir; the
+      #    Read(...) deny rules match the spelled path, so a link inside the
+      #    workspace would bypass them. With no links left, every readable
+      #    path is a regular file under ~/work/<repo>/**.
+      # 2. Materialize the PR diff as a file so the model needs no shell. The
+      #    file goes in a fresh mktemp directory that is a SIBLING of the
+      #    checkout (…/work/<repo>/claude-review.XXXXXX): a PR cannot
+      #    pre-plant a file or symlink there, and it is not runner.temp (which
+      #    the model is denied). The exact path is handed to the prompt.
+      - name: Strip symlinks and stage PR diff outside the PR-controlled tree
         id: diff
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          links="$(find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print | wc -l)"
+          find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -exec rm -f -- {} +
+          echo "removed $links symlink(s) from the checkout"
+          test "$(find "$GITHUB_WORKSPACE" -path "$GITHUB_WORKSPACE/.git" -prune -o -type l -print | wc -l)" = 0
           dir="$(mktemp -d "${GITHUB_WORKSPACE}/../claude-review.XXXXXX")"
           dir="$(cd "$dir" && pwd -P)"
           gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" > "$dir/pr.diff"
@@ -117,7 +127,9 @@ jobs:
           #                      _actions/_tool/_PipelineMapping are runner
           #                      internals) and ~/runners. What remains
           #                      readable is ~/work/<repo>/**: the checkout
-          #                      and the diff directory staged above. Only the
+          #                      (symlinks stripped above, so no link can
+          #                      re-enter a denied path) and the diff
+          #                      directory staged above. Only the
           #                      dot-entries of $HOME are denied, not $HOME
           #                      itself, because the workspace lives under it.
           # Folded scalar (>-) so the CLI receives one argument line.
