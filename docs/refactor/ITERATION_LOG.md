@@ -667,3 +667,57 @@
    体系（_freeze_paths/_md_paths/_repo/frozen gate/fingerprint）同步补一段"一致性/回归工具链"，
    或核对 evals/results 旧 BASELINE（仍停留在早期用例数）是否应加"当前基线见 ITERATION_LOG"指引。
 4. 继续避免低价值断言堆砌；静态契约 + 全文指纹两层已较完备，增量价值在 CI 接线或 Humble 实测。
+
+---
+
+## 轮次 10 — 2026-09-20 01:05（Asia/Shanghai）《1》同步：走查文档补齐一致性/回归工具链
+
+> 定时任务第 10 轮。分支 `docs/walkthrough-consistency-toolchain`，PR #59。
+> `workflow` scope 仍未授予（active 账号 `yixinzhangagent` 仅 gist/read:org/repo；`zhangyinxina-ui`
+> 有 workflow 但对本仓 403）、CVE 修复仍待批准，ci.yml 接线 / 规则 2 机器化继续阻塞。本轮按轮次 9
+> 候选 3 行动，做**纯文档同步、行为不变**：《1》走查文档停留在轮次 0 的"12 个脚本、各自打开文件"
+> 状态，未反映轮次 1–9 引入的共享 helper、第 13 闸、env 交叉断言、stdout 指纹与 Promptfoo 深化——
+> 这是《1》"后续随代码重构保持同步"的明确欠账。本轮只改 `docs/refactor/01-dds-request-flow.md`。
+
+### 背景 / 文档漂移取证
+- §2 引言写"下列 12 个脚本"，但本地 runner 已是 13 gate（轮次 4 frozen gate）；且未说明 CI structure
+  仍只枚举 12（workflow scope pending）这一"本地 13 vs CI 12"背离。
+- §2.2 标题"每个 check_*.py **各自**打开一组文件"已不成立：轮次 1/2/5 抽出 `_freeze_paths` /
+  `_md_paths` / `_repo` 三个共享 helper，路径常量、repo-root/读取、md 解析已单点维护。
+- §2.2 闸门表缺第 13 行 frozen gate；`check_dual_chain_baseline` 行只写 shell 单侧锚定，未写轮次 3
+  新增的 load.py↔shell↔wrapper env 单一真源交叉断言与 import 纯净检查。
+- §问4 命令清单只有 12 gate + print-a/b，缺 frozen gate、指纹回归、Promptfoo；全文没有一处指引
+  贡献者"改 gate stdout 要 --update fixtures"。
+
+### 本轮改动（一项重点改进，仅 1 个文档，+30/−4）
+- §2 引言：12 → 本地 runner 13 gate，并显式标注 CI structure 仍枚举 12、第 13 闸接线待 workflow scope（指向 ci-cd-gates §6 与本日志）。
+- §2.2：标题去掉"各自"，新增一段三个下划线 helper 的职责与边界（helper 不承载业务断言，业务断言仍归各 gate）。
+- §2.2 闸门表：补 `check_frozen_path_literals.py`（第 13 闸，防回潮）行；扩写 dual_chain 行的 env 交叉断言 / import 纯净。
+- **新增 §2.4「一致性与回归工具链（轮次 1–9 引入）」**：讲清三层互补——run_all_gates 红绿层、Promptfoo 17 用例契约层（含固定 0.123.1 命令）、fingerprint_check 严格指纹层（eval-only 非第 14 gate、15 命令逐字节、`--update` 流程）；并用 blockquote 如实标注 CI 现状（structure 只跑 12、Promptfoo/指纹 CI 不跑）。
+- §问4：命令块补 frozen gate；新增三层本地回归命令块与"改 stdout 记得 --update fixtures"提示。
+- §4 阅读清单：新增第 15 条工具链入口（runner + 三 helper + evals README/fingerprint + 本日志）。
+
+### 验证
+- **相对链接全量自检**：用与 CI contracts「In-repo markdown relative links」同构的正则提取本文件全部
+  **131 个相对链接，missing 0**（新增的 helper / evals / fixtures / 同目录日志计划链接均真实存在）。
+  另核对 ci.yml：contracts 的 md-link 检查是**显式文件枚举**，files 列表不含 `docs/refactor/**`，
+  故本文件本就不在该 CI 检查面——本地自检是更强保证。
+- `python3 scripts/run_all_gates.py`：**13/13 all gates green**（docs-only，不碰任何脚本）。
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（无 gate stdout 变化，fixtures 不动）。
+- promptfoo 0.123.1：**17/17 passed (100%) / 0 failed / 0 errors**。
+
+### 分数
+- Gate：13/13（100%），与轮次 9 持平（纯文档，不应改分）。
+- Eval：17/17（100%），与轮次 9 持平。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint 进 CI、规则 2 机器化均无法落地；走查文档已如实写明该背离，避免读者误以为 PR 跑了 13 gate + eval。
+3. 仍存文档债务：`evals/results/BASELINE.md` 还是早期 12 用例 / `promptfoo@latest` 的初始基线快照，与当前 17 用例 / 0.123.1 不符，本轮未动（留下一轮，倾向加"初始基线存档、当前基线见 ITERATION_LOG"指针而非改历史数字）。
+4. docs/refactor 不在 CI md-link 枚举面，后续该目录链接正确性仍靠本地自检 / 本循环把关。
+
+### 下一步（轮次 11 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope，补仅含 ci.yml 接线的独立 PR（frozen gate + 评估把纯 python 的 fingerprint_check.py 先纳入 CI），再做 §5.3 规则 2 机器化。
+2. 给 `evals/results/BASELINE.md` 加"初始基线存档"状态指针（不改历史数字），消除 12 vs 17 的误导。
+3. 视批准情况推进 CVE 修复独立 PR。
+4. 无授权且文档债务清完后，不制造低价值改动，做一次完整 gate+eval 回归并在日志标注「等待新指令」。
