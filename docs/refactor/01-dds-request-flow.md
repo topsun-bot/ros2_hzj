@@ -65,7 +65,7 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 
 ## 2. 数据在哪些地方做校验（prove_rmw.py 与 check_*.py 强制了什么假设）
 
-本机无 ROS，下列 12 个脚本我已逐个跑过，**全部 exit 0**（基线）。它们强制的是**结构 / 字符串 / 路径存在**假设，不是行为假设。
+本机无 ROS，下列闸门我已逐个跑过，**全部 exit 0**（基线）。它们强制的是**结构 / 字符串 / 路径存在**假设，不是行为假设。本地 runner [`scripts/run_all_gates.py`](../../scripts/run_all_gates.py) 现一把跑 **13 个 gate**（含轮次 4 新增的冻结路径防回潮闸，见 §2.4）；GitHub CI 的 `structure` job 目前仍只枚举前 **12** 个——第 13 个的 ci.yml 接线因推送账号缺 `workflow` scope 而离线待补（见 [ci-cd-gates.md](../architecture/ci-cd-gates.md) §6 与 [ITERATION_LOG.md](ITERATION_LOG.md) 轮次 4/9），这不影响本地红绿，只意味着该闸暂不在 required checks 里。
 
 ### 2.1 身份闸：`scripts/prove_rmw.py`
 
@@ -73,14 +73,21 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 - **它强制的假设**：`RMW_IMPLEMENTATION` 环境变量是"请求"；进程真正链接谁看 identifier。无 ROS 时打印 `ROS not loaded` 并 exit 0。
 - **它证明不了**（[feishu-dod-evidence.md](../architecture/feishu-dod-evidence.md) §3）：加载的是改过的 `.so` 还是发行版 underlay；这些 `.so` 来自本仓 overlay 还是补丁。**它是 env / 字符串身份闸，不是 modified `.so` 证明。**
 
-### 2.2 结构闸：每个 `check_*.py` 各自打开一组文件并断言"标记仍在"
+### 2.2 结构闸：每个 `check_*.py` 打开一组文件并断言"标记仍在"
+
+> 轮次 1/2/5 起，闸门**不再各自复制**路径常量、repo-root 查找、UTF-8 读取与 markdown 解析，
+> 这些收敛进三个下划线前缀共享库（不进 CI 枚举、不被 runner 直接跑）：
+> [`_freeze_paths.py`](../../scripts/_freeze_paths.py)（两条冻结路径与 existence hint 的单一真源）、
+> [`_repo.py`](../../scripts/_repo.py)（`repo_root()` 多锚点查找 + lenient `read_utf8()`）、
+> [`_md_paths.py`](../../scripts/_md_paths.py)（source/executor 两闸共用的 md 引用解析、符号查找、WARN-FAIL 渲染）。
+> 每个闸的**业务断言 / 必需标记 / allowlist 仍归各自脚本**，helper 不承载业务断言。
 
 | 闸门 | 强制的核心假设（断言什么字符串 / 路径） | 若红意味着 |
 |------|------------------------------------------|------------|
 | [`check_source_map.py`](../../scripts/check_source_map.py) | 只解析 [ros2-source-map.md](../architecture/ros2-source-map.md)：引用的本仓路径存在；允许清单符号仍在（`add_change`/`change_received`/`__rmw_publish`/`__rmw_wait`/`dds_waitset_attach`/`dds_take` 等，见脚本 L22–71）。行号过期只 WARN | 地图指向的 vendor 文件或符号被删 → 地图失真 |
 | [`check_executor_map.py`](../../scripts/check_executor_map.py) | WaitSet→`rmw_wait`→take→callback 身份地图；`ddspubsub.py` 含 `on_data_available`、`rospubsub.py` 含 executor 符号；Humble `rcl*` 仍未 vendor | executor 地图失真 |
 | [`check_sink_layers.py`](../../scripts/check_sink_layers.py) | 六层（app/rcl/rmw/DDS/executor/memory）Hold vs allowed 标记、`不改 config/fastdds.xml / SCOREBOARD`、不接 Agnocast/zenoh、`map ≠ reproduce`、`drop-in FAIL` | 层表 / 策略句被改 |
-| [`check_dual_chain_baseline.py`](../../scripts/check_dual_chain_baseline.py) | `no XML rewrite`、SCOREBOARD `pointer only`、连续句 `same-topology XML tuning is paused`；[`chain_a.sh`](../../config/env/chain_a.sh) 锚定 `RMW_IMPLEMENTATION=rmw_fastrtps_cpp`/`ROS_DOMAIN_ID=42`/`FASTRTPS_DEFAULT_PROFILES_FILE=…fastdds.xml`；[`chain_b.sh`](../../config/env/chain_b.sh) 锚定 `rmw_cyclonedds_cpp`/`ROS_DOMAIN_ID=0`/`unset CYCLONEDDS_URI` | 双链契约字符串被改 |
+| [`check_dual_chain_baseline.py`](../../scripts/check_dual_chain_baseline.py) | `no XML rewrite`、SCOREBOARD `pointer only`、连续句 `same-topology XML tuning is paused`；[`chain_a.sh`](../../config/env/chain_a.sh) 锚定 `RMW_IMPLEMENTATION=rmw_fastrtps_cpp`/`ROS_DOMAIN_ID=42`/`FASTRTPS_DEFAULT_PROFILES_FILE=…fastdds.xml`；[`chain_b.sh`](../../config/env/chain_b.sh) 锚定 `rmw_cyclonedds_cpp`/`ROS_DOMAIN_ID=0`/`unset CYCLONEDDS_URI`。轮次 3 起再用 importlib 加载 [`load.py`](../../config/env/load.py) 做 **env 单一真源交叉断言**：load.py `CHAIN_A/B` 为真值、与 chain_a/b.sh 字面 export 逐项相等、与 [`dual_chain_env.py`](../../dimos_bridge/dual_chain_env.py) 包装相等，且 import 前后 `os.environ` 不变（import 纯净） | 双链契约字符串被改、三处真源漂移、或 import 污染环境 |
 | [`check_unitree_cyclone_swap.py`](../../scripts/check_unitree_cyclone_swap.py) | 连续裁决句 `drop-in FAIL / wire UNPROVEN`；[`vendor/VERSIONS.md`](../../vendor/VERSIONS.md) 同行有 `vendor/CycloneDDS/`+`11.0.1`+SHA `e54e991f…`；[`vendor/CycloneDDS/CMakeLists.txt`](../../vendor/CycloneDDS/CMakeLists.txt) `project(CycloneDDS … VERSION 11.0.1 …)` | 版本钉扎被改 |
 | [`check_three_chain_repro.py`](../../scripts/check_three_chain_repro.py) | `map ≠ reproduce`、`STATUS: blocked`，不得写成 PASS/PROVEN | 把地图冒充成已复现 |
 | [`check_dod_evidence.py`](../../scripts/check_dod_evidence.py) | 连续 `DoD: unmet`、`STATUS: blocked`、五项未满足、`prove_rmw`=env/字符串 | 把文档闸绿冒充成 §6.3 产品验收 |
@@ -88,6 +95,7 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 | [`check_runtime_provenance.py`](../../scripts/check_runtime_provenance.py) | underlay(`/opt/ros/humble`) ≠ overlay ≠ vendor snapshot；Humble 钉扎、VERSIONS 六行 SHA 表还在 | 运行时分层被混淆 |
 | [`check_risk_matrix.py`](../../scripts/check_risk_matrix.py) | §9.4 层序（env/XML→RMW→DDS knobs→Executor/memory→core fork）、Hold 标记；**不打风险分** | 层序被改 |
 | [`print_bench_gates.py`](../../scripts/print_bench_gates.py) | SCOREBOARD / bench README 指针存在、含 `STATUS`；**不打印分位数** | bench 指针失效 |
+| [`check_frozen_path_literals.py`](../../scripts/check_frozen_path_literals.py)（**第 13 闸，轮次 4**） | 静态扫 `scripts/` 顶层 `*.py`，禁止在真源 `_freeze_paths.py` 外用 `Path(...)` 二次硬编码两条冻结路径（防 Step 2 去重回潮）；豁免真源与自身，只拦"第二份路径构造"不拦 prose 提及 / `endswith` / 正则 | 有人重新引入独立的 `Path("config/fastdds.xml")` 拷贝 |
 
 **`config/fastdds.xml` 与 `docs/artifacts/bench/SCOREBOARD.md` 在所有脚本里都是"只检查存在"**，内容冻结由 CI `boundary` job 管（[ci-cd-gates.md](../architecture/ci-cd-gates.md)）。改这两份内容 → PR 上 `boundary` 红（除非人类加 `allow-hold-bypass` 标签，Agent 不得自贴）。
 
@@ -95,6 +103,16 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 
 [`config/env/load.py`](../../config/env/load.py) 是双链环境的**唯一真源**（[`dual_chain_env.py`](../../dimos_bridge/dual_chain_env.py) 只是它的 importlib 薄包装，L12–20 重新导出 `CHAIN_A/CHAIN_B`）。`print-a` → `rmw_fastrtps_cpp / 42 / FASTRTPS_DEFAULT_PROFILES_FILE=…/config/fastdds.xml`；`print-b` → `rmw_cyclonedds_cpp / 0`（且 `unset CYCLONEDDS_URI`）。
 - **关键假设**：`import load.py` **不写** `os.environ`；操作员必须显式 `source chain_a.sh` 或 `eval "$(… export-a)"` / `apply-a`。未 source 就假设"域 42 已生效"是错的。
+
+### 2.4 一致性与回归工具链（重构轮次 1–9 引入）
+
+闸门之上叠了三层互补的本地回归，改任何 `scripts/*.py` 都应理解它们的分工（演进记录见 [ITERATION_LOG.md](ITERATION_LOG.md)，计划见 [02-modernization-plan.md](02-modernization-plan.md)）：
+
+1. **红绿层** [`scripts/run_all_gates.py`](../../scripts/run_all_gates.py)：数据驱动跑 13 个 `(script, marker)`，只看退出码 + 一个健康 marker，结尾打印 `all gates green`。
+2. **契约层** Promptfoo（[`evals/promptfooconfig.yaml`](../../evals/promptfooconfig.yaml) + custom provider [`localScriptProvider.mjs`](../../evals/localScriptProvider.mjs)，用法见 [`evals/README.md`](../../evals/README.md)）：跑 gate 脚本与 `load.py print-a/print-b`，对 stdout 做 `contains` **实质契约**断言——不只锁 marker，还锁裁决句 / blocked 诚实性 / Hold 短语 / 双链真值，防止"marker 还在但结论被翻转"。现 **17 个用例**，本地命令固定 `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`。
+3. **指纹层（严格）** [`evals/fingerprint_check.py`](../../evals/fingerprint_check.py)（eval 用例 #17，**eval-only、不是第 14 个 gate**）：import `run_all_gates.GATES` 单一真源 + `load.py print-a/b` 共 15 个命令，完整 stdout 归一化后与 [`evals/fixtures/`](../../evals/fixtures/)（15 份基线）**逐字节**比对，漂移打 unified diff 并 exit 1。归一化只抹平仓库根绝对路径与 frozen gate 的动态扫描计数，其余计数（cited/symbol 数等）保持精确。**任何有意改动 gate stdout，都必须在同一 PR 跑 `python3 evals/fingerprint_check.py --update` 重生成并提交 fixtures**，否则 #17 红。
+
+> **CI 现状（如实标注）**：required checks 为 `structure` / `contracts` / `boundary`。`structure` 目前只枚举跑前 12 个 gate（第 13 个 frozen gate 的 ci.yml 接线因推送 token 缺 `workflow` scope 离线待补）；Promptfoo 与指纹回归**只在本地 / 本循环运行，CI 不跑**。因此"本地 13 gate + 17 eval 全绿"不等于 PR 上跑了同样的集合——接线缺口与解除条件见 [ci-cd-gates.md](../architecture/ci-cd-gates.md) §6。
 
 ---
 
@@ -133,6 +151,7 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 12. [config/env/load.py](../../config/env/load.py) · [config/env/chain_a.sh](../../config/env/chain_a.sh) · [config/env/chain_b.sh](../../config/env/chain_b.sh) — 双链环境真源。
 13. [scripts/prove_rmw.py](../../scripts/prove_rmw.py) · [scripts/check_source_map.py](../../scripts/check_source_map.py) · [scripts/check_executor_map.py](../../scripts/check_executor_map.py) — 看闸门到底断言什么。
 14. [docs/architecture/ci-cd-gates.md](../architecture/ci-cd-gates.md) — `structure`/`contracts`/`boundary` 三个 required job 与 `allow-hold-bypass`。
+15. 一致性/回归工具链：[`scripts/run_all_gates.py`](../../scripts/run_all_gates.py)（13 gate runner）· [`scripts/_freeze_paths.py`](../../scripts/_freeze_paths.py) / [`_md_paths.py`](../../scripts/_md_paths.py) / [`_repo.py`](../../scripts/_repo.py)（共享 helper）· [`evals/README.md`](../../evals/README.md) 与 [`evals/fingerprint_check.py`](../../evals/fingerprint_check.py)（契约 + 指纹回归）；演进与每轮实测见 [ITERATION_LOG.md](ITERATION_LOG.md)。
 
 ---
 
@@ -169,11 +188,18 @@ python3 scripts/check_risk_matrix.py         # §9.4 层序（不打分）
 python3 scripts/check_dod_evidence.py        # DoD unmet / blocked
 python3 scripts/check_cega_bridge_hold.py    # §13(4) Hold / 不改 bridge 运行时
 python3 scripts/print_bench_gates.py         # bench 指针（不打数字）
+python3 scripts/check_frozen_path_literals.py # 第13闸：冻结路径防回潮（本地，CI 接线待补）
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
 
-（有 `scripts/run_all_gates.py` 可一把跑；但它不替 CI `boundary`，PR 上仍会被 `boundary` 单独审 diff。）
+三层本地回归（§2.4）：
+```bash
+python3 scripts/run_all_gates.py                                  # 红绿层：一把跑 13 个 gate
+python3 evals/fingerprint_check.py                                # 指纹层：15 命令 stdout 逐字节等于 fixtures
+npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml    # 契约层：17 个 DDS 行为断言
+```
+（`run_all_gates.py` 一把跑 13 gate 但不替 CI `boundary`，PR 上仍会被 `boundary` 单独审 diff；fingerprint 与 Promptfoo 目前是本地验收层，CI 不跑。有意改了 gate stdout 记得 `fingerprint_check.py --update` 重生成 fixtures。）
 **不要为了本地绿去编译 vendor、启 Humble、改 XML/SCOREBOARD、或把 DoD 改成已满足。**
 
 ---
