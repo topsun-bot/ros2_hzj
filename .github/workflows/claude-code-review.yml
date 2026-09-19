@@ -72,7 +72,8 @@ jobs:
             You are reviewing a pull request in `ros2_hzj`, a ROS 2 / DDS
             dual-chain workspace. Read `AGENTS.md` and
             `docs/architecture/ci-cd-gates.md` first, then the PR diff at
-            `.pr-review/pr.diff` (pre-generated; you have no shell).
+            `.pr-review/pr.diff` (pre-generated; you have no shell, no Grep,
+            no Glob: open files by path with Read).
 
             Review for, in this order:
             1. Hold boundary violations (block-level findings):
@@ -99,9 +100,11 @@ jobs:
             Never approve, request changes, or merge. Never quote environment
             variables, tokens, or anything outside the repository checkout.
           # Text-only publish channels (inline comment + tracking comment) and
-          # read-only file access. No Bash. Reads outside the checkout are
-          # denied so /proc/self/environ, the runner temp dir (holds the
-          # action's MCP config) and dotfiles cannot be echoed into a comment.
+          # Read as the ONLY file access. No Bash; Grep/Glob are denied too
+          # because they take a path argument that the Read(...) deny rules
+          # would not cover. Reads outside the checkout are denied so
+          # /proc/self/environ, the runner temp dir (holds the action's MCP
+          # config) and dotfiles cannot be echoed into a comment.
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,mcp__github_comment__update_claude_comment,Read,Grep,Glob"
-            --disallowedTools "Bash,Read(//proc/**),Read(//dev/**),Read(//sys/**),Read(//etc/**),Read(~/**),Read(/${{ runner.temp }}/**)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,mcp__github_comment__update_claude_comment,Read"
+            --disallowedTools "Bash,Grep,Glob,Read(//proc/**),Read(//dev/**),Read(//sys/**),Read(//etc/**),Read(~/**),Read(/${{ runner.temp }}/**)"

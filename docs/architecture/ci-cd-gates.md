@@ -160,7 +160,7 @@ python3 config/env/load.py print-b
 |----|------|
 | 评审顺序 | ① Hold 边界（XML / SCOREBOARD / Agnocast·zenoh 路径 / `dimos_bridge` DDS 行为 / vendor / Cega）② 诚实性（不编分位数、不把 `STATUS: blocked` 说成 PASS、不把分段 P99 相加）③ gate stdout marker 与 ci.yml / `evals/` 的契约漂移 ④ 普通正确性 |
 | 不做 | 不评风格；不要求需要 Humble runtime 的测试；**不 approve / 不 request changes / 不 merge** |
-| 权限 | `contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`。模型**没有 Bash**：diff 由前置可信 step 用 `gh pr diff` 写到 `.pr-review/pr.diff`，模型只能 Read/Grep/Glob 工作区，并用两个**纯文本** MCP 工具（行内评论 + tracking comment）发布；`/proc`、`/dev`、`/sys`、`/etc`、`~`、runner temp 目录显式 deny，防提示注入把环境变量 / token 读出来贴到评论里。checkout `persist-credentials: false`，工作区里没有 `GITHUB_TOKEN` |
+| 权限 | `contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`。模型**没有 Bash**：diff 由前置可信 step 用 `gh pr diff` 写到 `.pr-review/pr.diff`，模型唯一的文件访问是 Read（Grep / Glob 也 deny——它们带 path 参数，Read 的路径 deny 管不到），并用两个**纯文本** MCP 工具（行内评论 + tracking comment）发布；Read 对 `/proc`、`/dev`、`/sys`、`/etc`、`~`、runner temp 目录显式 deny，防提示注入把环境变量 / token 读出来贴到评论里。checkout `persist-credentials: false`，工作区里没有 `GITHUB_TOKEN` |
 | 信任边界 | 触发用 `pull_request`（工作流定义取自 PR merge ref）：能改它的人本来就有 push 权限，与能改 `ci.yml` 是同一批人。**fork PR 跳过**（`head.repo == repository` 守卫）——GitHub 不给 fork 密钥、token 只读，与其红在缺 key 上不如明说不跑。刻意**不用** `pull_request_target`（写 token 对着不可信 checkout 跑） |
 | 待办 | action 目前钉 `@v1` 可变 tag；应由维护者钉到不可变 commit SHA 并交 Dependabot 跟进（见工作流内 TODO） |
 | 密钥 | 仓库 secret `ANTHROPIC_API_KEY`（Settings → Secrets and variables → Actions）。缺失时该 job 红，但它**不是** §5 的 required check，不阻断合入 |
