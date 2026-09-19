@@ -470,3 +470,68 @@
 2. ci.yml 接线后做 §5.3 规则 2 机器化（新无下划线 `scripts/*.py` 登记完整性静态核对）。
 3. stdout 指纹 / 负向漂移沉淀为仓内可复跑回归（先评估与 run_all_gates 的重复度，避免死代码）。
 4. 视批准情况推进 CVE 修复独立 PR。
+
+---
+
+## 轮次 7 — 2026-09-19 22:15（Asia/Shanghai）《5》收尾：剩余 3 个单-marker gate 用例补诚实性/Hold 契约断言
+
+> 定时任务第 7 轮。分支 `test/eval-gate-honesty-phrases`，PR #55。
+> `workflow` scope 仍未授予（不能新增需 CI 接线的 gate，否则重蹈 frozen gate 的本地/CI 背离），
+> CVE 修复仍待用户批准。本轮延续轮次 6 同一主题做**收尾**：轮次 6 后仍有 3 个 gate 用例
+> （source_map / print_bench / risk_matrix）只断言健康 marker，本轮把它们各自 stdout 中
+> 已有的**诚实性 / Hold / 符号白名单**契约句也锁进 eval。**仅改 evals/ 两个文件，用例数仍 16，
+> 不新增 gate、不碰 ci.yml、不改任何 gate/生产代码。**
+
+### 背景 / 当前行为
+- 轮次 6 深化了 9 个用例 + 新增双链真值 2 例，但 #2 source_map、#3 print_bench、#4 risk_matrix
+  仍只 `contains` marker。这三个 gate 的 stdout 本身印有强契约句，却没被 eval 锁定：
+  - print_bench 明确声明跨机延迟 `cross-host: blocked`、`Do not sum segment P99s`（不得把分段
+    P99 相加成链路 P99、不得重印 SCOREBOARD 数字）——是延迟诚实性的核心；
+  - risk_matrix 印有 §9.4 层级锚点 `§9.4: env/XML first`、`Do not invent risk percentages`、
+    `Cross-host stays blocked`——锁层级顺序与"不编风险百分比"；
+  - source_map 印有 `allowlisted symbols ok:`——证明 rmw_publish/take、dds_take、WaitSet 等
+    被追踪的真实 DDS/RMW 符号仍能在 vendor 源码解析到（vendor 重写/丢符号即应红）。
+
+### 本轮改动（一项重点改进，仅 evals/ 两个文件）
+- `evals/promptfooconfig.yaml`：给 3 个既有用例补 contains 断言（用例数不变，仍 16）：
+  - #2 source_map：+ `allowlisted symbols ok:`（不锁 24/38 等动态计数，也不锁 `warnings: 0`，
+    以免 vendor 升级导致行号 warn-only 漂移时误红；只锁"符号白名单检查通过"这一实质契约）；
+  - #3 print_bench：+ `cross-host: blocked`、`Do not sum segment P99s`（均为 stdout 单行短语，
+    避开跨行的 `not a latency measurement` 段）；
+  - #4 risk_matrix：+ `§9.4: env/XML first`、`Do not invent risk percentages`、
+    `Cross-host stays blocked`（均逐字单行）。
+- `evals/README.md`：用例表 #2/#3/#4 逐行登记新断言；seed 用例说明中"额外断言实质契约短语"
+  的用例数 9 → 12，并把短语类别写为 DDS/Hold/**诚实性**。
+- 所有断言串先跑脚本取真实 stdout、确认逐字且在同一行（无 markdown 换行截断）后才写入。
+
+### 验证
+- promptfoo 0.123.1：**16 passed (100%) / 0 failed / 0 errors，Duration 2s**（用例数 16 不变，
+  断言条数增加；3 个被加深用例与其余 13 例全过）。
+- `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**（本轮未改任何 gate）。
+- 本轮无生产代码改动，gate 数仍 13、无 stdout 指纹变化；不新增 gate，不加剧本地/CI 背离，
+  不需要 ci.yml 接线（不受 `workflow` scope 阻塞）。
+
+### 分数
+- Gate：13/13（100%），与轮次 6 持平。
+- Eval：**16/16（100%）**，用例数不变；至此 14 个 gate 脚本用例中 12 个为"marker + 实质契约"，
+  仅 prove_rmw（`ROS not loaded` 本身即诚实句）与 frozen（marker 即防回潮契约）保持单断言——
+  单-marker 薄弱面已清零，覆盖深度继续提升而非放水。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、
+   bench 依赖未锁）。
+2. **[凭证·仍阻塞]** `workflow` scope 未授予：第 13 个 gate 的 ci.yml 接线仍离线备份
+   （`~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`），CI 仍只枚举原 12 gate；
+   Promptfoo 仍是本地验收层，CI 不运行。
+3. eval 断言的是静态 gate stdout，仍无法替代真·双链 pub/sub / p99 / 跨机 UDP（本机无 Humble，blocked）。
+4. source_map 刻意未锁 `warnings: 0` 与具体计数：vendor 升级带来的行号 warn-only 漂移不会让
+   eval 误红，但也意味着"出现 stale 行号警告"不会被 eval 抓住（gate 本身 warn-only 不 fail）；
+   这是有意的灵敏度取舍，后续若要零 stale 需另立更严断言。
+
+### 下一步（轮次 8 候选）
+1. **（阻塞解除后最高优先）** 授予 `workflow` scope，补仅含 ci.yml 接线的独立 PR，回填
+   ci-cd-gates.md §1、删除 §6 pending 说明；接线后再做 §5.3 规则 2 机器化。
+2. stdout 指纹 / 负向漂移沉淀为仓内可复跑回归：评估作为 eval 用例（经 provider 跑一个比对脚本，
+   避免新增需 CI 接线的 gate）的可行性，先确认与 run_all_gates 不重复、且能处理绝对路径/动态计数归一化。
+3. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
+4. eval 深化已基本覆盖静态契约面；后续增量价值转向 CI 接线或真·Humble 主机实测，避免为凑改动制造低价值断言。
