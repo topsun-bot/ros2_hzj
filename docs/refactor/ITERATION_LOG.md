@@ -933,7 +933,7 @@
 
 ## 轮次 14 — 2026-09-20 05:12（Asia/Shanghai）《5》深化：Unitree 交换裁决 guard 负向自测沉淀为 eval 用例 #20
 
-> 定时任务第 14 轮。分支 `test/unitree-swap-guard-selftest`，PR 编号以实际返回为准。
+> 定时任务第 14 轮。分支 `test/unitree-swap-guard-selftest`，PR #66（已 squash-merge，main HEAD `f960fd8`）。
 > 开工核对：本循环无在途 PR（#63/#64 已 squash-merge，main HEAD `a0cedea`；`gh pr list` 中 #65/#61/#56/#46
 > 等均为他人 claude/cursor/codex 自动审查类 PR，未触碰）；`gh auth status` 复核 active 账号
 > `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有 workflow 但对本仓
@@ -992,6 +992,7 @@
 - #18 frozen、#19 env 负向自测：均仍 PASS。
 - Eval：**19 → 20 用例，20/20 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#20 PASS，Duration 2s）。
 - `py_compile evals/unitree_swap_guard_selftest.py` 通过。
+- **合并后回归（main HEAD `f960fd8`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，pending 可忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18/#19/#20 三个负向自测均 PASS、promptfoo **20/20 (100%) / 0 failed / 0 errors**。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
