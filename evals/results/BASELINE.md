@@ -1,5 +1,14 @@
 # 基线运行记录
 
+> **状态：初始基线存档（historical snapshot，勿当当前基线）。**
+> 本文件是 2026-09-19 套件刚落地时的**首次**运行存档：当时只有 **12 个 seed 用例**，命令写作
+> `promptfoo@latest`（实际缓存解析到 0.123.1）。下方 12/12 等历史数字按存档原样保留、**不回改**。
+> 套件此后经迭代 3/4/6/7/8 扩展到 **17 个用例**（新增 env 交叉断言、frozen gate、双链真值 print-a/print-b、
+> 全量 stdout 指纹 #17），运行命令也**固定为 `promptfoo@0.123.1`**。
+> 当前权威口径与最新分数见 [`../../docs/refactor/ITERATION_LOG.md`](../../docs/refactor/ITERATION_LOG.md)
+> 顶部「评分口径」与各轮记录；用例清单与运行方式见 [`../README.md`](../README.md)、
+> 配置见 [`../promptfooconfig.yaml`](../promptfooconfig.yaml)。
+
 - 命令：`npx --yes promptfoo@latest eval -c evals/promptfooconfig.yaml`
 - 运行目录：仓库根 `/Users/zhang/colima-work/ros2_hzj`
 - 日期：2026-09-19（Asia/Shanghai）
