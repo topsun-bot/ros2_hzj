@@ -219,3 +219,19 @@ tests:
       - type: contains
         # Locks the covered command count so dropping a command fails the eval.
         value: '**commands:** 15'
+
+  # Negative self-test for the frozen-path-literal guard (eval-only, not a CI
+  # gate). The positive #14 run only proves the current tree is clean; it cannot
+  # prove the detector still fires. This case builds tempdir fixtures and asserts
+  # the guard flags every forbidden Path(...) form, stays silent on allowed
+  # mentions, exempts the single-source helper, and render() returns the right
+  # exit code. A regex that is widened to never match fails this case.
+  - description: 'frozen_guard_selftest.py: the frozen-path guard actually fires on violations (negative regression, tempdir-only)'
+    vars:
+      script: evals/frozen_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'frozen guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '6 must-flag, 7 non-flag, 2 render cases'
