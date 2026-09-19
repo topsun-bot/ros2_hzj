@@ -235,3 +235,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '6 must-flag, 7 non-flag, 2 render cases'
+
+  # Negative self-test for the dual-chain env cross-check guard (eval-only, not
+  # a CI gate). The positive #11 run only proves the current env is healthy; it
+  # cannot prove the four cross-checks still fire. This case builds a minimal
+  # load.py / chain_*.sh / wrapper tree in a tempdir and asserts the guard
+  # catches domain drift in either chain, shell/load.py cross-check drift,
+  # wrapper re-export drift, import-time os.environ mutation, and chain_b.sh
+  # exporting / failing to unset CYCLONEDDS_URI; stays silent on a healthy tree
+  # and on the real repo; and a widened detector fails this case.
+  - description: 'dual_chain_env_guard_selftest.py: the env cross-checks actually fire on drift (negative regression, tempdir-only)'
+    vars:
+      script: evals/dual_chain_env_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'dual-chain env guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '6 negative, 2 healthy, 1 mutation'

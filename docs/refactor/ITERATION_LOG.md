@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 18 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 19 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -843,3 +843,87 @@
 2. 评估把轮次 3 env 交叉断言的负向夹具也沉淀为 eval-only 自测（若与 #11 不重复）。
 3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+---
+
+## 轮次 13 — 2026-09-20 04:15（Asia/Shanghai）《5》深化：双链 env 交叉断言负向自测沉淀为 eval 用例 #19
+
+> 定时任务第 13 轮。分支 `test/dual-chain-env-guard-selftest`，PR 编号以实际返回为准。
+> 开工核对：本循环无在途 PR（#62 已 squash-merge，main HEAD `5547cb3`）；`gh auth status` 复核
+> active 账号 `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有
+> workflow 但对本仓 403——ci.yml 接线 / fingerprint·#18·#19 进 CI / §5.3 规则 2 机器化继续阻塞；
+> CVE 修复仍待批准。本轮执行轮次 12「下一步候选 2」：把轮次 3 新增、此后一直只靠一次性 /tmp 夹具
+> 验证的 env 交叉断言**负向能力**沉淀为仓内可复跑回归（与 #18 同构、不依赖授权、不越界）。
+
+### 背景 / 覆盖缺口取证（先证与 #11 不重复）
+- #11 是**正向**用例：跑真实仓的 `check_dual_chain_baseline.py`，只证明当前 env 健康（4 行 `ok env ...`）。
+  它证明不了四类交叉检查（env truth / cross-check A / cross-check B / wrapper，外加 chain_b 不得
+  export、必须 unset `CYCLONEDDS_URI`）在出现漂移时**仍然会 fail**。若有人把某个等值比较改宽、弄坏
+  分支使漂移漏报，gate、#11、#17 指纹（正常仓 stdout）都会继续全绿，而"load.py 单一真源"保证已悄悄
+  失效——与轮次 12 frozen guard 同类的"guard 失效但全绿"盲区。
+- 轮次 3 日志明确记载这些负向场景（A 域 42→43、wrapper 伪造、import 写 environ）只用 /tmp 夹具验证、
+  未沉淀；轮次 12 剩余风险 3 再次列出。本轮补齐。
+
+### 本轮改动（一项重点改进，仅 evals/；不改任何 gate/生产代码、不碰 ci.yml）
+- **新增 `evals/dual_chain_env_guard_selftest.py`（eval-only，纯标准库，tempdir-only，不是 gate）**：
+  与 fingerprint_check / frozen_guard_selftest 同定位——不进 `run_all_gates.GATES`、不被 CI structure
+  枚举、无需 ci.yml 接线（不受 workflow scope 阻塞）。复用 gate 可注入的 `render(root=...)`，在
+  `tempfile` 里造一棵**最小 env 树**（`config/env/load.py` + `chain_a.sh` + `chain_b.sh` +
+  `dimos_bridge/dual_chain_env.py` + 仅占位的 `config/fastdds.xml`）；doc/marker 文件在临时树有意缺失
+  （render 仍会因缺 doc exit 1），断言只看五行 `FAIL env truth|env cross-check|env wrapper|chain A|
+  chain B` 家族（用精确行前缀匹配，避免把路径里含 "env" 的缺文件 FAIL 误计），忽略无关缺-doc FAIL：
+  1. **6 个负向场景**：①A 域 42→43 而 chain_a.sh 仍 42（env truth + cross-check A 双报，且不得误触
+     B/wrapper）；②B 域 0→1 而 chain_b.sh 仍 0（env truth + cross-check B）；③wrapper 硬编码伪造重
+     导出（**仅** env wrapper 报，不得误触 truth/cross-check，证明该检查独立）；④import load.py 写
+     `os.environ`（env truth 报 mutated）；⑤chain_b.sh 额外 `export CYCLONEDDS_URI=`（即使同时 unset
+     也必报 must-not-export）；⑥chain_b.sh 漏 `unset CYCLONEDDS_URI`（报 need-anchored-unset）；
+  2. **2 个健康对照**：完全正确的最小临时树必须**零** env/chain FAIL（零误报）；真实仓 `render()`
+     必须 exit 0 且打印全部 4 行 `ok env ...`；
+  3. **1 个变异**：内存里把 gate 的 `_EXPORT_CYCLONE_URI_RE` monkeypatch 为永不匹配 `(?!)`，场景⑤
+     必须**漏报**（证明正常断言确实依赖该检测器），恢复后必须重新抓到。
+  - 写 `os.environ` 的夹具（场景④）每次 render 前后做快照/恢复，不污染测试进程；健康 wrapper 夹具用
+    与真实 `dual_chain_env.py` 同款的 importlib 跟随 load.py，伪造 wrapper 才硬编码漂移值（正是 gate
+    要防的"复制常量且漂移"）。
+- `evals/promptfooconfig.yaml`：新增用例 **#19**（断言 `dual-chain env guard selftest: PASS` +
+  计数短语 `6 negative, 2 healthy, 1 mutation`，锁夹具数、防悄悄删负向样本）；用例 18→19。
+- `evals/README.md`：文件表加自测脚本、用例数 18→19、用例表加 #19 行、新增「双链 env 交叉断言负向
+  自测（#19）」小节（为何 #11 正向证明不了检查会触发、6/2/1 夹具清单、变异验证、environ 卫生、eval-only 定位）。
+- **未做（Hold/边界）**：未改 `check_dual_chain_baseline.py` 或任何 gate（正常仓 stdout 零变化）；
+  未碰 ci.yml、fastdds.xml、SCOREBOARD.md、shell、`dimos_bridge`、vendor；未启用 zenoh/Agnocast/Cega；
+  无框架/依赖/API 变更；不新增 gate（不加剧"本地 13 vs CI 12"背离）。
+
+### 负向有效性验证（证明自测不是摆设）
+- 先用一次性 /tmp 探针（未入仓）逐场景打印 gate 真实 FAIL 行，确认 6 个场景的必报/不误报片段逐字后再
+  写正式脚本（避免凭记忆造断言串）。
+- 直接运行：`python3 evals/dual_chain_env_guard_selftest.py` →
+  `negative 6/6、healthy 2/2、mutation 1/1`，PASS、exit 0。
+- 脚本内置变异：`_EXPORT_CYCLONE_URI_RE` 改为永不匹配后场景⑤漏报（自测会红），恢复后重新抓到——
+  证明 export-URI 检测一旦失效，#19 会红。
+
+### 分数前后对比
+- Gate：**13/13（100%）**，与轮次 12 持平（未改任何 gate，run_all_gates 不受影响）。
+- 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
+- #18 frozen 负向自测：仍 PASS（6 must-flag / 7 non-flag / 2 render）。
+- Eval：**18 → 19 用例，19/19 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#19 PASS）。
+- `py_compile evals/dual_chain_env_guard_selftest.py` 通过。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint/#18/#19 进 CI、§5.3
+   规则 2 机器化仍无法落地；三个 eval-only 严格/负向层（#17/#18/#19）目前都只在本地/本循环把关，未进
+   GitHub required checks。
+3. #19 覆盖 env 交叉断言的负向行为，但第四处真源 B 面 `dds_topics.py`（域 42/0）与 load.py 之间仍无
+   直接交叉断言（由 contracts job 分别断言两侧常量，B 面 Hold），其负向行为不在本自测范围。
+4. eval/指纹/两个负向自测都只覆盖静态 gate 层，真·双链 pub/sub / p99 / 跨机 UDP 本机仍 blocked。
+
+### 下一步（轮次 14 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope，用离线备份补仅含 ci.yml 接线的独立 PR（frozen gate
+   test-f + 运行 step；纯标准库、无需 npx 联网的 fingerprint_check.py、frozen_guard_selftest.py、
+   dual_chain_env_guard_selftest.py 比整套 promptfoo 更适合先纳入 CI），回填 ci-cd-gates.md §1、删 §6
+   pending；接线后再做 §5.3 规则 2 机器化。
+2. 不依赖授权的负向沉淀已覆盖 frozen 与 env 两个核心 guard；下一个候选可评估 source-map allowlisted
+   符号检查（#2）或 unitree 裁决（#7）是否存在同类"正向全绿但 guard 可被改宽"盲区，先证不重复再做，
+   避免低价值断言堆砌。
+3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
+4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18+#19+eval 回归并在日志标注「等待新指令」，
+   不制造无意义提交。
