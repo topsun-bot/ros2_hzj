@@ -13,13 +13,14 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 21 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 22 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
 | `dual_chain_env_guard_selftest.py` | 双链 env 交叉断言 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里造最小 `load.py`/`chain_*.sh`/wrapper 树，断言四类交叉检查对域漂移/shell 漂移/wrapper 伪造/import 写环境/`CYCLONEDDS_URI` 违规必报、对健康树与真实仓不误报 |
 | `unitree_swap_guard_selftest.py` | Unitree Cyclone 交换裁决 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件复制进 `tempfile` 再逐个变异，断言裁决句翻转/引文篡改/vendor SHA 与 CMake `project()` 版本钉被改/文档删除必报、健康树不误报 |
 | `source_map_guard_selftest.py` | ros2-source-map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里造最小 map/vendor 树，断言 map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN 不 FAIL、健康树不误报 |
+| `executor_map_guard_selftest.py` | Executor/WaitSet map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：复制 11 个真实 allowlisted 符号文件 + 手写最小 map 进 `tempfile`，只覆盖 executor 独有分支——vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未被引用/必需文档缺失必报，`absent_keys` 与 `reject_bare_words` 两个独有解析参数生效、健康树不误报（共享的路径/符号循环由 #21 覆盖，不重复） |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -32,12 +33,13 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（21 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（22 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
   交叉断言 guard 的负向自测用例（#19）、1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
-  （#20），以及 1 个 ros2-source-map guard 的负向自测用例（#21，均见下文专节）：
+  （#20）、1 个 ros2-source-map guard 的负向自测用例（#21），以及 1 个 Executor/WaitSet map
+  guard 的负向自测用例（#22，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -62,6 +64,31 @@
 | 19 | `evals/dual_chain_env_guard_selftest.py` | `dual-chain env guard selftest: PASS`、`6 negative, 2 healthy, 1 mutation`（env 四类交叉检查对漂移必报、对健康树与真实仓不误报、检测器被改宽即红） |
 | 20 | `evals/unitree_swap_guard_selftest.py` | `unitree swap guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（裁决句翻转/引文篡改/vendor SHA·CMake 版本钉被改/文档删除必报、健康树不误报、CMake 正则被改宽即漏报） |
 | 21 | `evals/source_map_guard_selftest.py` | `source map guard selftest: PASS`、`4 negative, 1 warn-only, 2 healthy, 1 mutation`（map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN、健康树不误报、符号查找被改宽即漏报） |
+| 22 | `evals/executor_map_guard_selftest.py` | `executor map guard selftest: PASS`、`5 negative, 2 parse-guard, 2 healthy, 1 mutation`（vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未引用/必需文档缺失必报；`absent_keys` 与 `reject_bare_words` 两个 executor 独有解析参数生效、健康树不误报；vendored 检查被改宽即漏报） |
+
+### Executor/WaitSet map 负向自测（#22，eval-only）
+
+- #5 的正向运行与 #17 指纹只证明**当前健康树渲染为绿**，证明不了 `check_executor_map.py`（wiki3 §13
+  wait→callback 身份图）的 executor **独有**检查仍然会触发。该 guard 守护：Humble `rcl/rclcpp/rclpy`
+  不得出现在 `vendor/`、16 条身份 marker 与 3 个飞书 URL 不得丢失、11 个 allowlisted WaitSet/wait/take
+  符号文件必须被 map 引用、7 个必需文档必须在树。
+- **刻意不重复 #21**：两个 guard 共享 `_md_paths.check_cited_paths`（引用路径存在性 + allowlisted 符号
+  + 陈旧行号 WARN），那部分负向行为已由 #21 覆盖；#22 只测 executor 独有分支。
+- `executor_map_guard_selftest.py` 把 **11 个真实 allowlisted 符号文件**复制进 `tempfile`（符号查找跑在
+  真实内容上，同 #20 策略），再手写一张含 16 marker + 3 URL 的最小 map，驱动可注入的 `render(root=...)`，
+  **不改动仓库**、纯标准库：
+  - **5 个负向场景**：N1 `vendor/rcl{,cpp,py}` 目录出现（报 FAIL vendored）；N2 身份 marker 缺失
+    （报 FAIL markers）；N3 飞书 URL 缺失（报 FAIL Feishu URL）；N4 allowlisted 文件存在但 map 不再引用
+    （报 FAIL uncited）；N5 必需文档缺失（报 FAIL missing）；
+  - **2 个解析机制断言（parse-guard，executor 独有）**：PG1 `absent_keys` 把"应当缺席"的 `vendor/rcl`
+    引用挡在 cited 集合外（不传该参数则进入集合、会被要求存在）；PG2 `reject_bare_words` 让散文裸词
+    `` `dimos_bridge` `` 不被误解析成 `docs/architecture/dimos_bridge`（不传则误解析）；最小健康 map
+    本身就含这两类引用，健康树 exit 0 同时证明两个参数在防误报；
+  - **2 个健康对照**：真实仓 `render()` 与最小健康临时树都必须 exit 0 且打印 `Executor map healthy`；
+  - **1 个变异**：把 `ABSENT_VENDOR_TREES` 清空（同时三棵 rcl* 目录都存在）后 N1 必须**漏报**（exit 0、
+    无 FAIL vendored），恢复后必须重新抓到三条 FAIL vendored——证明 N1 确实依赖 vendored-tree 检测器。
+- 与 #17/#18/#19/#20/#21 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI
+  structure 枚举、不需要 ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### ros2-source-map 负向自测（#21，eval-only）
 
