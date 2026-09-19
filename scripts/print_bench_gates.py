@@ -13,6 +13,7 @@ import re
 import sys
 
 from _freeze_paths import SCOREBOARD_REL
+from _repo import repo_root, read_utf8
 
 
 BENCH_README_REL = Path("docs/artifacts/bench/README.md")
@@ -21,21 +22,6 @@ METHOD_REL = Path("docs/architecture/latency-attribution.md")
 CROSS_HOST_REL = Path("docs/artifacts/bench/2026-09-11-cross-host")
 
 _STATUS_BLOCKED_RE = re.compile(r"STATUS:\s*\*?\s*blocked", re.IGNORECASE)
-
-
-def _repo_root() -> Path:
-    cwd = Path.cwd()
-    if (cwd / SCOREBOARD_REL).is_file() or (cwd / METHOD_REL).is_file():
-        return cwd.resolve()
-    here = Path(__file__).resolve().parent
-    candidate = here.parent
-    if (candidate / SCOREBOARD_REL).is_file() or (candidate / METHOD_REL).is_file():
-        return candidate
-    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
-
-
-def _read(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
 
 
 def _has_blocked(text: str) -> bool:
@@ -56,13 +42,13 @@ def _cross_host_hits(root: Path) -> list[str]:
         path = root / rel
         if not path.is_file():
             continue
-        if _has_blocked(_read(path)):
+        if _has_blocked(read_utf8(path)):
             hits.append(rel.as_posix())
     return hits
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
-    root = (root or _repo_root()).resolve()
+    root = (root or repo_root(SCOREBOARD_REL, METHOD_REL)).resolve()
     lines = [
         "# print_bench_gates (wiki3 §12 / §13.3)",
         "",
@@ -82,7 +68,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(f"missing file `{key}`")
             lines.append(f"- **FAIL missing:** `{key}`")
             continue
-        text = _read(path)
+        text = read_utf8(path)
         missing_markers = [m for m in markers if m not in text]
         if missing_markers:
             joined = ", ".join(missing_markers)

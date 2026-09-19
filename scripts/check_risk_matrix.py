@@ -13,6 +13,7 @@ from pathlib import Path
 import sys
 
 from _freeze_paths import FASTDDS_XML_REL as XML_REL, SCOREBOARD_REL
+from _repo import repo_root, read_utf8
 
 
 MATRIX_REL = Path("docs/architecture/feishu-risk-matrix.md")
@@ -48,23 +49,8 @@ _MATRIX_MARKERS = (
 )
 
 
-def _repo_root() -> Path:
-    cwd = Path.cwd()
-    if (cwd / MATRIX_REL).is_file() or (cwd / ADR_REL).is_file():
-        return cwd.resolve()
-    here = Path(__file__).resolve().parent
-    candidate = here.parent
-    if (candidate / MATRIX_REL).is_file() or (candidate / ADR_REL).is_file():
-        return candidate
-    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
-
-
-def _read(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
-
-
 def render(root: Path | None = None) -> tuple[str, int]:
-    root = (root or _repo_root()).resolve()
+    root = (root or repo_root(MATRIX_REL, ADR_REL)).resolve()
     lines = [
         "# check_risk_matrix (wiki3 §9.4)",
         "",
@@ -88,7 +74,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(f"missing file `{key}`")
             lines.append(f"- **FAIL missing:** `{key}`")
             continue
-        text = _read(path)
+        text = read_utf8(path)
         missing_markers = [m for m in markers if m not in text]
         if missing_markers:
             joined = ", ".join(missing_markers)
@@ -106,7 +92,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     matrix_path = root / MATRIX_REL
     if matrix_path.is_file():
-        text = _read(matrix_path)
+        text = read_utf8(matrix_path)
         has_order = all(
             token in text
             for token in ("env/XML", "RMW", "DDS knobs", "Executor", "core forks")

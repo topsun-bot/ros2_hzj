@@ -328,3 +328,78 @@
    重复度）。
 4. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、
    rosdistro key 钉 SHA）。
+
+---
+
+## 轮次 5 — 2026-09-19 20:24（Asia/Shanghai）Step 3 延伸：抽 `_repo.py` 收敛 repo-root/读取样板
+
+> 定时任务第 5 轮。分支 `refactor/repo-root-helper`，PR #53。
+> **纯提取重构，行为不变**：不新增 gate、不碰 `.github/workflows/ci.yml`（`workflow` scope
+> 仍未授予，见轮次 4 阻塞），故不加剧"本地 gate 数 vs CI 枚举"的背离。
+
+### 背景 / 当前行为
+- grep 取证：10 个脚本各自逐字复制了同构的私有 `_repo_root()`（cwd 锚点 → `scripts/`
+  相对回退 → 找不到 `sys.exit`，错误串逐字相同）与 UTF-8 读取（`_read()` 或内联
+  `read_text(encoding="utf-8", errors="replace")`）。`_md_paths.py` 虽已有
+  `repo_root(map_rel)`/`read_utf8`，但仅 source_map/executor_map 两脚本使用；让其余
+  非 md 解析脚本 import `_md_paths` 仅为这两个通用函数会造成命名误导，故新建名义通用的
+  helper。
+
+### 本轮改动（一项重点改进）
+- **新增 `scripts/_repo.py`（下划线前缀共享库，不进 CI 命令清单）**：
+  - `repo_root(*anchors)`：支持一或多个锚点文件（任一 `is_file()` 即认定 root），
+    cwd 锚点 → `scripts/` 父目录回退 → 找不到时 `sys.exit`，错误串与原各脚本逐字一致
+    （`cannot find repo root from cwd=... or ...`）；无锚点调用 `raise ValueError`（编程错误）。
+  - `read_utf8(path)`：`read_text(encoding="utf-8", errors="replace")`，与各脚本 `_read` 逐字一致。
+  - docstring 写明**不承载业务断言**（计划 §5.3 helper 边界 spec），锚点常量/必需标记/
+    allowlist/渲染仍归各 gate。
+- 9 个脚本删除私有 `_repo_root()`+`_read()` 整块、改 `from _repo import repo_root, read_utf8`，
+  并把 `(root or _repo_root())` 替换为带各自锚点的显式调用：
+  check_cega_bridge_hold（HOLD/ADR）、check_sink_layers（SINK/ADR）、
+  check_three_chain_repro（REPRO/ADR）、check_dod_evidence（DOD/ADR）、
+  check_unitree_cyclone_swap（SWAP/VERSIONS）、check_runtime_provenance（PROVENANCE/MANIFEST）、
+  check_risk_matrix（MATRIX/ADR）、check_dual_chain_baseline（BASELINE/ADR）、
+  print_bench_gates（SCOREBOARD/METHOD）。
+- check_frozen_path_literals.py（轮次 4 新建、自身也复制了样板）：私有 `_repo_root()`
+  改为 `repo_root(SCRIPTS_REL / HELPER_NAME)`，扫描循环内联 `read_text(...)` 改为 `read_utf8(path)`。
+- 机械化替换带命中次数断言（helper 块恰好 1、root 调用恰好 1、`_read(` 调用数逐脚本核对），
+  替换后断言 `_repo_root`/`_read` 标识符零残留；`import sys`（各脚本 main 仍用
+  `sys.stdout.write`）与 `from pathlib import Path`（仍大量使用）经核对保留。
+- **净 −135 行**（10 个被改脚本 33 增 / 168 删；另新增 `_repo.py`）。
+- **未做（Hold / 边界）**：未改 `_md_paths.py` 及其两个消费方（已稳定，缩小爆炸半径）；
+  未碰 ci.yml、fastdds.xml、SCOREBOARD.md、shell 字面 export、`dimos_bridge` 运行时、vendor；
+  无框架/依赖/API 变更；无新增行为，故未新增 eval 用例。
+
+### 验证（行为不变证据）
+- 重构前基线 `/tmp/iter5_before/`（13 gate + print-a/print-b 共 15 份 stdout），重构后
+  `/tmp/iter5_after/` 逐字节 `cmp`：**14/15 IDENTICAL**。
+- 唯一差异：`check_frozen_path_literals.py` 的动态计数 `ok scanned: 14 → 15`
+  （新增共享库 `_repo.py` 进入 `scripts/*.py` 扫描面；`_repo.py` 不含冻结路径构造，被正确
+  判为干净，marker 与 exit 0 不变）。该数字是 `len(glob)` 动态值、非契约（CI 与 eval #14
+  只断言 `Frozen-path literals healthy`），属新增文件的预期变化，非行为回归。
+- `python3 -m compileall scripts` 通过；全仓 `grep` 确认无私有 `def _repo_root`/`def _read` 残留。
+- `python3 scripts/run_all_gates.py`：**13/13 exit 0，marker 13/13，all gates green**。
+- promptfoo 0.123.1：**14 passed (100%) / 0 failed / 0 errors，Duration 1s**
+  （eval ID `eval-fag-2026-09-19T12:24:13`；frozen 用例在 scanned=15 下仍 PASS）。
+- `load.py print-a/print-b` stdout 逐字节 IDENTICAL。
+
+### 分数
+- Gate：13/13（100%），与轮次 4 持平（纯提取，不新增 gate）。
+- Eval：14/14（100%），与轮次 4 持平。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、
+   飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** `workflow` scope 未授予：第 13 个 gate 的 ci.yml 接线仍离线备份于
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`，CI structure 仍只枚举原 12 个；
+   本轮刻意不新增 gate，以免背离继续扩大。
+3. `repo_root` 现为 10 个脚本共享的公共路径，后续修改其回退/退出语义须全量回归这些 gate
+   （stdout 指纹目前仍靠手动 /tmp 基线，未沉淀为仓内回归）。
+
+### 下一步（轮次 6 候选）
+1. **（阻塞解除后最高优先）** 授予 `workflow` scope（`gh auth refresh -h github.com -s workflow`），
+   用离线备份补仅含 ci.yml 接线的独立 PR，并回填 ci-cd-gates.md §1、删除 §6 pending 说明。
+2. ci.yml 接线完成后再做 §5.3 规则 2 机器化（新无下划线 `scripts/*.py` 必须登记 CI 与
+   ci-cd-gates §1/§6）——接线前做会与 frozen gate 的"故意未登记 CI"pending 状态自相矛盾。
+3. stdout 指纹/负向漂移沉淀为仓内可复跑回归（先评估与 run_all_gates 的重复度）。
+4. 视批准情况推进 CVE 修复独立 PR。

@@ -28,6 +28,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
+from _repo import repo_root, read_utf8
 
 
 DOD_REL = Path("docs/architecture/feishu-dod-evidence.md")
@@ -140,21 +141,6 @@ def _line_at(text: str, index: int) -> str:
     return text[start:end]
 
 
-def _repo_root() -> Path:
-    cwd = Path.cwd()
-    if (cwd / DOD_REL).is_file() or (cwd / ADR_REL).is_file():
-        return cwd.resolve()
-    here = Path(__file__).resolve().parent
-    candidate = here.parent
-    if (candidate / DOD_REL).is_file() or (candidate / ADR_REL).is_file():
-        return candidate
-    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
-
-
-def _read(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
-
-
 def _fabricate_hits(text: str) -> list[str]:
     hits: list[str] = []
     for pattern in (_STATUS_FABRICATE_RE, _DOD_FABRICATE_RE, *_FABRICATE_RES):
@@ -176,7 +162,7 @@ def _has_five_items(text: str) -> tuple[bool, str]:
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
-    root = (root or _repo_root()).resolve()
+    root = (root or repo_root(DOD_REL, ADR_REL)).resolve()
     lines = [
         "# check_dod_evidence (wiki3 §6.3 DoD: unmet)",
         "",
@@ -208,7 +194,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             extra = f" ({hint})" if hint else ""
             lines.append(f"- **ok file:** `{key}`{extra}")
             continue
-        text = _read(path)
+        text = read_utf8(path)
         texts[rel] = text
         missing_markers = [m for m in markers if m not in text]
         if missing_markers:

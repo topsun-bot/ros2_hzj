@@ -24,6 +24,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
+from _repo import repo_root, read_utf8
 
 
 SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
@@ -69,21 +70,6 @@ _CMAKE_PROJECT_RE = re.compile(
 )
 
 
-def _repo_root() -> Path:
-    cwd = Path.cwd()
-    if (cwd / SWAP_REL).is_file() or (cwd / VERSIONS_REL).is_file():
-        return cwd.resolve()
-    here = Path(__file__).resolve().parent
-    candidate = here.parent
-    if (candidate / SWAP_REL).is_file() or (candidate / VERSIONS_REL).is_file():
-        return candidate
-    sys.exit(f"cannot find repo root from cwd={cwd} or {candidate}")
-
-
-def _read(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
-
-
 def _versions_cyclone_row(text: str) -> tuple[bool, str]:
     pin_path, pin_ver, pin_sha = _VERSIONS_MARKERS
     hits = [
@@ -106,7 +92,7 @@ def _cmake_project_version(text: str) -> tuple[bool, str]:
 
 
 def render(root: Path | None = None) -> tuple[str, int]:
-    root = (root or _repo_root()).resolve()
+    root = (root or repo_root(SWAP_REL, VERSIONS_REL)).resolve()
     lines = [
         "# check_unitree_cyclone_swap (Unitree 0.10.2 vs vendor 11.0.1)",
         "",
@@ -129,7 +115,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(f"missing file `{key}`")
             lines.append(f"- **FAIL missing:** `{key}`")
             continue
-        text = _read(path)
+        text = read_utf8(path)
         texts[rel] = text
         missing_markers = [m for m in markers if m not in text]
         if missing_markers:
