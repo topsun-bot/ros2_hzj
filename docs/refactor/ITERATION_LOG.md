@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 17 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 18 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -775,4 +775,71 @@
    先于整套 promptfoo 纳入 CI），回填 ci-cd-gates.md §1、删 §6 pending；接线后再做 §5.3 规则 2 机器化。
 2. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
 3. 4 份飞书文档授权后补读对齐《2》。
+4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+---
+
+## 轮次 12 — 2026-09-20 03:12（Asia/Shanghai）《5》深化：frozen-path guard 负向自测沉淀为 eval 用例 #18
+
+> 定时任务第 12 轮。分支 `test/frozen-guard-negative-selftest`，PR 编号以实际返回为准。
+> 开工核对：本循环无在途 PR（#60 已 squash-merge，main HEAD `7f26d13`）；`gh auth status` 复核
+> active 账号 `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有
+> workflow 但对本仓 403——ci.yml 接线 / fingerprint 进 CI / §5.3 规则 2 机器化继续阻塞；CVE 修复仍待批准。
+> 完整重读 `02-modernization-plan.md` 确认：Step 1–4 与 §5.3 规则 1/3 已完成，规则 2 与 ci.yml 接线依赖
+> workflow 授权，M1–M6 全是 B 面 Hold/需 Humble/需批准。在宣布「等待新指令」前，发现一个**不依赖授权、
+> 不越界、且日志多次自认的真实缺口**：frozen gate 的负向能力（"该 fail 时真的会 fail"）轮次 4 只用一次性
+> /tmp 夹具验证、未沉淀。本轮把它做成仓内可复跑回归。
+
+### 背景 / 覆盖缺口取证
+- #14（frozen gate 正向）只证明**当前树干净**，证明不了检测器**仍会触发**。若有人把
+  `check_frozen_path_literals.py` 的正则改宽（或弄坏豁免/渲染逻辑）使它永不报错，所有正向运行（gate、
+  #14、#17 指纹）都会继续全绿，而防回潮保护已悄悄失效——这是"guard 失效但全绿"的盲区，#17 全文指纹也
+  锁不住（指纹比对的是正常仓 stdout，不含违规样本）。
+- 轮次 3/4/8 日志均把"负向夹具是一次性 /tmp、未沉淀为仓内回归"列为薄弱项。
+
+### 本轮改动（一项重点改进，仅 evals/；不改任何 gate/生产代码、不碰 ci.yml）
+- **新增 `evals/frozen_guard_selftest.py`（eval-only，纯标准库，tempdir-only，不是 gate）**：
+  与 fingerprint_check 同定位——不进 `run_all_gates.GATES`、不被 CI structure 枚举、无需 ci.yml 接线
+  （不受 workflow scope 阻塞）。复用 guard 自身纯函数 `_hits_in` 与可注入的 `render(root=...)`，断言三类：
+  1. **6 个必报片段**（违禁 `Path(...)`：双/单引号、`docs/artifacts/bench/SCOREBOARD.md`、`r"..."`/`f"..."`
+     前缀、短形式 `artifacts/bench/SCOREBOARD.md`、并校验命中行号）；
+  2. **7 个不得误报片段**（`from _freeze_paths import ...`、`Path(FASTDDS_XML_REL)`、
+     `endswith("config/fastdds.xml")`、输出文案、检测器自身正则串、无关 `Path("scripts")`）；
+  3. **2 个 render 端到端**：临时树放违禁 `bad_gate.py`（第 2 行）时必须 exit 1、不打印健康 marker、
+     点名 `bad_gate.py:2`，且豁免真源 `_freeze_paths.py`（它本身合法硬编码路径）不被报；删坏文件后 exit 0、
+     打印 marker。全过打印 `frozen guard selftest: PASS (6 must-flag, 7 non-flag, 2 render cases)`，exit 0。
+- `evals/promptfooconfig.yaml`：新增用例 **#18**（跑该自测，断言 `frozen guard selftest: PASS` +
+  计数短语 `6 must-flag, 7 non-flag, 2 render cases`，后者锁住夹具数、防悄悄删负向样本）；用例 17→18。
+- `evals/README.md`：文件表加自测脚本、用例数 17→18、用例表加 #18 行、新增「frozen-path guard 负向自测
+  （#18）」小节（为何正向证明不了 guard 会触发、6/7/2 夹具清单、变异验证、eval-only 定位）。
+- **未做（Hold/边界）**：未改 `check_frozen_path_literals.py` 或任何 gate（其正常仓 stdout 零变化）；
+  未碰 ci.yml、fastdds.xml、SCOREBOARD.md、shell、`dimos_bridge`、vendor；未启用 zenoh/Agnocast/Cega；
+  无框架/依赖/API 变更；不新增 gate（不加剧"本地 13 vs CI 12"背离）。
+
+### 负向有效性验证（证明自测不是摆设）
+- 直接运行：`python3 evals/frozen_guard_selftest.py` → `6/6 must-flag、7/7 non-flag、2/2 render`，PASS、exit 0。
+- **变异测试（内存，不落盘）**：把 `fg._FROZEN_PATH_RE` monkeypatch 为永不匹配的 `re.compile(r'(?!)')`
+  后跑自测 → 精确报 `must-flag 'short scoreboard form': detector found NO hit` 与
+  `render with bad_gate: expected exit 1, got 0`，**exit 1**。证明检测器一旦失效，#18 会红。
+
+### 分数前后对比
+- Gate：**13/13（100%）**，与轮次 11 持平（未改任何 gate，run_all_gates 不受影响）。
+- 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
+- Eval：**17 → 18 用例，18/18 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#18 PASS）。
+- `py_compile evals/frozen_guard_selftest.py` 通过。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint/#18 进 CI、§5.3 规则 2
+   机器化仍无法落地；#18 与 #17 一样目前只在本地/本循环把关，未进 GitHub required checks。
+3. #18 只覆盖 frozen-path 这一个 guard 的负向行为；轮次 3 新增的 env 交叉断言（4 类）负向夹具仍是一次性
+   /tmp（A 域 42→43、wrapper 伪造、import 写 environ），未来可评估是否同样沉淀（先评估与 #11 正向契约的重复度）。
+4. eval/指纹/负向自测都只覆盖静态 gate 层，真·双链 pub/sub / p99 / 跨机 UDP 本机仍 blocked。
+
+### 下一步（轮次 13 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope，用离线备份补仅含 ci.yml 接线的独立 PR（frozen gate
+   test-f + 运行 step；纯标准库、无需 npx 联网的 fingerprint_check.py 与 frozen_guard_selftest.py 比整套
+   promptfoo 更适合先纳入 CI），回填 ci-cd-gates.md §1、删 §6 pending；接线后再做 §5.3 规则 2 机器化。
+2. 评估把轮次 3 env 交叉断言的负向夹具也沉淀为 eval-only 自测（若与 #11 不重复）。
+3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
