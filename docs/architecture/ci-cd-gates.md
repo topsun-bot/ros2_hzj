@@ -115,6 +115,7 @@ test -f scripts/check_sink_layers.py
 test -f scripts/check_dual_chain_baseline.py
 test -f scripts/check_dod_evidence.py
 test -f scripts/check_cega_bridge_hold.py
+test -f scripts/check_frozen_path_literals.py
 test -d vendor/Fast-DDS && test ! -e vendor/Fast-DDS/.git
 python3 scripts/check_source_map.py
 python3 scripts/print_bench_gates.py
@@ -127,12 +128,21 @@ python3 scripts/check_sink_layers.py
 python3 scripts/check_dual_chain_baseline.py
 python3 scripts/check_dod_evidence.py
 python3 scripts/check_cega_bridge_hold.py
+python3 scripts/check_frozen_path_literals.py
 
 # contracts
 python3 scripts/prove_rmw.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
+
+> **第 13 个 gate 的 CI 接线状态（pending 授权）**：`check_frozen_path_literals.py`（现代化计划
+> §5.3 规则 1：冻结路径字面量防回潮）已接入本地 `scripts/run_all_gates.py`（本地 **13/13**）与
+> 《5》Promptfoo（**14** 用例）。它的 CI `structure` 运行 step **尚未**写入
+> `.github/workflows/ci.yml`——当前推送用的 GitHub 凭证缺少 `workflow` scope，含 ci.yml 的推送被
+> GitHub 拒绝；新版 ci.yml 已离线备份，待授予 `workflow` scope 后以**独立 PR** 补接线。合入前，该
+> gate 的回潮拦截在本地 `run_all_gates.py` 生效，CI 仍跑原 12 个 gate，故本节本地清单先收录该脚本，
+> §1 的 CI 实跑清单暂不收录。
 
 `import` `config/env/load.py` **不会**改 `os.environ`。未 `source` / apply 时不要假设域 42 已生效。
 

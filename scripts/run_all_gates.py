@@ -49,6 +49,7 @@ GATES: list[tuple[str, str]] = [
     ("scripts/check_dual_chain_baseline.py", "Dual-chain baseline healthy"),
     ("scripts/check_dod_evidence.py", "Product DoD evidence healthy"),
     ("scripts/check_cega_bridge_hold.py", "Cega / Bridge Hold healthy"),
+    ("scripts/check_frozen_path_literals.py", "Frozen-path literals healthy"),
 ]
 
 

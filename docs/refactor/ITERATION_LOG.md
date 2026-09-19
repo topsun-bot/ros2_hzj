@@ -10,8 +10,8 @@
 
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
-| Gate 通过率 | `python3 scripts/run_all_gates.py` | 12 个既有 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 12 个 DDS 行为断言用例（custom provider 跑 gate 脚本 + stdout contains 断言） |
+| Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 14 个 DDS 行为断言用例（custom provider 跑 gate 脚本 + stdout contains 断言） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -234,3 +234,97 @@
    run_all_gates/ci-cd-gates.md/eval）还是并入现有 gate。
 2. 或 stdout 指纹/负向漂移可复跑回归（先评估与现有 gate 重复度，避免造死代码）。
 3. 视批准情况推进 CVE 修复独立 PR。
+
+---
+
+## 轮次 4 — 2026-09-19 19:22（Asia/Shanghai）§5.3 规则 1：冻结路径字面量防回潮 gate
+
+> 定时任务第 4 轮。分支 `refactor/frozen-path-literal-gate`，PR #52（ci.yml 接线待 workflow scope，另开独立 PR）。
+> 本轮是**新增静态一致性 gate（防回潮 regression guard）+ 一处等价收敛**：
+> gate 数 12→13、eval 13→14；除被收敛的 1 行与新增 gate 外，其余 gate stdout 逐字节不变。
+
+### 背景 / 当前行为
+- 现代化计划 §5.3 规则 1 要求：除真源 helper `scripts/_freeze_paths.py` 外，
+  gate 脚本不得再用 `Path(...)` 各自硬编码 `config/fastdds.xml` /
+  `docs/artifacts/bench/SCOREBOARD.md`。Step 2（轮次 1）已把既有拷贝收敛，
+  但**没有机器拦截**——后续提交随时可能重新引入第二份 `Path("config/fastdds.xml")`，
+  让去重回潮。
+- grep 取证（本轮基线）：除 `_freeze_paths.py` 外，gate python 已无 `Path(...)`
+  冻结路径构造；残留仅为输出文案/marker（check_sink_layers 中文 Hold 串、
+  run_all_gates docstring）、`bench/*.sh` 与 `bench/README.md`（非 gate python）、
+  以及轮次 3 新引入的一处 `endswith("config/fastdds.xml")`（逻辑非常量）。
+
+### 本轮改动（一项重点改进）
+- **新增 `scripts/check_frozen_path_literals.py`（第 13 个 gate，marker
+  `Frozen-path literals healthy`）**：静态扫描 `scripts/` 顶层 `*.py`（glob 不递归
+  `bench/`），用正则只检测 `Path(...)` 构造里嵌入的冻结路径（允许 r/b/u/f/rf 字符串
+  前缀）；命中即打印 `rel:lineno` + 代码块并 exit 1。
+  - 豁免：真源 `_freeze_paths.py`（定义处）与该 gate 自身。
+  - **刻意收窄检测边界**：输出文案/中文 Hold 串、`endswith(...)`、正则模式串、
+    从 helper 的 import 一律不判违规——只拦"第二份路径构造"，不拦"提及"。
+  - 首次运行即全绿（属防回潮 guard，不是修现存违规）。
+- **等价收敛 1 处**：`scripts/check_dual_chain_baseline.py` 轮次 3 引入的
+  `endswith("config/fastdds.xml")` 改为 `endswith(XML_REL.as_posix())`
+  （`XML_REL` 即该文件已 import 的 `FASTDDS_XML_REL` 别名）；FAIL 文案串保留原样。
+- 接线（本地侧已完成）：`scripts/run_all_gates.py` GATES 末尾登记（其 docstring 原写
+  "The 13 gates" 在 12 gate 时是陈旧笔误，加完正好 13，数字变正确）；
+  `docs/architecture/ci-cd-gates.md` §6 本地核对清单收录（§1 的 CI 实跑清单暂不收录，原因见下）。
+- **CI 接线阻塞（凭证 scope，未入库）**：给 `.github/workflows/ci.yml` structure job 加
+  `test -f` 存在性 + 运行 step（跑脚本并 grep marker）的改动已写好并通过 YAML 解析，但推送被
+  GitHub 拒绝：当前推送账号 `yixinzhangagent` 的 OAuth token 只有 `gist/read:org/repo`、
+  **缺 `workflow` scope**（改 `.github/workflows/*` 必须该 scope）；另一台账号
+  `zhangyinxina-ui` 虽有 `workflow` scope，但对 `topsun-bot/ros2_hzj` 无 push 权限（403）。
+  按流程不硬闯、不绕过保护：ci.yml 改动**不进本 PR**，新版离线备份于
+  `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`，待授予 `workflow` scope 后以
+  **独立 PR** 补接线。合入前该 gate 在本地 `run_all_gates.py` 生效（本地 13/13），CI 仍跑
+  原 12 个 gate（structure 为枚举式 `test -f`，不限制新增文件，故新文件不影响 CI 红绿）。
+- eval：`evals/promptfooconfig.yaml` 新增第 14 个用例（跑新 gate + contains
+  `Frozen-path literals healthy`）；`evals/README.md` 用例表 13→14。
+- **未做（Hold）**：未碰 `config/fastdds.xml`、`SCOREBOARD.md`、shell 字面 export、
+  `dimos_bridge` 运行时、vendor 树；未启用 zenoh/Agnocast；未做框架/依赖/API 变更。
+
+### 负向测试（证明 gate 不是摆设，/tmp 夹具，未入仓）
+- 构造 `bad_gate.py`：第 2 行 `Path("config/fastdds.xml")`、第 3 行
+  `Path("docs/artifacts/bench/SCOREBOARD.md")` → 被精确报 `scripts/bad_gate.py:2`
+  与 `:3`，exit 1；
+- 构造 `ok_gate.py`：import helper 常量 + prose 提及 + `endswith(...)` + 正则模式串
+  → 全部不被误报，exit 0；
+- 真仓 14 个顶层 .py 正向扫描：全绿 exit 0。夹具测完即删。
+
+### 分数前后对比
+- Gate：**12 → 13，13/13 exit 0，marker 13/13，通过率 100%**（`run_all_gates.py` 实测）。
+- Eval：**13 → 14 用例，14 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1）。
+- 行为不变证据：
+  - 11 个未改 gate 与轮次 3 stdout 基线 `/tmp/iter3_after` 逐字节 `cmp` 全 IDENTICAL；
+  - `check_dual_chain_baseline.py` 仅 endswith 等价收敛，HEAD 版 vs 工作区版
+    stdout `cmp` IDENTICAL（两版均 exit 0）；
+  - `python3 -m compileall scripts` 通过；**待接线**的 ci.yml 新版（离线备份）经 ruby
+    YAML 解析合法、无 tab、新增 test -f 与 grep step 均在，但该文件本轮**未入库**（见上
+    凭证 scope 阻塞）；`load.py print-a/print-b` 契约不受影响。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、
+   飞书 3380004、bench 依赖未锁）。
+2. **[凭证·阻塞 CI 接线]** 推送账号 `yixinzhangagent` 缺 GitHub `workflow` scope，
+   本轮 ci.yml 改动无法入库（已离线备份）；需用户在本机执行一次
+   `gh auth refresh -h github.com -s workflow`（浏览器授权）或换用对本仓有写权限且带
+   workflow scope 的凭证，之后补一个仅含 ci.yml 接线的独立 PR。
+3. 新 gate 只覆盖 `scripts/` 顶层 python 的 `Path(...)` 构造；`bench/*.sh`、
+   markdown、其他语言暂不扫（刻意收窄，避免文案误报）。若未来冻结路径真源扩展到
+   shell 侧，需要另立规则。
+4. 计划 §5.3 规则 2（新增无下划线前缀 `scripts/*.py` 必须登记 ci-cd-gates §1/§6，
+   否则 structure 不认识）目前仍靠手工遵守（本轮新增 gate 已在本地 runner/§6 登记，
+   CI §1 待接线 PR 一并补），尚未机器化。
+
+### 下一步（轮次 5 候选）
+1. **（阻塞解除后优先）** 授予 `workflow` scope，用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补一个仅含 ci.yml 接线的
+   独立 PR（structure 的 test -f + 运行 step），并把 ci-cd-gates.md §1 表格补登、
+   去掉 §6 的 pending 说明。
+2. §5.3 规则 2 机器化：静态核对每个无下划线前缀的 `scripts/check_*.py` 都在
+   ci.yml structure 与 ci-cd-gates.md §1/§6 登记（先评估与现有 structure `test -f`
+   清单的重复度，避免造死代码）。
+3. 或 stdout 指纹/负向漂移沉淀为仓内可复跑回归（同上，先评估与 run_all_gates 的
+   重复度）。
+4. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、
+   rosdistro key 钉 SHA）。
