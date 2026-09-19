@@ -40,7 +40,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 |----|------|
 | 触发 | `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）；draft 与 fork PR 跳过（fork 拿不到 secret） |
 | 权限 | `contents: read` + `pull-requests: write` + `issues: write`（`gh pr comment` 走 issue-comment API）+ `id-token: write`。**不写仓库**，不会改分支 |
-| 输出 | 一条置顶总评（`gh pr comment`，sticky）+ 行内评论；中文，标识符 / 路径保留英文 |
+| 输出 | 一条总评（`gh pr comment --edit-last --create-if-none`：同一 PR 多次 push 只更新同一条，不堆积）+ 行内评论；中文，标识符 / 路径保留英文 |
 | 审查重点 | ① Hold 边界（`fastdds.xml` / `SCOREBOARD.md` / `dimos_bridge` / `vendor/` / Agnocast·zenoh·Cega）；② `scripts/` `config/env/` `evals/` 的正确性（exit code、永不失败的断言、字符串守卫漂移、`load.py` 写 `os.environ`）；③ 文档与代码一致（新 gate 要同时进 ci.yml / 本文 / `AGENTS.md`）；④ 诚实标记（`STATUS: blocked` 处不得出现 PASS / PROVEN / measured） |
 | 前置 | 仓库 secret **`ANTHROPIC_API_KEY`**。缺失时该 job 失败，但它不在 required checks 内，不影响合入 |
 | 密钥暴露面 | 仅同仓分支的 PR 能拿到 secret（fork 跳过），即只有已有 push 权限的协作者——他们本就能读任何工作流的 secret。若要再收紧：把 `ANTHROPIC_API_KEY` 放进带 required reviewers 的 GitHub Environment，并在 job 上加 `environment:`，让每次 review 先经人工放行 |
