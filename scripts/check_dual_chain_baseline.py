@@ -340,7 +340,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
                         f"CHAIN_B[{key}]={chain_b.get(key)!r} (want {want!r})"
                     )
             profiles = chain_a.get("FASTRTPS_DEFAULT_PROFILES_FILE", "")
-            if not profiles.endswith("config/fastdds.xml") or not Path(
+            if not profiles.endswith(XML_REL.as_posix()) or not Path(
                 profiles
             ).is_file():
                 truth_bad.append(

@@ -126,3 +126,10 @@ tests:
     assert:
       - type: contains
         value: 'Cega / Bridge Hold healthy'
+
+  - description: 'check_frozen_path_literals.py: no second Path(...) copy of frozen Hold paths'
+    vars:
+      script: scripts/check_frozen_path_literals.py
+    assert:
+      - type: contains
+        value: 'Frozen-path literals healthy'
