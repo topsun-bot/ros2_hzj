@@ -1021,7 +1021,7 @@
 
 ## 轮次 15 — 2026-09-20 06:17（Asia/Shanghai）《5》深化：ros2-source-map guard 负向自测沉淀为 eval 用例 #21
 
-> 定时任务第 15 轮。分支 `test/source-map-guard-selftest`，PR 编号以实际返回为准。
+> 定时任务第 15 轮。分支 `test/source-map-guard-selftest`，PR #68（已 squash-merge，main HEAD `f235532`）。
 > 开工核对：本循环无在途 PR（#66/#67 已 squash-merge，main HEAD `ced21c2`；`gh pr list` 中 #65/#61/#56/#46
 > 等均为他人 claude/cursor/codex 自动审查类 PR，未触碰）；`gh auth status` 复核 active 账号
 > `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有 workflow 但对本仓
@@ -1078,6 +1078,7 @@
 - #18 frozen、#19 env、#20 unitree 负向自测：均仍 PASS。
 - Eval：**20 → 21 用例，21/21 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#21 PASS，Duration 2s）。
 - `py_compile evals/source_map_guard_selftest.py` 通过。
+- **合并后回归（main HEAD `f235532`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，pending 可忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18/#19/#20/#21 四个负向自测均 PASS、promptfoo **21/21 (100%) / 0 failed / 0 errors**。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
