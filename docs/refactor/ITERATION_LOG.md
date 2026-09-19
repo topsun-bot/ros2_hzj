@@ -726,7 +726,7 @@
 
 ## 轮次 11 — 2026-09-20 02:10（Asia/Shanghai）《5》文档债务：旧 BASELINE 标注为初始基线存档
 
-> 定时任务第 11 轮。分支 `docs/baseline-archive-status-pointer`，PR 编号以实际返回为准。
+> 定时任务第 11 轮。分支 `docs/baseline-archive-status-pointer`，PR #60。
 > 开工核对：本循环无在途 PR（#59 已 squash-merge，main HEAD `070032a`）；`gh auth status` 复核
 > active 账号 `yixinzhangagent` 仍只有 gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有
 > workflow 但对本仓 403——ci.yml 接线 / fingerprint 进 CI / 规则 2 机器化继续阻塞；CVE 修复仍待批准。
