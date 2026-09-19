@@ -1,0 +1,21 @@
+# check_runtime_provenance (wiki3 §13 underlay vs vendor)
+
+- **ok file:** `vendor/MANIFEST.md`
+- **ok file:** `vendor/VERSIONS.md`
+- **ok file:** `docker/ros/Dockerfile`
+- **ok file:** `docs/architecture/feishu-runtime-provenance.md`
+- **ok file:** `scripts/prove_rmw.py` (wiki3 §6.3 identity; not vendor path)
+- **ok Dockerfile:** ENV ROS_DISTRO=humble
+- **ok markers:** `vendor/MANIFEST.md` (Humble underlay + rolling/master snapshot)
+- **ok markers:** `docs/architecture/feishu-runtime-provenance.md` (underlay / overlay / vendor snapshot)
+- **ok VERSIONS rows:** 6 vendor SHA tables present
+
+Filesystem + Humble/rolling markers only. This is **not** a loaded
+`.so` proof, not a percentile, and not Feishu field proof.
+Vendor SHA values are not invented here; only row structure is
+checked. fastdds.xml / SCOREBOARD stay untouched. Cross-host
+stays blocked. Rolling ≠ Humble.
+
+- **underlay != vendor snapshot**
+
+Runtime provenance healthy: Humble underlay, overlay-if-present, and vendor snapshot stay distinct. Exit 0.

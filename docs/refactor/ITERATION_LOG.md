@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 16 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 17 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -535,3 +535,76 @@
    避免新增需 CI 接线的 gate）的可行性，先确认与 run_all_gates 不重复、且能处理绝对路径/动态计数归一化。
 3. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
 4. eval 深化已基本覆盖静态契约面；后续增量价值转向 CI 接线或真·Humble 主机实测，避免为凑改动制造低价值断言。
+
+---
+
+## 轮次 8 — 2026-09-19 23:10（Asia/Shanghai）《5》沉淀：全量 stdout 指纹回归做成 eval 用例 #17
+
+> 定时任务第 8 轮。分支 `test/eval-stdout-fingerprint`，PR #57（#56 是他人的 ci advisory DRAFT，非本循环产物，未触碰）。
+> `workflow` scope 仍未授予、CVE 修复仍待批准，本轮按轮次 7 候选 2 行动：把轮次 1/2/5 一直靠
+> 手动 `/tmp` 基线做的"重构前后 stdout 逐字节 cmp"**沉淀为仓内可复跑回归**，并作为 Promptfoo
+> 用例接入。关键决策：脚本放 `evals/` 而非 `scripts/`，**不是第 14 个 gate**，因此不进
+> `run_all_gates.GATES`、不被 CI structure 枚举、不需要 ci.yml 接线（不受 `workflow` scope 阻塞）。
+
+### 背景 / 与现有层的重复度评估（先证不重复再造）
+- `run_all_gates` 只看每个 gate 的退出码 + 一个健康 marker；promptfoo `contains` 只保证关键串
+  存在（宽松）。两者都看不到 marker 之外的**意外全文漂移**：多/少一行 ok、计数变化、裁决句被改写
+  但仍 exit 0 且 marker 还在，都会绿。轮次 5 抽 `_repo.py` 时正是靠手动 cmp 才发现 frozen gate
+  `ok scanned 14→15` 这一预期变化——说明这层有真实价值，但此前不可复跑。
+- 三层定位互补、不重复：run_all_gates=红绿（exit+marker）、contains=关键契约不得丢/翻转（宽松）、
+  指纹=全文必须等于已评审基线（严格）。
+
+### 本轮改动（一项重点改进，仅 evals/；不改任何 gate/生产代码、不碰 ci.yml）
+- **新增 `evals/fingerprint_check.py`（eval-only，标准库零依赖）**：
+  - gate 命令清单直接 `sys.path` 引入 `scripts/run_all_gates.GATES`（**单一真源**，不复制 13 个脚本名），
+    另加 `config/env/load.py print-a` / `print-b`，共 **15 个命令**；逐个 subprocess 跑、取 stdout。
+  - 与 `evals/fixtures/<name>.txt` 归一化后逐字节比对；漂移打印 unified diff（每命令限 60 行）+
+    `stdout fingerprint: DRIFT (n/15 stable)` + exit 1；全过打印 `- **commands:** 15` 与
+    `- **stdout fingerprint: stable** (...)` + exit 0。
+  - `--update` 重生成 fixtures（命令非 0 则拒绝写盘）；默认只读，绝不改仓内文件。
+- **新增 `evals/fixtures/*.txt`（15 份基线，共 430 行）**：由 `--update` 从当前 main 真实 stdout 生成。
+- **归一化（只抹平环境/噪声，绝不改契约文本）**，grep 取证后只发现两类跨环境不稳定项：
+  1. 仓库根绝对路径 → `<REPO_ROOT>`（实测仅 print-a 的 profiles 行命中；13 gate stdout 均不含绝对路径），
+     保证换 clone 路径 / CI 也能过；
+  2. frozen gate 动态 `**ok scanned:** N` → `<N>`（N=顶层 `scripts/*.py` 文件数，新增 helper/gate 就变，
+     属文件数噪声且已由 GATES 登记覆盖）。
+  - 其余计数（source-map `cited paths 38 / paths on disk 38 / allowlisted symbols ok 24` 等）**保持精确**：
+    它们反映被评审的 map/vendor 内容而非环境，漂移就应在评审中显形。
+- `evals/promptfooconfig.yaml`：新增用例 **#17**（跑 `evals/fingerprint_check.py`，断言
+  `stdout fingerprint: stable` + `**commands:** 15`，后者锁命令数、防悄悄删覆盖）；用例 16→17。
+- `evals/README.md`：文件表加脚本与 fixtures、用例表加 #17、新增"stdout 指纹回归（#17）"小节
+  （三层差异、为何不是 gate、归一化规则、`--update` 重生成流程）；顶部评分口径见迭代日志。
+
+### 负向测试（证明严格层不是摆设）
+- 向 `evals/fixtures/check_dod_evidence.txt` 追加一行 `EXTRA DRIFT LINE` → 脚本精确报
+  `FAIL stdout drift: check_dod_evidence` + diff、`DRIFT (14/15 stable)`、**exit 1**（经 provider 即 eval 失败）；
+  `--update` 重生成后恢复 `stable`、exit 0。
+- 归一化核验：`load_print_a.txt` profiles 行为 `<REPO_ROOT>/config/fastdds.xml`；frozen fixture 为
+  `**ok scanned:** <N>`；`grep -rF /Users/zhang evals/fixtures` 无任何本机路径泄漏；
+  `grep token/secret/...` 仅命中 gate 业务短语 "no invented booked percentile tokens"（非密钥）。
+
+### 分数前后对比
+- Gate：**13/13（100%）**，与轮次 7 持平（未新增 gate、未改任何 gate，run_all_gates 不受影响）。
+- Eval：**16 → 17 用例，17/17 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1）。
+- `python3 -m py_compile evals/fingerprint_check.py` 通过；`--update` 与默认比对两轮实测一致。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** `workflow` scope 未授予：第 13 个 gate 的 ci.yml 接线仍离线备份；
+   且 **Promptfoo（含新 #17）仍是本地验收层，CI 不运行**——指纹回归目前只在本地/本循环把关，
+   未进入 GitHub required checks。
+3. 指纹是严格层：**任何有意的 gate stdout 改动都必须在同一 PR 跑 `--update` 并提交 fixtures**，
+   否则 #17 红；这是预期的"让输出变化在评审中显形"，但需让后续贡献者知道该流程（已写入 README）。
+4. fixtures 只覆盖静态 gate/load.py stdout，仍无法替代真·双链 pub/sub / p99 / 跨机 UDP（本机无 Humble，blocked）。
+5. source-map 计数保持精确：vendor 升级导致 cited/symbol 数变化时 #17 会红（需评审 + --update），
+   与轮次 7 对 `warnings: 0` 的宽松取舍相反——这是有意的（计数变化比 warn-only 行号漂移更值得评审）。
+
+### 下一步（轮次 9 候选）
+1. **（阻塞解除后最高优先）** 授予 `workflow` scope，补仅含 ci.yml 接线的独立 PR（frozen gate
+   test-f + 运行 step），回填 ci-cd-gates.md §1、删 §6 pending；接线后可评估把 promptfoo（或至少
+   纯 python 的 fingerprint_check.py，无需 npx 联网）纳入 CI——fingerprint 是纯标准库脚本，
+   比整套 promptfoo 更适合先接 CI。
+2. ci.yml 接线后做 §5.3 规则 2 机器化（新无下划线 `scripts/*.py` 登记完整性静态核对）。
+3. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
+4. eval 静态契约 + 全文指纹两层已较完备；后续增量价值主要在 CI 接线或真·Humble 主机实测，
+   继续避免低价值断言堆砌。

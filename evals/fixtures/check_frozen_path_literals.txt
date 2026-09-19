@@ -1,0 +1,13 @@
+# check_frozen_path_literals (modernization plan §5.3 rule 1)
+
+- **ok scanned:** <N> top-level `scripts/*.py` (exempt: `_freeze_paths.py` is the single source, `check_frozen_path_literals.py` is this checker)
+
+Static regression guard only. Output markers, Hold prose,
+endswith() suffix checks and regex patterns may still mention
+the names; only a second pathlib.Path(...) source is forbidden.
+This checker does not edit files and does not own the content
+freeze (the `boundary` job does). Read-only, no vendor build.
+
+- **Frozen-path literals healthy**
+
+Frozen-path literals healthy: every gate script sources the Hold paths from _freeze_paths.py; no second Path(...) copy exists. Exit 0.

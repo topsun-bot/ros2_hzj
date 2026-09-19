@@ -1,0 +1,35 @@
+# check_cega_bridge_hold (wiki3 §13(4) Cega / Bridge Hold)
+
+- **ok file:** `docs/architecture/feishu-cega-bridge-hold.md` (STATUS: Hold + no Cega + no runtime edits)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md` (opened; §13(4) row checked separately)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok ADR §13(4) row:** `| (4) | Cega / Bridge 后置 | **Hold**` (full cell; no PASS / 已接 Cega)
+- **ok status header:** first `Status:` is `**Hold**`
+- **ok status phrase:** `STATUS: Hold`
+- **ok no-Cega phrases:** `no Cega` / `不接 Cega`
+- **ok runtime freeze:** `no dimos_bridge runtime edits this cut`
+- **ok freeze phrase:** `no XML/SCOREBOARD`
+- **ok phase Hold:** 《3》–《6》
+- **ok runtime path:** `dimos_bridge/dimos/core/transport.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/protocol/pubsub/impl/rospubsub.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/protocol/pubsub/impl/ddspubsub.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/protocol/pubsub/impl/rospubsub_conversion.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/protocol/service/ddsservice.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/protocol/dds_topics.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/robot/unitree/go2/blueprints/smart/unitree_go2_ros.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/dimos/robot/unitree/g1/effectors/high_level/dds_sdk.py` (existence only; not edited here)
+- **ok runtime path:** `dimos_bridge/SOURCE.md` (existence only; not edited here)
+
+Filesystem + Hold markers only. This is **not** a Cega
+integration, not a percentile, and not Feishu field proof.
+dimos_bridge runtime paths are existence-only; this script
+does not hash them and does not edit them.
+fastdds.xml / SCOREBOARD are existence-only in this script;
+the boundary job owns the content freeze. Agnocast / zenoh
+stay Hold. 《3》–《6》 stay Hold. Three-chain / DoD stay
+unmet / blocked. Unitree drop-in stays FAIL.
+
+- **§13(4) Cega / Bridge: Hold**
+
+Cega / Bridge Hold healthy: STATUS Hold, no Cega, no dimos_bridge runtime edits this cut, no XML/SCOREBOARD, 《3》–《6》 Hold. Exit 0.

@@ -1,0 +1,77 @@
+# check_executor_map (wiki3 §13 wait→callback)
+
+- **map:** `docs/architecture/feishu-executor-waitset.md`
+
+- **ok file:** `docs/architecture/feishu-executor-waitset.md`
+- **ok file:** `docs/architecture/ros2-source-map.md`
+- **ok file:** `docs/architecture/feishu-middleware-adr.md`
+- **ok file:** `docs/architecture/latency-attribution.md`
+- **ok file:** `docs/architecture/feishu-risk-matrix.md`
+- **ok file:** `scripts/prove_rmw.py`
+- **ok file:** `scripts/check_source_map.py`
+- **ok absent:** `vendor/rcl` (Humble rcl* not in vendor)
+- **ok absent:** `vendor/rclcpp` (Humble rcl* not in vendor)
+- **ok absent:** `vendor/rclpy` (Humble rcl* not in vendor)
+- **ok markers:** 16 identity strings
+- **ok Feishu URLs:** 3
+- **ok file:** `config/env/chain_a.sh`
+- **ok file:** `config/env/chain_b.sh`
+- **ok file:** `config/fastdds.xml`
+- **ok file:** `dimos_bridge/dimos/protocol/pubsub/impl/ddspubsub.py`
+  - **ok symbol:** `on_data_available` at L73
+- **ok file:** `dimos_bridge/dimos/protocol/pubsub/impl/rospubsub.py`
+  - **ok symbol:** `SingleThreadedExecutor` at L22 (+3)
+- **ok dir:** `docker/ros`
+- **ok file:** `docs/architecture/ci-cd-gates.md`
+- **ok file:** `docs/architecture/feishu-middleware-adr.md`
+- **ok file:** `docs/architecture/feishu-risk-matrix.md`
+- **ok file:** `docs/architecture/feishu-three-chain-repro.md`
+- **ok file:** `docs/architecture/latency-attribution.md`
+- **ok file:** `docs/architecture/ros2-dds-r0-interface-freeze.md`
+- **ok file:** `docs/architecture/ros2-source-map.md`
+- **ok file:** `scripts/check_executor_map.py`
+- **ok file:** `scripts/check_risk_matrix.py`
+- **ok file:** `scripts/check_source_map.py`
+- **ok file:** `scripts/prove_rmw.py`
+- **ok dir:** `vendor`
+- **ok dir:** `vendor/CycloneDDS`
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_read.c`
+  - **ok symbol:** `dds_take` at L356 (+1)
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_waitset.c`
+  - **ok symbol:** `dds_waitset_attach` at L289
+  - **ok symbol:** `dds_waitset_wait` at L390
+- **ok dir:** `vendor/Fast-DDS`
+- **ok file:** `vendor/Fast-DDS/include/fastdds/dds/core/condition/WaitSet.hpp`
+- **ok file:** `vendor/Fast-DDS/src/cpp/fastdds/core/condition/WaitSet.cpp`
+  - **ok symbol:** `WaitSet::wait` at L49
+- **ok file:** `vendor/Fast-DDS/src/cpp/fastdds/core/condition/WaitSetImpl.cpp`
+  - **ok symbol:** `WaitSetImpl::wait` at L107
+- **ok file:** `vendor/MANIFEST.md`
+- **ok file:** `vendor/rmw/rmw/include/rmw/rmw.h`
+  - **ok symbol:** `rmw_wait` at L2688 (+4)
+  - **ok symbol:** `rmw_take` at L928 (+8)
+- **ok file:** `vendor/rmw_cyclonedds/rmw_cyclonedds_cpp/src/rmw_node.cpp`
+  - **ok symbol:** `rmw_wait` at L4511 (+1)
+  - **ok symbol:** `dds_waitset_attach` at L1038 (+6)
+  - **ok symbol:** `rmw_take` at L906 (+7)
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_cpp/src/identifier.cpp`
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_cpp/src/rmw_wait.cpp`
+  - **ok symbol:** `rmw_wait` at L24
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_shared_cpp/src/rmw_take.cpp`
+  - **ok symbol:** `__rmw_take` at L208
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_shared_cpp/src/rmw_wait.cpp`
+  - **ok symbol:** `__rmw_wait` at L137
+  - **ok symbol:** `get_first_untaken_info` at L41 (+5)
+- **ok file:** `vendor/rmw_implementation/rmw_implementation/src/functions.cpp`
+
+- **cited paths:** 33
+- **paths on disk:** 33
+- **allowlisted symbols ok:** 16
+- **warnings:** 0
+- **WaitSet -> callback: mapped**
+
+Filesystem + identity markers only. This is **not** a latency
+measurement, not a percentile, and not Feishu field proof.
+Humble rclcpp/rclpy stay out of vendor/. Exit 0 when the map is healthy.
+
+Executor map healthy: cited in-repo paths exist, allowlisted WaitSet/wait/take symbols still appear, Humble rcl* is not vendored. Stale line numbers warn only. Exit 0.

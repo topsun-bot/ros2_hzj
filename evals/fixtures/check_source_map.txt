@@ -1,0 +1,73 @@
+# check_source_map (wiki3 §13.2)
+
+- **map:** `docs/architecture/ros2-source-map.md`
+
+- **ok dir:** `docker/ros`
+- **ok file:** `docker/ros/Dockerfile`
+- **ok file:** `docs/architecture/feishu-cega-bridge-hold.md`
+- **ok file:** `docs/architecture/feishu-executor-waitset.md`
+- **ok file:** `docs/architecture/feishu-middleware-adr.md`
+- **ok file:** `docs/architecture/feishu-three-chain-repro.md`
+- **ok file:** `scripts/check_executor_map.py`
+- **ok file:** `scripts/check_source_map.py`
+- **ok file:** `scripts/prove_rmw.py`
+- **ok dir:** `vendor`
+- **ok dir:** `vendor/CycloneDDS`
+- **ok file:** `vendor/CycloneDDS/docs/dev/write-to-take.md`
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_read.c`
+  - **ok symbol:** `dds_take` at L356 (+1)
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_rhc.c`
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_rhc_default.c`
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_waitset.c`
+  - **ok symbol:** `dds_waitset_wait` at L390
+  - **ok symbol:** `dds_waitset_attach` at L289
+- **ok file:** `vendor/CycloneDDS/src/core/ddsc/src/dds_write.c`
+- **ok file:** `vendor/CycloneDDS/src/core/ddsi/src/ddsi_rhc.c`
+- **ok file:** `vendor/CycloneDDS/src/core/ddsi/src/ddsi_whc.c`
+  - **ok symbol:** `ddsi_whc_insert` at L22
+- **ok dir:** `vendor/Fast-DDS`
+- **ok file:** `vendor/Fast-DDS/src/cpp/fastdds/core/condition/WaitSet.cpp`
+  - **ok symbol:** `WaitSet::wait` at L49
+- **ok file:** `vendor/Fast-DDS/src/cpp/fastdds/core/condition/WaitSetImpl.cpp`
+- **ok file:** `vendor/Fast-DDS/src/cpp/fastdds/publisher/DataWriterHistory.cpp`
+  - **ok symbol:** `add_pub_change` at L273
+- **ok file:** `vendor/Fast-DDS/src/cpp/fastdds/publisher/DataWriterImpl.cpp`
+- **ok file:** `vendor/Fast-DDS/src/cpp/rtps/history/ReaderHistory.cpp`
+  - **ok symbol:** `received_change` at L81
+  - **ok symbol:** `add_change` at L85 (+1)
+- **ok file:** `vendor/Fast-DDS/src/cpp/rtps/history/WriterHistory.cpp`
+  - **ok symbol:** `add_change` at L121 (+1)
+- **ok file:** `vendor/Fast-DDS/src/cpp/rtps/reader/StatefulReader.cpp`
+  - **ok symbol:** `process_data_msg` at L568
+  - **ok symbol:** `change_received` at L686 (+2)
+- **ok file:** `vendor/Fast-DDS/src/cpp/rtps/reader/StatelessReader.cpp`
+- **ok file:** `vendor/MANIFEST.md`
+- **ok file:** `vendor/rmw/rmw/include/rmw/rmw.h`
+  - **ok symbol:** `rmw_publish` at L259 (+8)
+  - **ok symbol:** `rmw_wait` at L2688 (+4)
+  - **ok symbol:** `rmw_take` at L928 (+8)
+  - **ok symbol:** `rmw_get_implementation_identifier` at L121
+- **ok file:** `vendor/rmw_cyclonedds/rmw_cyclonedds_cpp/src/rmw_node.cpp`
+  - **ok symbol:** `eclipse_cyclonedds_identifier` at L134 (+79)
+  - **ok symbol:** `rmw_wait` at L4511 (+1)
+  - **ok symbol:** `dds_waitset_attach` at L1038 (+6)
+- **ok dir:** `vendor/rmw_fastrtps`
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_cpp/src/identifier.cpp`
+  - **ok symbol:** `rmw_fastrtps_cpp` at L15 (+1)
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_cpp/src/rmw_publish.cpp`
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_shared_cpp/src/rmw_publish.cpp`
+  - **ok symbol:** `__rmw_publish` at L34
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_shared_cpp/src/rmw_take.cpp`
+  - **ok symbol:** `__rmw_take` at L208
+- **ok file:** `vendor/rmw_fastrtps/rmw_fastrtps_shared_cpp/src/rmw_wait.cpp`
+  - **ok symbol:** `__rmw_wait` at L137
+  - **ok symbol:** `get_first_untaken_info` at L41 (+5)
+- **ok file:** `vendor/rmw_implementation/rmw_implementation/src/functions.cpp`
+  - **ok symbol:** `load_library` at L77 (+1)
+
+- **cited paths:** 38
+- **paths on disk:** 38
+- **allowlisted symbols ok:** 24
+- **warnings:** 0
+
+Source map healthy: cited in-repo paths exist and allowlisted symbols still appear. Stale line numbers warn only. Exit 0.

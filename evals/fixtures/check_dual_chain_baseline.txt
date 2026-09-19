@@ -1,0 +1,38 @@
+# check_dual_chain_baseline (wiki3 §13(3) FastDDS + Cyclone)
+
+- **ok file:** `docs/architecture/feishu-dual-chain-baseline.md` (dual-chain contracts + Hold + pointer-only)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md` (§13(3) row pointer; no XML rewrite)
+- **ok file:** `config/env/chain_a.sh` (opened; export assignments checked separately)
+- **ok file:** `config/env/chain_b.sh` (opened; export assignments + no URI export)
+- **ok file:** `docs/architecture/ros2-dds-r0-interface-freeze.md` (dual-chain R0 freeze exists)
+- **ok file:** `docs/architecture/ros2-source-map.md` (three-chain map exists (not a reproduce))
+- **ok file:** `docs/architecture/unitree-sdk2-dds-swap.md` (Unitree 0.10.2 vs vendor 11.0.1)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok paused phrase:** present in baseline doc
+- **ok three-chain phrase:** present
+- **ok no-rewrite phrase:** present
+- **ok SCOREBOARD phrase:** pointer-only present
+- **ok no invented booked percentile tokens**
+- **ok chain A:** anchored export assignments
+- **ok chain B:** anchored export assignments
+- **ok chain B:** helper unsets CYCLONEDDS_URI (aligns with load.py CHAIN_B_UNSET)
+- **ok env truth:** load.py chain A rmw_fastrtps_cpp/42 + config/fastdds.xml; chain B rmw_cyclonedds_cpp/0; CYCLONEDDS_URI in CHAIN_B_UNSET; import leaves os.environ unchanged
+- **ok env cross-check:** chain_a.sh exports match load.py CHAIN_A
+- **ok env cross-check:** chain_b.sh exports match load.py CHAIN_B
+- **ok env wrapper:** dimos_bridge/dual_chain_env.py re-exports match load.py
+
+Filesystem + contract / Hold markers only. This is **not** a
+latency measurement, not a booked-percentile reprint, and not
+Feishu field proof. SCOREBOARD is the current-best pointer;
+this script does not copy its numbers. fastdds.xml /
+SCOREBOARD are existence-only in this script; the boundary
+job owns the content freeze. Cross-host stays blocked.
+three-chain stays map-only. Unitree 0.10.2 vs vendor 11.0.1
+stays drop-in FAIL. 《3》–《6》 stay Hold. This cut does not
+rewrite XML. chain_b.sh unsets CYCLONEDDS_URI.
+
+- **dual-chain baseline: pointer only (no XML rewrite)**
+- **same-topology XML tuning is paused**
+
+Dual-chain baseline healthy: chain A/B contracts exist, this cut does not rewrite XML, SCOREBOARD stays pointer-only, cross-host is blocked, and 《3》–《6》 stay Hold. Exit 0.
