@@ -3,7 +3,8 @@
 Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / 契约 / Hold 边界变成必绿检查，再谈更重的流水线。  
 查阅日期：2026-09-12。决策背景：[feishu-middleware-adr.md](feishu-middleware-adr.md)（#25）、[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)（#23）。
 
-工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。
+工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。  
+另有 [`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)：Claude 自动 code review，**只评论、不阻塞**（见 §1.1）。
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
@@ -30,6 +31,25 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - 改 [`config/fastdds.xml`](../../config/fastdds.xml) 或 [`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md) 的内容
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
+
+### 1.1 Claude 自动 code review（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，用 `anthropics/claude-code-action@v1`。
+
+| 项 | 说明 |
+|----|------|
+| 触发 | `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）；draft 与 fork PR 跳过（fork 拿不到 secret） |
+| 权限 | `contents: read` + `pull-requests: write` + `id-token: write`。**不写仓库**，不会改分支 |
+| 输出 | 一条置顶总评（`gh pr comment`，sticky）+ 行内评论；中文，标识符 / 路径保留英文 |
+| 审查重点 | ① Hold 边界（`fastdds.xml` / `SCOREBOARD.md` / `dimos_bridge` / `vendor/` / Agnocast·zenoh·Cega）；② `scripts/` `config/env/` `evals/` 的正确性（exit code、永不失败的断言、字符串守卫漂移、`load.py` 写 `os.environ`）；③ 文档与代码一致（新 gate 要同时进 ci.yml / 本文 / `AGENTS.md`）；④ 诚实标记（`STATUS: blocked` 处不得出现 PASS / PROVEN / measured） |
+| 前置 | 仓库 secret **`ANTHROPIC_API_KEY`**。缺失时该 job 失败，但它不在 required checks 内，不影响合入 |
+
+**边界**：
+
+- 这是 **advisory** 层：结论供人参考，`structure` / `contracts` / `boundary` 仍是唯一的必绿闸门（§5）。**不要**把 `claude review` 加进 required status checks。
+- 它不能替代 §3 的 `boundary` 守卫：Hold 命中以 CI 红为准，Claude 评论只是提前提醒。
+- Claude 评论里若建议放开 Hold（改 XML / SCOREBOARD、接 zenoh / Agnocast / Cega），按 §2 处理：**不采纳**。
+- 与 [ITERATION_LOG](../refactor/ITERATION_LOG.md) 的评估驱动循环互不依赖；不改 gate / eval 数量。
 
 ---
 
