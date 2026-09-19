@@ -1105,7 +1105,7 @@
 
 ## 轮次 16 — 2026-09-20 07:16（Asia/Shanghai）《5》深化：Executor/WaitSet map guard 独有分支负向自测沉淀为 eval 用例 #22
 
-> 定时任务第 16 轮。分支 `test/executor-map-guard-selftest`，PR 编号以实际返回为准（合并后由 docs-only 回填 PR 补登）。
+> 定时任务第 16 轮。分支 `test/executor-map-guard-selftest`，PR #70（已 squash-merge，main HEAD `8772794`）。
 > 开工核对：本循环无在途 PR（#68/#69 已 squash-merge，main HEAD `89b8a47`；`gh pr list` 中 #65/#61/#56/#46/#45/#44
 > 等均为他人 claude/cursor/codex 自动审查类 PR，未触碰）；`gh auth status` 复核 active 账号 `yixinzhangagent` 仍只有
 > gist/read:org/repo、**无 workflow**，`zhangyinxina-ui` 有 workflow 但对本仓 403——ci.yml 接线 / fingerprint·#18–#22
@@ -1169,7 +1169,7 @@
 - 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
 - #18 frozen、#19 env、#20 unitree、#21 source-map 负向自测：均仍 PASS。
 - Eval：**21 → 22 用例，22/22 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#22 PASS，Duration 2s）。
-- 合并后回归结果由 docs-only 回填 PR 补登（同轮次 13–15 两段式惯例）。
+- **合并后回归（main HEAD `8772794`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，pending 可忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18/#19/#20/#21/#22 五个负向自测均 PASS、promptfoo **22/22 (100%) / 0 failed / 0 errors**。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
