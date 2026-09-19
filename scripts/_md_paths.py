@@ -22,6 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 import sys
+from _repo import read_utf8
 
 
 REPO_PREFIXES = (
@@ -188,10 +189,6 @@ def parse_map(
         add(rel, line)
 
     return cited, notes
-
-
-def read_utf8(path: Path) -> str:
-    return path.read_text(encoding="utf-8", errors="replace")
 
 
 def check_cited_paths(

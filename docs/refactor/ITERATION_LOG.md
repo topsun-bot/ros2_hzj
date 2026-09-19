@@ -608,3 +608,62 @@
 3. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
 4. eval 静态契约 + 全文指纹两层已较完备；后续增量价值主要在 CI 接线或真·Humble 主机实测，
    继续避免低价值断言堆砌。
+
+---
+
+## 轮次 9 — 2026-09-20 00:12（Asia/Shanghai）Step 3 收尾：`_md_paths.py` 复用 `_repo.read_utf8`
+
+> 定时任务第 9 轮。分支 `refactor/md-paths-reuse-repo-read`，PR #58。
+> `workflow` scope 仍未授予、CVE 修复仍待批准，ci.yml 接线与规则 2 机器化继续阻塞。本轮做
+> **纯提取重构、行为不变**，且正好用上轮次 8 落地的 stdout 指纹回归作为行为不变的自动证据
+> （不再需要手动 /tmp cmp）。这是轮次 5 刻意留下的尾巴：当时为缩小爆炸半径没让 `_md_paths.py`
+> 复用 `_repo.py`，现有指纹安全网后补齐。
+
+### 背景 / 当前行为
+- 轮次 5 把 10 个脚本的 `_repo_root()`/`_read()` 收敛进 `scripts/_repo.py`，其 docstring 宣称是
+  repo-root 查找与 lenient UTF-8 读取的"single home"；但 `scripts/_md_paths.py`（轮次 2 抽出）里
+  仍保留一份与 `_repo.read_utf8` **逐字相同**的 `read_utf8(path) = read_text(encoding="utf-8",
+  errors="replace")`，是 helper 体系里最后一份该函数的重复拷贝。
+- grep 取证：`_md_paths.read_utf8` 被模块内 `check_cited_paths`（读 cited 源文件做符号查找）与
+  `check_executor_map.py`（`from _md_paths import ..., read_utf8`，读 map）使用。
+- `_md_paths.repo_root(map_rel)` 虽与 `_repo.repo_root` 同构，但**签名（单锚点）与失败串
+  （`cannot find {map_rel} ...` vs `cannot find repo root ...`）有意不同**，属不同错误上下文，
+  本轮**刻意保留不统一**（与轮次 1 不硬造 `check_existence` 同样的克制：不强行合并语义不同的东西）。
+
+### 本轮改动（一项重点改进，仅 `scripts/_md_paths.py`，净 −3 行）
+- 删除本地 `def read_utf8`（3 行），顶部标准库 import 后新增 `from _repo import read_utf8`（1 行）。
+- 消费方零改动：`check_executor_map.py` 的 `from _md_paths import ..., read_utf8` 透明拿到
+  `_repo.read_utf8`（Python 模块属性转发）；`check_source_map.py` 未直接 import 该名，不受影响。
+- `parse_map` 内第 134 行的**严格** `map_path.read_text(encoding="utf-8")`（无 errors="replace"）
+  保持原样——它读的是仓内受信任 map、要求严格解码，与 lenient 的 `read_utf8` 语义不同，不合并。
+- 不新增/删除文件（frozen gate 的 `scripts/*.py` 计数不变，仍 15）、不新增 gate、不碰 ci.yml。
+
+### 验证（行为不变证据）
+- `python3 -m compileall scripts` 通过；`_md_paths.read_utf8 is _repo.read_utf8` 运行时为 **True**（同一函数对象）。
+- **stdout 指纹回归（轮次 8 新安全网）**：`python3 evals/fingerprint_check.py` →
+  `commands: 15`、`stdout fingerprint: stable`、exit 0——source_map / executor_map 两个消费该 helper 的
+  gate 全文逐字节不变，这是本轮行为不变的直接自动证据（替代了轮次 1/2/5 的手动 cmp）。
+- `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**。
+- promptfoo 0.123.1：**17/17 passed (100%) / 0 failed / 0 errors**（含 #17 指纹用例）。
+- import 链无环：`_repo` 仅 import sys/pathlib，不反向依赖 `_md_paths`。
+
+### 分数
+- Gate：13/13（100%），与轮次 8 持平（纯提取，不应改变分数）。
+- Eval：17/17（100%），与轮次 8 持平。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** `workflow` scope 未授予：frozen gate 的 ci.yml 接线仍离线备份；promptfoo/指纹
+   仍是本地验收层，CI 不运行。
+3. `_md_paths.repo_root` 与 `_repo.repo_root` 仍各有一份（失败串有意不同）；这是**有意保留的差异**，
+   不是遗漏——后续若要统一，必须先确认两个失败串没有被任何文档/断言引用，并作为单独行为变更评审。
+4. 指纹/eval 仍只覆盖静态 gate 输出，真·双链 pub/sub / p99 / 跨机 UDP 本机 blocked。
+
+### 下一步（轮次 10 候选）
+1. **（阻塞解除后最高优先）** 授予 `workflow` scope，补仅含 ci.yml 接线的独立 PR；接线后优先把纯
+   python 的 `evals/fingerprint_check.py`（无需 npx 联网）纳入 CI contracts/structure，再做 §5.3 规则 2 机器化。
+2. 视批准情况推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）。
+3. 若仍无授权：审视《1》走查文档 `docs/refactor/01-dds-request-flow.md` 是否需随轮次 1–9 的 helper
+   体系（_freeze_paths/_md_paths/_repo/frozen gate/fingerprint）同步补一段"一致性/回归工具链"，
+   或核对 evals/results 旧 BASELINE（仍停留在早期用例数）是否应加"当前基线见 ITERATION_LOG"指引。
+4. 继续避免低价值断言堆砌；静态契约 + 全文指纹两层已较完备，增量价值在 CI 接线或 Humble 实测。
