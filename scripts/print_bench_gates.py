@@ -12,8 +12,9 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import SCOREBOARD_REL
 
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
+
 BENCH_README_REL = Path("docs/artifacts/bench/README.md")
 SCRIPTS_README_REL = Path("scripts/bench/README.md")
 METHOD_REL = Path("docs/architecture/latency-attribution.md")

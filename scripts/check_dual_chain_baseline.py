@@ -27,13 +27,18 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import (
+    FASTDDS_XML_REL as XML_REL,
+    SCOREBOARD_EXISTENCE_NOTE,
+    SCOREBOARD_REL,
+    XML_EXISTENCE_NOTE,
+)
+
 
 BASELINE_REL = Path("docs/architecture/feishu-dual-chain-baseline.md")
 ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
 CHAIN_A_REL = Path("config/env/chain_a.sh")
 CHAIN_B_REL = Path("config/env/chain_b.sh")
-XML_REL = Path("config/fastdds.xml")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 R0_REL = Path("docs/architecture/ros2-dds-r0-interface-freeze.md")
 MAP_REL = Path("docs/architecture/ros2-source-map.md")
 SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
@@ -148,8 +153,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
         (R0_REL, ("Hold",), "dual-chain R0 freeze exists"),
         (MAP_REL, ("vendor", "不是复现"), "three-chain map exists (not a reproduce)"),
         (SWAP_REL, ("drop-in FAIL", "0.10.2", "11.0.1"), "Unitree 0.10.2 vs vendor 11.0.1"),
-        (XML_REL, (), "existence only; content freeze is boundary"),
-        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+        (XML_REL, (), XML_EXISTENCE_NOTE),
+        (SCOREBOARD_REL, (), SCOREBOARD_EXISTENCE_NOTE),
     )
     existence_only = {XML_REL, SCOREBOARD_REL}
     texts: dict[Path, str] = {}

@@ -18,12 +18,17 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import (
+    FASTDDS_XML_REL as XML_REL,
+    SCOREBOARD_EXISTENCE_NOTE,
+    SCOREBOARD_REL,
+    XML_EXISTENCE_NOTE,
+)
+
 
 SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
 VERSIONS_REL = Path("vendor/VERSIONS.md")
 CMAKE_REL = Path("vendor/CycloneDDS/CMakeLists.txt")
-XML_REL = Path("config/fastdds.xml")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "drop-in: FAIL / wire: UNPROVEN"
 DOC_VERDICT = "drop-in FAIL / wire UNPROVEN"
@@ -113,8 +118,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
         (SWAP_REL, _SWAP_MARKERS, "contiguous verdict + Hold"),
         (VERSIONS_REL, (), "opened; Cyclone pin checked on the SHA row"),
         (CMAKE_REL, (), "opened; project() VERSION checked separately"),
-        (XML_REL, (), "existence only; content freeze is boundary"),
-        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+        (XML_REL, (), XML_EXISTENCE_NOTE),
+        (SCOREBOARD_REL, (), SCOREBOARD_EXISTENCE_NOTE),
     )
     texts: dict[Path, str] = {}
     for rel, markers, hint in required:

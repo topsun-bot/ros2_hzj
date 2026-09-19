@@ -21,11 +21,16 @@ from pathlib import Path
 import re
 import sys
 
+from _freeze_paths import (
+    FASTDDS_XML_REL as XML_REL,
+    SCOREBOARD_EXISTENCE_NOTE,
+    SCOREBOARD_REL,
+    XML_EXISTENCE_NOTE,
+)
+
 
 HOLD_REL = Path("docs/architecture/feishu-cega-bridge-hold.md")
 ADR_REL = Path("docs/architecture/feishu-middleware-adr.md")
-XML_REL = Path("config/fastdds.xml")
-SCOREBOARD_REL = Path("docs/artifacts/bench/SCOREBOARD.md")
 
 SUCCESS_MARKER = "§13(4) Cega / Bridge: Hold"
 
@@ -207,8 +212,8 @@ def render(root: Path | None = None) -> tuple[str, int]:
     required = (
         (HOLD_REL, _HOLD_MARKERS, "STATUS: Hold + no Cega + no runtime edits"),
         (ADR_REL, _ADR_MARKERS, "opened; §13(4) row checked separately"),
-        (XML_REL, (), "existence only; content freeze is boundary"),
-        (SCOREBOARD_REL, (), "existence only; numbers not read; freeze is boundary"),
+        (XML_REL, (), XML_EXISTENCE_NOTE),
+        (SCOREBOARD_REL, (), SCOREBOARD_EXISTENCE_NOTE),
     )
     texts: dict[Path, str] = {}
     for rel, markers, hint in required:
