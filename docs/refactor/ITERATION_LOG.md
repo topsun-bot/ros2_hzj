@@ -2692,7 +2692,7 @@
 
 ---
 
-## 轮次 35 — 2026-09-21 03:23（Asia/Shanghai）— eval #32：双链环境真源 load.py 契约/负向自测（功能 PR TBD）
+## 轮次 35 — 2026-09-21 03:23（Asia/Shanghai）— eval #32：双链环境真源 load.py 契约/负向自测（功能 PR #111，squash-merge main `61bc10d`）
 
 **re-ground**：main=`2d1d120`=origin/main（轮次34 回填 #109 已合），工作区仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked；本循环无在途 PR；active gh 账号 `yixinzhangagent` 仍仅 gist/read:org/repo（无 workflow）。GitHub 网络间歇 curl 000/HTTP2 framing 抖动，本地 main 已与 origin 一致，不阻塞本地开发与热缓存回归。
 
@@ -2709,6 +2709,8 @@
 
 **合并前回归（main 2d1d120，2026-09-21 03:23 CST）**：`compileall`（evals/scripts/config/env/薄包装）通过；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；eval-only 自测 **15 个全 PASS**（14 个 #18–#31 + 新 `dual_chain_env_load`，fail=0）；promptfoo **32/32 passed (100%)、0 failed、0 errors**（合并前 eval `eval-we2-2026-09-20T19:23:08`，Duration 6s）。
 
+**合并后回归（main 61bc10d，2026-09-21 03:29 CST）**：功能 PR #111 squash-merge 后回 main 复跑——`compileall` 通过；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；eval-only 自测 **15 个全 PASS**（fail=0）；promptfoo **32/32 passed (100%)、0 failed、0 errors**（合并后 eval `eval-qfs-2026-09-20T19:29:05`）。
+
 **Hold 合规**：未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；未改 `dimos_bridge` DDS 行为与 vendor 源码、未集成 Cega/重写 Bridge；未改 shell 包装 `chain_a.sh`/`chain_b.sh`（其字面 export 串仍由 #19 guard 锚定）；无框架迁移/依赖升级/API 变更/架构调整；CVE 审计保持只读；promptfoo 仅 npx 缓存运行、未写入运行时依赖；受保护旧草稿未跟踪未改。
 
 ### 剩余风险与状态
@@ -2718,7 +2720,7 @@
 
 ### 下一步（轮次 36 候选）
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 32/32），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 32/32），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ 已完成：功能 PR #111 squash main `61bc10d`，合并后 32/32（eval `eval-qfs-2026-09-20T19:29:05`），由本回填 PR 收尾。
 2. 候选 A `localScriptProvider.mjs` provider 自身（空 prompt error、非零退出 error 透传——这是 #18–#32 全部负向 eval「exit1→case fail」的根基）：先探针取证并确认集成可行（python subprocess 调 `node -e`/临时 .mjs，或研究 promptfoo expected-error 用例写法），可行再做，不为凑数硬上。
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #32）接进 CI（先纯 python 项）。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
