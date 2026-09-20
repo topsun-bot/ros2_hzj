@@ -10,8 +10,9 @@ name: claude-code-review
 #
 # Setup (one-time, repo admin):
 #   1. Install the Claude GitHub App: https://github.com/apps/claude
-#   2. Add repository secret ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN and
-#      switch the `anthropic_api_key` line below to `claude_code_oauth_token`).
+#   2. Add repository secret ANTHROPIC_API_KEY (Claude API key) or
+#      CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`). Both inputs are
+#      passed below; the action uses whichever one is non-empty.
 # Docs: https://code.claude.com/docs/en/github-actions
 
 on:
@@ -61,6 +62,7 @@ jobs:
         if: steps.creds.outputs.configured == 'true'
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
           plugins: "code-review@claude-code-plugins"
           prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
