@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 27 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 28 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -26,6 +26,7 @@
 | `runtime_provenance_guard_selftest.py` | runtime-provenance guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件（MANIFEST/VERSIONS/Dockerfile/provenance 文档/prove_rmw.py）复制进 `tempfile` 再逐个变异，只覆盖其两个独有解析器——`_dockerfile_pins_humble` 对 rolling 钉版/缺失 ENV/有 ENV 无值三种分支必报，`_versions_rows` 要求 vendor 树名与 40 位 SHA 在**同一行**（删 SHA、SHA 挪到别的行必报）；健康树不误报；SHA 正则被改宽为任意单词即漏报（直白 marker substring 检查不重复） |
 | `sink_layers_guard_selftest.py` | sink-layers guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实文件（sink/ADR/source-map/executor/swap 文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进 `tempfile`，只覆盖其唯一独有解析器 `_LAYER_ROW_RE`——六层表格行首粗体标签锚定：把 `\| **rcl** \|`/`\| **DDS** \|` 行标签置空但保留整行正文（app 行本就含 `rclpy`、executor 行含 `rclcpp`、散文满是 DDS）必须报 FAIL layers 且不连带 FAIL markers/policy；健康六行树不误报；正则被改宽为裸词扫描即漏报（直白 marker substring 与 absent-vendor-tree 机制分别由正向用例/#22 覆盖，不重复） |
 | `three_chain_repro_guard_selftest.py` | three-chain 复现 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 6 个真实文件（repro/source-map/executor/ADR 文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进 `tempfile`，只覆盖其独有的两条 `_FABRICATE_RES` 伪造正则——在健康文档（仍含 `map ≠ reproduce`、`STATUS: blocked` 与全部链名 marker）末尾**追加**矛盾句 `map = reproduce`（ASCII `=`，phrase 存在性检查抓不到，只有正则 `\bmap\s*=\s*reproduce\b` 抓）与 `three-chain repro: PROVEN` 必须报 FAIL fabricate 且不连带 missing/markers/phrase/status/chains；同行禁止句「不要把 map = reproduce…」必须豁免；健康树不误报；把 map=reproduce 正则 neuter 为永不匹配即漏报（marker 共现链检查是 guard 自述 marker-only 边界、STATUS 伪造同族机制已由 #23/#24 覆盖，不重复） |
+| `bench_gates_guard_selftest.py` | bench-gates guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 4 个真实文件（SCOREBOARD / bench README / scripts-bench README / latency 方法文档）与真实跨机占位目录整个复制进 `tempfile`（SCOREBOARD 只复制不原地改），只覆盖其两项独有检查——跨机占位目录 `2026-09-11-cross-host/` 必须存在（删目录必报 FAIL missing 且不连带 cross/markers），`_cross_host_hits` 经独有 `_STATUS_BLOCKED_RE` 必须在 5 个候选中扫到至少一处诚实的 `STATUS: blocked`（全部改写为非 blocked 但保留 STATUS 子串必报 FAIL cross-host 且不连带 markers）；仅 BLOCKED.txt 一处命中即健康（钉 any-hit 语义）；正则放宽为裸 STATUS 即漏报（直白 required-file/marker substring 与 #23 同形；prove_rmw 无 FAIL 路径、risk_matrix 的 order 块与 marker 元组重叠，均不重复） |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -38,7 +39,7 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（27 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（28 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
@@ -47,7 +48,7 @@
   guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
   1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24）、1 个 runtime-provenance
   guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25），以及 1 个 sink-layers
-  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27，均见下文专节）：
+  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -78,6 +79,28 @@
 | 25 | `evals/runtime_provenance_guard_selftest.py` | `runtime provenance guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（Dockerfile 钉 rolling/缺失 ENV/有 ENV 无值三分支必报；VERSIONS 行删 SHA、SHA 挪到别的行必报；健康树不误报；SHA 正则被改宽为任意单词即漏报） |
 | 26 | `evals/sink_layers_guard_selftest.py` | `sink layers guard selftest: PASS`、`2 negative, 2 healthy, 1 mutation`（rcl/DDS 表格行首粗体标签被置空但保留行正文时必报 FAIL layers 且不连带 markers/policy；健康六行树不误报；行锚定正则被改宽为裸词扫描即被 rclpy/DDS 散文救回而漏报） |
 | 27 | `evals/three_chain_repro_guard_selftest.py` | `three-chain repro guard selftest: PASS`、`2 negative, 1 non-flag, 2 healthy, 1 mutation`（健康 marker 全在时追加 `map = reproduce` / `three-chain repro: PROVEN` 矛盾句必报 FAIL fabricate 且不连带 phrase/status/chains；同行「不要把」禁止句豁免；健康树不误报；map=reproduce 正则被 neuter 为永不匹配即漏报） |
+| 28 | `evals/bench_gates_guard_selftest.py` | `bench gates guard selftest: PASS`、`2 negative, 1 non-flag, 2 healthy, 1 mutation`（删跨机占位目录必报 FAIL missing、所有候选 STATUS:blocked 被改写为非 blocked 必报 FAIL cross-host 且不连带 markers；仅 BLOCKED.txt 命中仍健康；正则放宽为裸 STATUS 即漏报） |
+
+### bench-gates 跨机目录存在性 / STATUS-blocked 正则负向自测（#28，eval-only）
+
+- #3 正向与 #17 指纹只证明**当前健康树渲染为绿**，证明不了 `scripts/print_bench_gates.py`（wiki3 §12 / §13.3，bench 只做指针、跨机 UDP 诚实 blocked）
+  独有的两项检查在被悄悄放宽后仍会触发：其一，跨机占位目录 `docs/artifacts/bench/2026-09-11-cross-host/` 在 UDP blocked 期间**必须存在**；
+  其二，`_cross_host_hits` 用独有正则 `_STATUS_BLOCKED_RE`（`STATUS:\s*\*?\s*blocked`）扫描 5 个候选文件，必须扫到至少一处诚实的
+  `STATUS: blocked`，裸 `STATUS` token 不算数。若删掉目录检查或把 blocked 正则放宽，gate、#3、#17 指纹会继续全绿，跨机 blocked 结论却悄悄失去证据。
+- **为什么现在补**：#18–#27 已覆盖 10 个带独有解析器的 guard，`print_bench_gates.py` 是被遗漏的第 11 个（独有正则 + 独有目录存在性分支）。
+  `prove_rmw.py` 设计上恒 exit 0、无 FAIL 路径（其诚实性由 Mac HIL 记录覆盖）；`check_risk_matrix.py` 是直白 marker substring，
+  其 §9.4「order」块复查的 5 个 token 已全部在 marker 元组里、并非真正顺序校验——两者都不另设负向脚本。
+- `bench_gates_guard_selftest.py` 把 guard 读取的 **4 个真实文件 + 整个真实跨机占位目录**复制进 `tempfile`，每次只变异一处，
+  驱动可注入的 `render(root=...)`，**不改动仓库**、纯标准库：
+  - **2 个负向场景**：N1 删除跨机占位目录、4 个 required 文件保留，必须 exit 1、打印 `FAIL missing` 且**不连带** FAIL cross-host/markers；
+    N2 把 5 个候选里每一处 `STATUS: blocked` 改写成非 blocked 的 `STATUS: **ready**`（保留 required 所需的 `STATUS` 子串），
+    `_cross_host_hits` 必须返回空、exit 1、打印 `FAIL cross-host` 且**不连带** FAIL markers；
+  - **1 个 non-flag**：只保留 `BLOCKED.txt` 一处 blocked、其余 4 个候选改写，树仍必须 exit 0 且 hits 恰为 `[BLOCKED.txt]`
+    （钉「任意一个候选命中即可」，防止未来被误改成要求每个文件都写 blocked）；
+  - **2 个健康对照**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印 `Bench gates healthy`（复制树还须含 `cross-host: blocked` 行）；
+  - **1 个变异**：把 `_STATUS_BLOCKED_RE` 放宽为裸 `STATUS`（try/finally 恢复）后 N2 必须**漏报**（exit 0、无 FAIL cross-host），恢复后重新抓到。
+- 与 #17/#18–#27 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、不需要
+  ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### three-chain 复现 guard 独有伪造正则负向自测（#27，eval-only）
 

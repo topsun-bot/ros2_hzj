@@ -2404,3 +2404,81 @@
 3. 若评估侧出现新的真实 DDS 行为薄弱断言：按《5》纪律在 `evals/` 增补对应负向用例（eval-only、纯标准库、tempdir-only）。
 4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate+指纹+#18–#27+promptfoo 回归，在日志标注「等待新指令」，
    **不再为凑改动制造提交**。
+
+---
+
+## 轮次 31 — 2026-09-20 23:18（Asia/Shanghai）— eval #28：补 `print_bench_gates` 跨机目录存在性 / STATUS-blocked 正则负向自测（功能 PR TBD）
+
+### 背景与取证（为什么不是「等待新指令」）
+
+- re-ground：`git fetch` 一次成功，main 与 origin/main 一致于 `8aeb1db`（轮次 30 纯文档 PR #100 已 squash-merge），无在途 PR，
+  工作区仅 untracked 受保护旧草稿 `docs/01-dds-request-flow.md`。合并后完整回归先跑一遍全绿（见下「合并前回归」）。
+- 轮次 30 已判定《2》A 面纯机制/纯渲染逐字重复清零、Step 1–4 进入按需维护；本轮在决定「等待」前，对 13 个 gate 中
+  **尚无专属负向自测的 3 个**（`prove_rmw`、`print_bench_gates`、`check_risk_matrix`）逐个取证，发现轮次 21「#18–#27 已覆盖
+  全部带独有解析器的 guard、原则上停止新增 selftest」的总结有**一个真实遗漏**：
+  - `scripts/print_bench_gates.py` 带两项 #18–#27 未覆盖的**独有**检查：① 跨机占位目录
+    `docs/artifacts/bench/2026-09-11-cross-host/` 的**存在性分支**（缺失即 `FAIL missing`）；② `_cross_host_hits()` 用独有正则
+    `_STATUS_BLOCKED_RE = STATUS:\s*\*?\s*blocked`（IGNORECASE）扫描 5 个候选文件、要求至少一处诚实 `STATUS: blocked`
+    （全空即 `FAIL cross-host`）。正向用例 #3 与 #17 指纹只能证明当前健康树为绿，证明不了这两项被放宽后仍会触发。
+  - `scripts/prove_rmw.py` 设计上**恒 exit 0**（环境/文件系统事实报告，无 FAIL 分支），不适合「该 fail 时会 fail」型负向自测，
+    其诚实性已由 Mac HIL（`docs/testing/2026-09-mac-hil.md`）手动覆盖；
+  - `scripts/check_risk_matrix.py` 是直白 marker substring，其 §9.4「order」块复查的 5 个 token 已全部包含在 `_MATRIX_MARKERS`
+    元组内、与 marker 断言重叠，并非真正的顺序校验——二者均不另设负向脚本。
+- 该遗漏符合《5》既定深化方向（双百之后扩大对**真实 guard 负向能力**的断言覆盖，而非放水），且 eval-only、纯标准库、
+  tempdir-only、不依赖任何外部授权，故本轮补为 **#28**（评估深化，不改任何生产脚本）。
+
+### 改动（eval-only，3 个 evals 文件 + 本日志，0 生产代码）
+
+- 新增 `evals/bench_gates_guard_selftest.py`：把 guard 读取的 **4 个真实文件**（SCOREBOARD、bench README、scripts-bench README、
+  latency-attribution 方法文档）与**整个真实跨机占位目录**复制进 `tempfile`（SCOREBOARD 只复制、绝不在原地改），驱动可注入的
+  `render(root=...)`。断言 **2 negative / 1 non-flag / 2 healthy / 1 mutation**：
+  - **N1** 删除跨机占位目录、4 个 required 文件保留 → exit 1、含 `FAIL missing`，且**不连带** `FAIL cross-host` / `FAIL markers`
+    （隔离目录存在性分支）；
+  - **N2** 把 5 个候选里每一处 `STATUS: blocked` 改写成非 blocked 的 `STATUS: **ready**`（保留 required 所需 `STATUS` 子串），
+    `_cross_host_hits` 返回空 → exit 1、含 `FAIL cross-host`，且**不连带** `FAIL markers`（隔离 blocked 正则扫描）；
+  - **non-flag** 只保留 `BLOCKED.txt` 一处 blocked、其余 4 个候选改写 → 仍 exit 0 且 hits 恰为 `[BLOCKED.txt]`，钉死
+    「任意一个候选命中即可（any-hit）」语义，防止未来被误改成要求每个文件都写 blocked；
+  - **healthy** 真实仓 `render()` 与完整复制临时树均 exit 0、含 `Bench gates healthy`（复制树还须含 `cross-host: blocked` 行）；
+  - **mutation** 把 `_STATUS_BLOCKED_RE` 放宽为裸 `STATUS`（try/finally 恢复）后 N2 必须**漏报**（exit 0、无 `FAIL cross-host`），
+    恢复原正则后重新抓到。
+  - 落盘前先在 /tmp 用探针逐字取真实 FAIL 行与各场景 exit code（H2/S1=0、N1=1 only-missing、N2=1 only-cross、mutation 0→1），
+    再固化为脚本；直白 required-file/marker substring 循环与 #23 等同形，按惯例不重复堆夹具。
+- `evals/promptfooconfig.yaml`：末尾追加 #28 用例（含计数串断言 `2 negative, 1 non-flag, 2 healthy, 1 mutation`），seed 用例 27→28。
+- `evals/README.md`：五处登记——配置表 seed 总数 27→28、seed 用例计数叙述补 #28、selftest 文件表加行、用例明细表加 `| 28 |`、
+  新增「bench-gates 跨机目录存在性 / STATUS-blocked 正则负向自测（#28）」专节（说明为何这是轮次 21 的遗漏，以及 prove_rmw /
+  risk_matrix 为何不补）。`evals/results/BASELINE.md` 是首次 12 用例运行的历史快照，按惯例不改。
+
+### 合并前回归（分支工作区，main `8aeb1db` + 本轮 eval 改动）
+
+- `python3 -m compileall -q evals scripts` 通过；gate **13/13 all gates green**（新脚本不进 `run_all_gates.GATES`、不被 CI
+  structure 枚举、无需 ci.yml 接线）；stdout 指纹 **15/15 stable**（新脚本不在 15 个被比对命令内，健康 stdout 零变化）；
+  #18–#28 **11 个**负向自测全 exit 0；promptfoo **28/28 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-fmE-2026-09-20T15:17:51`，UTC，约合 CST 23:17，Duration 3s）。
+- 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 27/27 → **28/28**（净增 1 条对真实 guard 负向能力的断言，非放水）；
+  guard 负向自测由 10 个增至 **11 个**。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 的任何数字或内容（仅在 tempdir **副本**上变异）；
+  未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；双链契约不动；
+  无框架/依赖/API/架构变更（纯 eval-only 测试新增，公共 API 与生产脚本零改动）。
+- 《6》CVE 审计保持只读；promptfoo 仅以 `npx --yes promptfoo@0.123.1` 缓存运行、未写入运行时依赖；
+  受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删（commit 前以 `git diff --cached --name-only` 核验）。
+
+### 剩余风险与状态
+
+- 至此 13 个 gate 中，带独有解析器/独有判定分支的 guard 已全部具备负向自测（#18–#28 共 11 个）；仅剩 `prove_rmw`（恒 exit 0，
+  不适合）与 `check_risk_matrix`（直白 marker + 与 marker 重叠的 order 块）无脚本，属轮次 21 原则内的合理空缺。后续 eval 深化
+  只在出现**新的真实 DDS 行为薄弱断言**时按《5》增补，不为凑数新增。
+- 仍 blocked / 待拍板（均不得自行突破）：① ci.yml 接线需本机 `gh auth refresh -h github.com -s workflow`
+  （active `yixinzhangagent` 缺 workflow scope；离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`；授权后优先把纯
+  python 的 fingerprint + #18–#28 selftest 纳入 CI，先于整套 promptfoo），再做计划 §5.3 规则 2 机器化；
+  ② CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆 3 个独立 PR；
+  ③ 4 份飞书文档 3380004 无权限；④ 无 Humble Linux 主机，真·双链 pub/sub、p99、跨机 UDP、三链实际复现恒 `STATUS: blocked`，不伪造。
+
+### 下一步（轮次 32 候选）
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #28）接进 CI（先纯 python 项）。
+3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#28 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
