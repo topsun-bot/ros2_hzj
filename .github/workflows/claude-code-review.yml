@@ -43,11 +43,15 @@ jobs:
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
           plugins: "code-review@claude-code-plugins"
           prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
-          # Review only. --allowedTools auto-approves the one tool that posts
-          # inline PR comments; it does not by itself restrict anything, so
-          # --disallowedTools explicitly removes file-editing tools and denies
-          # git push / commit and gh pr merge / close. Deny rules win over allow
-          # rules. Read-only tools the review skill declares stay available.
+          # Review only. This run is unattended: a tool call that is not
+          # pre-approved (by --allowedTools here or by the code-review skill's
+          # own allowed-tools list) has nobody to answer its prompt and is
+          # denied. --allowedTools pre-approves only the tool that posts inline
+          # PR comments. --disallowedTools removes file-editing and web tools
+          # outright and denies git push / commit, gh pr merge / close, and
+          # curl / wget / rm even if a skill were to allow them. Deny rules win
+          # over allow rules. Bash is not removed wholesale because the review
+          # skill reads the PR through its own pre-approved read-only commands.
           claude_args: |
             --allowedTools "mcp__github_inline_comment__create_inline_comment"
-            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,Bash(git push *),Bash(git commit *),Bash(gh pr merge *),Bash(gh pr close *)"
+            --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Bash(git push *),Bash(git commit *),Bash(gh pr merge *),Bash(gh pr close *),Bash(curl *),Bash(wget *),Bash(rm *)"
