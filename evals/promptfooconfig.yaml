@@ -308,3 +308,22 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '5 negative, 2 parse-guard, 2 healthy, 1 mutation'
+
+  # Negative self-test for the product-DoD honesty guard (eval-only, not a
+  # CI gate). Covers its unique anti-fabrication logic: a fabricated positive
+  # STATUS: PASS / DoD: met / this-host measured-delta / "Humble ran here"
+  # claim and an invented booked p99 token must FAIL; a same-line prohibition
+  # ("do not write STATUS: PASS") and the policy word 分位数 must stay green
+  # (bidirectional anti-false-positive contract); the real repo and a copied
+  # healthy tree stay green; neutering the STATUS fabrication regex
+  # demonstrably silences the check. Plain missing-marker/missing-file cases
+  # are intentionally not duplicated (same shape as #20 N5 / #22 N2·N5).
+  - description: 'dod_evidence_guard_selftest.py: the DoD anti-fabrication checks actually fire (negative regression, tempdir-only)'
+    vars:
+      script: evals/dod_evidence_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'dod evidence guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '5 negative, 2 non-flag, 2 healthy, 1 mutation'
