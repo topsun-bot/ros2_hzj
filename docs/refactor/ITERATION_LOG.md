@@ -2563,7 +2563,7 @@
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#29 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
 
-## 轮次 33 — 2026-09-21 01:18（Asia/Shanghai）— eval #30：gate-runner 执行判定语义负向自测（功能 PR TBD）
+## 轮次 33 — 2026-09-21 01:18（Asia/Shanghai）— eval #30：gate-runner 执行判定语义负向自测（功能 PR #105，squash-merge main `4a6b79f`）
 
 ### re-ground
 
@@ -2600,6 +2600,12 @@
   promptfoo **30/30 passed (100%) / 0 failed / 0 errors**（合并前 eval ID `eval-d7X-2026-09-20T17:18:09`，UTC，约合 CST 次日 01:18，Duration 4s）。
 - 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 29/29 → **30/30**（净增 1 条对 runner 执行裁决语义的真实负向断言，非放水）；eval-only 自测脚本 12 → **13**。
 
+### 合并后回归（main `4a6b79f`，#105 squash-merge 后，2026-09-21 01:40 CST）
+
+- 功能 PR **#105**（分支 `test/gate-runner-execution-selftest`，分支 commit `96b32c6`，4 files +391/−3）required checks **structure / contracts / boundary 全 pass**、CodeQL（Analyze actions/javascript-typescript/python + 聚合）全 pass、Cursor Approval Agent pass、reviewDecision **APPROVED**、MERGEABLE（mergeStateStatus UNSTABLE 仅因非 required 的 Cursor Security Reviewer pending，历轮同），已 `gh pr merge --squash --delete-branch`，mergeCommit **`4a6b79fdf5a85f7aee0a3d8ce969cf95394d3a81`**，远端分支已删。
+- 回 main `git pull --ff-only` 到 `4a6b79f`（合并后网络一度持续 000，按重试循环恢复后 ff，未重复 merge；合并事实以 `gh pr view 105 --json state,mergeCommit` = MERGED 为准）。
+- main 上全套回归：compile ok；gate **13/13 all gates green**；stdout 指纹 **15/15 stable**；eval-only 自测 **13/13**（11 guard + gate_registry + gate_execution）全 exit 0；promptfoo **30/30 passed (100%) / 0 failed / 0 errors**，合并后 eval ID **`eval-vL5-2026-09-20T17:40:45`**（UTC，约 CST 01:40，Duration 3s）。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md`；未碰 `.github/workflows/ci.yml`（workflow scope 仍缺，接线保持 blocked）；
@@ -2616,7 +2622,7 @@
 
 ### 下一步（轮次 34 候选）
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. 已完成：#105 squash-merge main `4a6b79f`，合并后回归 gate 13/13、指纹 15/15、13 selftest、promptfoo 30/30（eval `eval-vL5-2026-09-20T17:40:45`），功能 PR 号 / main HEAD / 合并后 eval ID 已由本 docs-only 回填 PR 补入。
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #30）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进：再做一次取证扫描（runner/guard/config/docs 是否还有未被任何断言钉住的独有判定分支或注册/契约漂移面，例如 `fingerprint_check.py` 自身的 DRIFT 负向能力是否值得补），确无新高价值项才做完整 gate + 指纹 + #18–#30 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
