@@ -2626,3 +2626,60 @@
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #30）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进：再做一次取证扫描（runner/guard/config/docs 是否还有未被任何断言钉住的独有判定分支或注册/契约漂移面，例如 `fingerprint_check.py` 自身的 DRIFT 负向能力是否值得补），确无新高价值项才做完整 gate + 指纹 + #18–#30 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+## 轮次 34 — 2026-09-21 02:14（Asia/Shanghai）— eval #31：stdout 指纹严格层负向自测（功能 PR TBD）
+
+### re-ground
+
+- 本地 `main` = `origin/main` = `f8f1d59`（轮次33 回填 #106 squash），`git pull --ff-only` Already up to date；本循环分支（refactor/*、test/*、docs/log*、docs/refactor*、feat/*、fix/*）**无在途 PR**。
+- `gh auth status`：active 仍为 `yixinzhangagent`（gist/read:org/repo，**无 workflow**）；`zhangyinxina-ui` 含 workflow 但非 active、对本仓历史 403，不擅自切换。ci.yml 接线继续 blocked。
+- 工作区仅余受保护旧草稿 `docs/01-dds-request-flow.md` untracked（不 add/不改/不删）。
+
+### 取证：严格层 #17 此前只有健康断言
+
+- 按轮次33「下一步」第 4 条点名的候选，对 `evals/fingerprint_check.py`（#17，逐字节 stdout 指纹严格层）取证。Promptfoo #17 只断言健康路径打印 `stdout fingerprint: stable`，**没有任何断言证明它该 fail 时真会 fail**。其多个独有判定分支零负向覆盖：
+  - live stdout 与 fixture 不符 → `FAIL stdout drift` + `stdout fingerprint: DRIFT (n/N stable)`、rc 1（核心严格层）；
+  - 命令 exit 0 但缺 fixture → `FAIL missing fixture`（并提示 `--update`）、rc 1；
+  - 命令非零退出（即便有 fixture）→ exit code 优先、`FAIL command exit N`、rc 1；
+  - `--update` 遇到失败命令 → stderr `refusing to update fixture for <name>: command exited N`、rc 1 且**不得写** fixture（写路径安全闸）；
+  - `normalize` 把绝对仓库路径改写为 `<REPO_ROOT>`（可移植、防假 DRIFT 误报）。
+- 若该工具被掏空（比较被旁路、失败命令被容忍、缺/漂移 fixture 仍报绿），gate stdout 里非 marker 的增删行、计数变化、裁决句改写会在 `run_all_gates`（只看退出码+单 marker）与宽松 `contains` 双双报绿时静默通过——三层防线的严格层随之失效。属真实负向缺口，非凑数。
+- /tmp 探针（`/tmp/probe_fp.py`）在 tempdir monkeypatch `ROOT`/`FIX_DIR`/`COMMANDS` 逐字取到真实行为：drift rc1 含 `FAIL stdout drift` 与 `DRIFT (0/1 stable)`；缺 fixture rc1 含 `FAIL missing fixture`；非零 rc1 含 `FAIL command exit 1`；`--update` 对 exit1 命令 rc1 且 stderr `refusing to update fixture for bad_gate: command exited 1`、不写文件；路径归一化后 fixture 为 `cwd=/private<REPO_ROOT>`（macOS tempdir 真实前缀 `/private/...`，无原始路径泄漏）、verify rc0；把 `normalize` 换成「恒返回 fixture baseline」的桩则 drift 漏报为 rc0，恢复真实 `normalize` 后重新 rc1 + DRIFT。
+
+### 改动（纯 eval-only，0 生产代码、0 fixture 改动）
+
+- 新增 `evals/fingerprint_guard_selftest.py`（#31，对象是 fingerprint_check 工具本身，沿用 `*_guard_selftest` 族；`contextmanager` 保存/恢复 `ROOT`/`FIX_DIR`/`COMMANDS`，变异在 `try/finally` 内恢复 `normalize`），纯标准库、**不碰真实 `evals/fixtures/`**：
+  - **4 negative**：N1 live≠fixture → `FAIL stdout drift`+DRIFT、rc1；N2 健康命令缺 fixture → `FAIL missing fixture`、rc1；N3 命令非零退出 → `FAIL command exit 1`、rc1；N4 `--update` 遇 exit1 命令 → stderr 拒绝、rc1 且不写 fixture；
+  - **1 non-flag**：stdout 内嵌绝对仓库路径 → `normalize` 必改写为 `<REPO_ROOT>`、原始路径不泄漏、verify 仍 stable（防假 DRIFT）；
+  - **1 healthy**：`--update` 写出归一化 fixture、干净 verify 打印 stable 横幅、rc0；
+  - **1 mutation**：`normalize` 盲桩（恒返回 fixture baseline，等价比较被旁路）→ drift 漏报 rc0 stable；恢复后同漂移 rc1 + DRIFT。
+  - PASS 计数串 `4 negative, 1 non-flag, 1 healthy, 1 mutation`，PASS 短语 `fingerprint guard selftest: PASS`。
+- `evals/promptfooconfig.yaml`：30 → **31** 用例（末尾追加 #31 块，2 条 contains）。
+- `evals/README.md`：六处登记——配置表「31 个 seed 用例」、seed 叙述「（31 个）」、文件表新增 `fingerprint_guard_selftest.py` 行、seed 枚举句追加 #31、明细表新增 `| 31 | … |`、新增 #31 专节（**倒序置于 #30 专节之前**，含范围边界：不重新比对 15 份真实 fixture、不替 CI structure 枚举缺口断言）。
+
+### 合并前回归（分支工作区，main `f8f1d59` + 本轮 eval 改动）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py` 通过；gate **13/13 all gates green**（新脚本不进 GATES、不被 CI structure 枚举、无需 ci.yml 接线）；
+  stdout 指纹 **15/15 stable**（新脚本不跑任何被比对命令、不改 fixture，健康 stdout 零变化）；eval-only 自测由 13 个增至 **14 个**（11 guard + gate_registry + gate_execution + fingerprint_guard）全 exit 0；
+  promptfoo **31/31 passed (100%) / 0 failed / 0 errors**（合并前 eval ID `eval-lUy-2026-09-20T18:14:09`，UTC，约合 CST 次日 02:14，Duration 4s）。
+- 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 30/30 → **31/31**（净增 1 条对严格层工具自身负向能力的真实断言，非放水）；eval-only 自测脚本 13 → **14**。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md`；**未改任何 `evals/fixtures/*.txt`**（负向场景全在 tempdir 副本）；未碰 `.github/workflows/ci.yml`（workflow scope 仍缺）；
+  未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；双链契约不动；
+  无框架/依赖/API/架构变更（纯 eval-only 测试新增，生产脚本与 `fingerprint_check.py` 零改动，仅只读 import 并在 tempdir monkeypatch 后恢复）。
+- 《6》CVE 审计保持只读；promptfoo 仅以 `npx --yes promptfoo@0.123.1` 缓存运行、未写入运行时依赖；
+  受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险与状态
+
+- 负向自测覆盖现状：11 个带独有解析器的 guard（#18–#28）+ runner 双面（注册 #29 / 执行 #30）+ 严格层指纹工具（#31）均已闭环「该 fail 时真会 fail」；`prove_rmw`（恒 exit 0、无 FAIL 路径，Mac HIL 覆盖）、`check_risk_matrix`（直白 marker substring、§9.4 order 块 token 全在 marker 元组内）维持无脚本的合理空缺。
+- 仍 blocked / 待拍板（均不得自行突破）：① ci.yml 接线需本机 `gh auth refresh -h github.com -s workflow`（active `yixinzhangagent` 缺 scope；离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`；授权后优先把纯 python 的 fingerprint + #18–#31 自测纳入 CI、先于整套 promptfoo，并把第 13 闸接进 structure 枚举），再做计划 §5.3 规则 2 机器化；② CVE 修复三项待用户明确批准、拆 3 个独立 PR；③ 4 份飞书文档 3380004 无权限；④ 无 Humble Linux 主机，真·双链 pub/sub、p99、跨机 UDP、三链实际复现恒 `STATUS: blocked`，不伪造。
+
+### 下一步（轮次 35 候选）
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #31）接进 CI（先纯 python 项）。
+3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+4. 若以上均不可推进：再做一次取证扫描（localScriptProvider.mjs provider 自身、config/env 薄包装、docs 契约链接同构检查等是否还有未被任何断言钉住的独有判定/漂移面），确无新高价值项才做完整 gate + 指纹 + #18–#31 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。

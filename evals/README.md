@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 30 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 31 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -29,6 +29,7 @@
 | `bench_gates_guard_selftest.py` | bench-gates guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 4 个真实文件（SCOREBOARD / bench README / scripts-bench README / latency 方法文档）与真实跨机占位目录整个复制进 `tempfile`（SCOREBOARD 只复制不原地改），只覆盖其两项独有检查——跨机占位目录 `2026-09-11-cross-host/` 必须存在（删目录必报 FAIL missing 且不连带 cross/markers），`_cross_host_hits` 经独有 `_STATUS_BLOCKED_RE` 必须在 5 个候选中扫到至少一处诚实的 `STATUS: blocked`（全部改写为非 blocked 但保留 STATUS 子串必报 FAIL cross-host 且不连带 markers）；仅 BLOCKED.txt 一处命中即健康（钉 any-hit 语义）；正则放宽为裸 STATUS 即漏报（直白 required-file/marker substring 与 #23 同形；prove_rmw 无 FAIL 路径、risk_matrix 的 order 块与 marker 元组重叠，均不重复） |
 | `gate_registry_selftest.py` | gate-runner **注册表一致性自测**（eval-only，不是 CI gate、无需 ci.yml 接线；对象是 runner 而非某个 guard）：以单一发现规则（`scripts/check_*.py` 加两个固定名 `prove_rmw.py`/`print_bench_gates.py`，排除下划线 helper 与 `run_all_gates.py` 自身）扫描磁盘，与 `run_all_gates.GATES` **双向比对**——磁盘多一个未注册 gate 必报 orphan、GATES 指向缺失脚本必报 missing、helper/runner 不得被误判为 gate、gate 总数钉为 13 且 marker 非空；发现器换成「只信注册表」的桩则孤儿必漏报（恢复后抓回）。补齐「跑绿只证明已注册脚本健康、发现不了新增 gate 忘注册」的盲区（CI structure 仍只枚举 12 个的 ci.yml 接线缺口不在本脚本范围，待 workflow scope） |
 | `gate_execution_selftest.py` | gate-runner **执行判定语义负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线；对象是 runner 的 `run_one`/`main` 而非注册表）：在 `tempfile` 放假 gate 并把 `run_all_gates.REPO_ROOT`/`GATES` 指过去（`finally` 恢复），钉「exit 0 且在 stdout/stderr 合并输出里打印健康 marker 才算过」——exit 0 但不打印 marker 必计 `zero-but-missing-marker` 并 FAIL、非零退出（即便打印 marker）必 FAIL、GATES 指向缺失脚本必返回 `127`/`missing:` 并 FAIL；marker 只打到 stderr 且 exit 0 仍算过（钉 combined 语义、防误报）；把 `run_one` 换成「恒报 marker 存在」的桩则空壳 exit-0 gate 必漏报（恢复后抓回）。补齐 #29 只钉注册表、不执行 gate 的盲区 |
+| `fingerprint_guard_selftest.py` | stdout 指纹严格层（#17 `fingerprint_check.py`）的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 把 `fingerprint_check` 的 ROOT/FIX_DIR/COMMANDS 指到假命令（`finally` 恢复），钉逐字节比对真会 fail——live 输出与 fixture 不符必 `FAIL stdout drift`+DRIFT、健康命令缺 fixture 必 `FAIL missing fixture`、命令非零退出必 `FAIL command exit N`、`--update` 遇失败命令必在 stderr 拒绝且不写 fixture；命令 stdout 内嵌绝对仓库路径时 `normalize` 必归一化为 `<REPO_ROOT>`（可移植、防假 DRIFT 误报）；把 `normalize` 换成恒返回 fixture 内容的桩则 drift 漏报为绿（恢复后抓回）。补齐 #17 只断言健康 stable 的盲区 |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -41,7 +42,7 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（30 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（31 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
@@ -50,7 +51,7 @@
   guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
   1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24）、1 个 runtime-provenance
   guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25），以及 1 个 sink-layers
-  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard，均见下文专节）：
+  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -84,6 +85,18 @@
 | 28 | `evals/bench_gates_guard_selftest.py` | `bench gates guard selftest: PASS`、`2 negative, 1 non-flag, 2 healthy, 1 mutation`（删跨机占位目录必报 FAIL missing、所有候选 STATUS:blocked 被改写为非 blocked 必报 FAIL cross-host 且不连带 markers；仅 BLOCKED.txt 命中仍健康；正则放宽为裸 STATUS 即漏报） |
 | 29 | `evals/gate_registry_selftest.py` | `gate registry selftest: PASS`、`2 negative, 1 non-flag, 2 healthy, 1 mutation`（磁盘新增未注册 check_*.py 必报 orphan、GATES 指向缺失脚本必报 missing；下划线 helper 与 run_all_gates.py 不得被当 gate；gate 总数钉 13、marker 非空；发现器只信注册表不扫磁盘即漏报孤儿） |
 | 30 | `evals/gate_execution_selftest.py` | `gate runner execution selftest: PASS`、`3 negative, 1 non-flag, 1 healthy, 1 mutation`（exit0 缺 marker 必 FAIL zero-but-missing-marker、非零退出必 FAIL、缺失脚本必 127/FAIL；marker 仅在 stderr 且 exit0 仍过；run_one 恒报 marker 存在即漏报空壳 exit-0 gate） |
+| 31 | `evals/fingerprint_guard_selftest.py` | `fingerprint guard selftest: PASS`、`4 negative, 1 non-flag, 1 healthy, 1 mutation`（live≠fixture 必 DRIFT、缺 fixture 必 FAIL、命令非零必 FAIL、`--update` 遇失败命令必拒且不写 fixture；绝对路径归一化 `<REPO_ROOT>` 防误报；normalize 恒返回 baseline 即漏报 drift） |
+
+### stdout 指纹严格层负向自测（#31，eval-only）
+
+- #17（`fingerprint_check.py`）是三层里的**严格层**：逐字节比对 13 gate + `load.py print-a|b` 的归一化完整 stdout 与 `evals/fixtures/` 基线。但 Promptfoo #17 此前只断言健康路径打印 `stdout fingerprint: stable`，**没有任何断言证明它该 fail 时真会 fail**；若它被掏空（比较被旁路、失败命令被容忍、缺/漂移 fixture 仍报绿），gate stdout 的非 marker 漂移会在 `run_all_gates`（只看退出码+单 marker）与宽松 `contains` 双双报绿时静默通过。
+- `fingerprint_guard_selftest.py`（对象是 **fingerprint_check 工具本身**，沿用 `*_guard_selftest` 族）在 `tempfile` 把 `ROOT`/`FIX_DIR`/`COMMANDS` 指到假命令（`finally` 恢复），纯标准库、**不碰真实 `evals/fixtures/`**：
+  - **4 个负向**：N1 live stdout 与 fixture 不符 → `FAIL stdout drift` + `stdout fingerprint: DRIFT (…)`、rc 1；N2 健康命令但缺 fixture → `FAIL missing fixture`（并提示 `--update`）、rc 1；N3 命令非零退出（即便有 fixture）→ exit code 优先、`FAIL command exit 1`、rc 1；N4 `--update` 遇到失败命令 → stderr `refusing to update fixture … command exited 1`、rc 1 且**不写** fixture（不得为失败命令生成基线）；
+  - **1 个 non-flag**：命令 stdout 内嵌绝对仓库路径（macOS tempdir 真实前缀 `/private/...`）→ `normalize` 必把它改写成 `<REPO_ROOT>`、原始路径不泄漏进 fixture，且 verify 仍 stable（钉可移植性、防假 DRIFT 误报）；
+  - **1 个健康对照**：`--update` 写出归一化 fixture、干净 verify 打印 stable 横幅、rc 0；
+  - **1 个变异**：把 `normalize` 换成「恒返回 fixture baseline」的桩（等价于比较被旁路/输出被抹平的退化）→ 漂移命令漏报为 rc 0 stable；恢复真实 `normalize` 后同一漂移重新 rc 1 + DRIFT。
+- **范围边界**：只钉指纹工具自身的判定/写保护/归一化，不重新比对 15 份真实 fixture（那是 #17 的职责），也不替 CI structure 的枚举缺口断言。
+- 与 #18–#30 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、不需要 ci.yml 接线。
 
 ### gate-runner 执行判定语义负向自测（#30，eval-only）
 
