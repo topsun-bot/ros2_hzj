@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-from _repo import append_bullets, emit_render, repo_root, read_utf8
+from _repo import append_bullets, emit_render, repo_root, read_utf8, report_missing_file
 
 
 PROVENANCE_REL = Path("docs/architecture/feishu-runtime-provenance.md")
@@ -117,8 +117,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
         path = root / rel
         key = rel.as_posix()
         if not path.is_file():
-            failures.append(f"missing file `{key}`")
-            lines.append(f"- **FAIL missing:** `{key}`")
+            report_missing_file(failures, lines, key)
             continue
         texts[rel] = read_utf8(path)
         extra = ""
