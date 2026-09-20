@@ -2,8 +2,9 @@ name: claude-code-review
 
 # Advisory Claude review on every non-draft PR. Not a required status check:
 # structure / contracts / boundary in ci.yml stay the merge gates
-# (docs/architecture/ci-cd-gates.md §1 / §5). This job posts one review
-# comment per push; it never edits, labels, merges, or approves.
+# (docs/architecture/ci-cd-gates.md §1 / §5). Claude posts exactly one
+# review comment per run via `gh pr comment` (the action itself posts nothing);
+# it never edits, labels, merges, or approves.
 #
 # Setup (one-time, repo Settings -> Secrets and variables -> Actions):
 #   ANTHROPIC_API_KEY  — Anthropic API key. (Alternative: CLAUDE_CODE_OAUTH_TOKEN
@@ -44,7 +45,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          use_sticky_comment: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -74,8 +74,8 @@ jobs:
             diff is docs-only (e.g. an `ITERATION_LOG.md` backfill), say so and keep
             the review short.
 
-            Post the review with `gh pr comment` using your Bash tool. Do not push
-            commits, apply labels, approve, or merge.
+            Post the review as exactly one comment with `gh pr comment` using your
+            Bash tool. Do not push commits, apply labels, approve, or merge.
           claude_args: >-
             --model claude-opus-5
             --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh search:*)"

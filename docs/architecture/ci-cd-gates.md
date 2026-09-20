@@ -36,7 +36,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。job：`claude-review`。
 
 - 触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）。draft PR 与 fork PR 跳过（fork 拿不到 secret）。
-- 动作：[`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action) 读 `AGENTS.md` + PR diff，用 `gh pr comment` 发**一条**可更新的评审评论（sticky）。只评论：不 push、不贴标签、不 approve、不 merge。
+- 动作：[`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action) 读 `AGENTS.md` + PR diff，每次运行用 `gh pr comment` 发**一条**评审评论（action 自身不发评论，避免双发）。只评论：不 push、不贴标签、不 approve、不 merge。
 - 评审重点：§2 Hold 边界回潮（XML / SCOREBOARD / `agnocast`·`zenoh` 路径 / `dimos_bridge`·`vendor` / Cega）、`scripts/`·`evals/`·`config/env/`·CI yaml 的正确性、**编造证据**（未测的时延、`PASS` / `PROVEN`、SHA）、失效相对链接、新 gate 缺 `evals/*_selftest.py`。
 - 权限：`contents: read` + `pull-requests: write` + `issues: write` + `id-token: write`（仅该 job；工作流顶层 `permissions: {}`）。
 - 前置：仓库 Actions secret **`ANTHROPIC_API_KEY`**（或改用 `CLAUDE_CODE_OAUTH_TOKEN` + `claude_code_oauth_token:`）。没配 secret 时该 job 失败但**不影响合入**——见下。
