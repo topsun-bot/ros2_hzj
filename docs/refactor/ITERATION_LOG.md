@@ -1966,7 +1966,7 @@
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 ## 轮次 26 — 2026-09-20 17:16（Asia/Shanghai）《2》小步重构：12 个脚本逐字相同的 `main()` 入口样板下沉为 `_repo.emit_render`
 
-> 定时任务第 26 轮。分支 `refactor/shared-emit-render-main`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 26 轮。分支 `refactor/shared-emit-render-main`，功能 PR #91（已 squash-merge，main HEAD `2ad01f8`）。
 > 延续轮次 25 的全仓重复盘点，本轮用 AST + 逐字节哈希比对锁定一个有 **12 个消费方、逐字节相同**的入口样板，
 > 属 plan §5.3 helper-boundary。行为不变：12 个脚本 stdout 逐字节 diff 空、exit code（含非零）透传有探针证明。
 
@@ -2014,6 +2014,7 @@
   #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-Y2d-2026-09-20T09:15:54`，UTC；约合 CST 17:15，Duration 2s）。
   本轮不新增 eval 用例（纯入口样板收敛、无新行为；各 guard 的负向能力仍由 #18–#27 覆盖）。
+- **合并后回归（main HEAD `2ad01f8`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-UOR-2026-09-20T09:22:04`，Duration 2s）。
 
 ### Hold 合规
 
