@@ -140,6 +140,36 @@ Status: **计划文档 — 不是直接改代码。** 本文只列问题、证�
   ```
   **禁止**把 `chain_a.sh` 改成 `source load.py`（`check_dual_chain_baseline.py` 锚定的是字面 `export RMW_IMPLEMENTATION=rmw_fastrtps_cpp` 等串）。
 
+### Step 1–4 进展状态（A 面，持续更新）
+
+> 状态截至 2026-09-20（轮次 30）。A 面（自有 `scripts`/`config`/`docs`）Step 1–4 的
+> 「删死代码 → 简化控制流 → 抽辅助函数 → 替换陈旧模式」已逐小步落地，每个小步独立 PR、行为不变
+> （被改脚本 stdout 逐字节 diff 空 + gate/指纹/promptfoo 全绿）。完整时间线见 [ITERATION_LOG.md](ITERATION_LOG.md)。
+
+- **Step 1（死代码）**：零引用 `legacy_compare` 已删（迭代 1 / PR #49）；文档级重复由本计划、各
+  `docs/architecture/feishu-*.md` 与 [01-dds-request-flow.md](01-dds-request-flow.md) 承载，未删任何被闸门断言存在的页面。
+- **Step 2（冻结路径样板）**：`scripts/_freeze_paths.py` 为 `FASTDDS_XML_REL`/`SCOREBOARD_REL` 真源 + existence note；
+  新增第 13 闸 `scripts/check_frozen_path_literals.py`（迭代 4 / PR #52）。
+- **Step 3（抽辅助函数）**：`scripts/_md_paths.py`（md 路径解析 / 符号 allowlist 校验，executor/source 两闸共用）；
+  `scripts/_repo.py` 现承载 7 个纯机制/纯渲染公共函数——`repo_root`、`read_utf8`、`line_at`、`emit_render`、
+  `append_bullets`、`report_missing_file`、`append_failures_block`（迭代 2–5 与轮次 22/25–29 / PR #50、#51、#53、#82、
+  #89、#91、#93、#95、#98）。dod/dual_chain 两闸 required 循环的 existence_only 分支已反转为单一 ok-file 出口
+  （轮次 23/24 / PR #84、#86）。
+- **Step 4（双链常量单一真源）**：`config/env/load.py` 为唯一可执行真源，`chain_a.sh`/`chain_b.sh` 的字面 export 串与其一致
+  （被 `check_dual_chain_baseline.py` 锚定，**未**改成 source load.py）；`dimos_bridge/dual_chain_env.py` 薄包装的
+  importlib 二次导出保留。
+- **逐字重复最终扫描结论（轮次 29–30）**：AST 连续语句 n-gram（长度 2–3，保留字面量与变量名的严格逐字档）+ 跨函数
+  单行/调用头扫描确认——**rendering/机制级跨文件逐字重复已清零**。剩余同构经判定**不收敛**：
+  ① required-marker 断言块（约 7 闸）是核心业务判定，且 dod/dual_chain 已 existence_only 分化、executor/source 走
+  `_md_paths`，下沉会越过 `_repo` 的 rendering-only 边界（若要做须带 docs/spec、独立 PR）；
+  ② `path = root/rel`、`key = rel.as_posix()`、`text = read_utf8(path)`、`lines.append("")`、`failures: list[str] = []`
+  属单行惯用法/局部数据流；③ render 尾部 `return "\n".join(lines), 0/1` 与各闸独有 prose/marker 交织、early return 数量不一；
+  ④ executor/source 独有 warnings 标题；⑤ `_fabricate_hits` 私有正则被 mutation 自测锚定。
+- **结论**：A 面 Step 1–4 **进入「按需维护」**——不再为消除重复制造改动；后续仅在出现新的真实重复/陈旧模式、或评估暴露
+  薄弱断言时，按同一纪律（先 AST/正则取证、行为不变、独立 PR）推进。B 面（`dimos_bridge/dimos/**`）与 C 面
+  （vendor、`config/fastdds.xml`、SCOREBOARD 数字）维持 Hold。
+- **仍阻塞的收尾**：第 13 闸与 eval-only 自测接入 `.github/workflows/ci.yml` 需要推送凭证具备 `workflow` scope
+  （active 账号缺该 scope）；接线素材离线备份于 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`。
 ---
 
 ## 4. 明确"不在本计划改"的陈旧模式（避免越界）
