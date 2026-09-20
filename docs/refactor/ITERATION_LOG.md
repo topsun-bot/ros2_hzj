@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 25 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测；#22 为 Executor/WaitSet map guard 独有分支的负向自测；#23 为产品 DoD 诚实性 guard 反伪造逻辑的负向自测；#24 为 Cega / Bridge Hold guard 独有 ADR 表格 cell 解析/内置行自检/中文“已接 Cega”伪造/首行 Status 的负向自测；#25 为 runtime-provenance guard 独有 Dockerfile Humble 钉版三分支/VERSIONS 树名与 40 位 SHA 同行约束的负向自测） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 26 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测；#22 为 Executor/WaitSet map guard 独有分支的负向自测；#23 为产品 DoD 诚实性 guard 反伪造逻辑的负向自测；#24 为 Cega / Bridge Hold guard 独有 ADR 表格 cell 解析/内置行自检/中文“已接 Cega”伪造/首行 Status 的负向自测；#25 为 runtime-provenance guard 独有 Dockerfile Humble 钉版三分支/VERSIONS 树名与 40 位 SHA 同行约束的负向自测；#26 为 sink-layers guard 独有六层表格行首粗体标签锚定（防裸词 rcl 误匹配 app 行 rclpy、防满屏 DDS 散文救回缺失行）的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -1487,3 +1487,93 @@
    避免断言堆砌。
 3. 视批准推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）；4 份飞书文档授权后补读。
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18–#25+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
+## 轮次 20 — 2026-09-20 11:30（Asia/Shanghai）《5》深化：sink-layers guard 六层表格行首标签锚定负向自测沉淀为 eval 用例 #26
+
+> 定时任务第 20 轮。分支 `test/sink-layers-guard-selftest`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 主题：把 `scripts/check_sink_layers.py` 唯一的结构化解析器 `_LAYER_ROW_RE`（六层 sink 表格**行首粗体标签锚定**）
+> 的负向能力从一次性 /tmp 探针沉淀为 eval-only、纯标准库、tempdir-only 的仓内回归，即 Promptfoo 用例 **#26**。
+> 一次只做一个 guard，不与 three_chain 候选堆叠。
+
+### 为什么是这一项（候选取舍，先取证再动手）
+
+- re-ground：本地在 main、与 origin/main 同步于 `9c5b796`（轮次 19 回填 #77），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；`gh pr list` 确认本循环无在途 PR（开放的 #65/#61/#56/#46/#45/#44/
+  #43/#42/#41/#32/#31/#30 全是他人 claude/cursor/codex 机器人 PR，未触碰）。
+- 最高优先的 ci.yml 接线仍被 GitHub `workflow` scope 阻塞（active `yixinzhangagent` 仅 gist/read:org/repo），本轮不能自行
+  授权；CVE 修复三项待用户明确批准；4 份飞书文档仍 3380004 无权限；真·双链 pub/sub/p99/跨机 UDP/三链复现本机恒
+  `STATUS: blocked`。故本轮仍在"不依赖授权的 eval 负向沉淀"通道推进。
+- 轮次 18/19 两次书面提示 sink_layers / three_chain 边际价值递减、须先证明确有独立盲区。本轮**先 Read 两个 guard 取证**：
+  - `check_sink_layers.py`（248 行）唯一较有价值的独有解析器是
+    `_LAYER_ROW_RE = re.compile(r"(?m)^\|\s*\*\*(app|rcl|rmw|DDS|executor|memory)\*\*\s*\|")`，脚本 L49 注释明示
+    "Substring `rcl` would also match `rclpy` in the app row"。grep 取证：真实 sink 文档 L34 app 行正文本就含
+    `` `rclpy` ``、L38 executor 行含 `rclcpp`/`rclpy`、L28 散文与 L43/44 mermaid 含裸 `rcl`，`DDS` 一词满屏；六个
+    粗体行标签 `| **app/rcl/rmw/DDS/executor/memory** |` 各唯一出现一次（L34–L39）。
+  - 这构成一个真实、注释背书、可被"重构简化"引入、且 #17/#18–#25 均未覆盖的盲区：若把行检查退化为裸词扫描，删掉
+    `| **rcl** |` 行标签、只留周围正文，gate / 正向 #9 / #17 指纹（都比对健康树输出）会继续全绿，六层 sink 表却已丢行。
+  - 不重复边界：`_SINK_MARKERS`/`_POLICY_CLAUSES`/Hold-vs-allowed/three-chain/Unitree pointer 都是直白 `token in text`
+    （正向用例同形，不堆夹具）；`ABSENT_VENDOR_TREES`（含 iceoryx）缺席机制已由 #22 executor-map 自测覆盖。
+  - `check_three_chain_repro.py` 的 fabricate 机制与 #23/#24 高度同构，本轮**不做**（一次一个 guard，留待后续若证出
+    `_has_three_chains` OR 组合确有独立盲区再说）。
+
+### 改了什么（行为不变，eval-only，新增负向覆盖）
+
+- 新增 `evals/sink_layers_guard_selftest.py`（纯标准库、tempdir-only、非 gate）：把 guard 读取的 **7 个真实文件**
+  （sink/ADR/source-map/executor/Unitree-swap 五个内容文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进临时树，再每次只把
+  sink 文档的一个表格行标签置空（`| **rcl** |`→`|  |`，**整行正文一字不动**，故 Humble/Rolling/eCAL/DPDK/Isaac/
+  0.10.2/11.0.1 等行内 marker 全部保留），驱动可注入的 `render(root=...)`：
+  - **2 个负向场景**：N1 置空 rcl 行标签（裸词扫描会被 app 行 `rclpy`、executor 行 `rclcpp` 救回）；N2 置空 DDS 行
+    标签（裸词扫描会被满屏散文 `DDS` 救回）。两者都必须 exit 1、打印 `FAIL layers` 并点名对应 `| **<层>** |`，且
+    **不得连带** `FAIL markers`/`FAIL policy`（证明只触发行锚定检查、行正文 marker 未丢）。
+  - **2 个健康对照（双向契约）**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印
+    `sink layers: mapped (Hold vs allowed)`——同时证明 app/executor 行里丰富的 `rclpy`/`rclcpp`/`DDS` 散文不会被
+    误判成缺行（防改严误报方向）。
+  - **1 个变异**：把 `_LAYER_ROW_RE` 改宽为去掉行首锚定与粗体要求的裸词
+    `re.compile(r"(?m)(app|rcl|rmw|DDS|executor|memory)")`（try/finally 恢复）后，N1 篡改树必须**漏报**（exit 0、
+    无 FAIL layers），恢复行锚定正则后必须重新抓到——精确复现脚本注释警告的 substring 陷阱。
+  - 成功 marker：`sink layers guard selftest: PASS`，计数串 `2 negative, 2 healthy, 1 mutation`。
+- 动手前先写 `/tmp/probe_sink_layers.py` 逐字取真实 FAIL 行：REAL/COPY exit 0；N1 exit 1 且 FAIL layers 精确点名 rcl、
+  不连带 markers/policy；N2 点名 DDS；宽化后 N1 exit 0 干净漏报、恢复后 exit 1 重新抓到。探针全过才写正式脚本。
+- `evals/promptfooconfig.yaml`：新增用例 **#26**（断言 `sink layers guard selftest: PASS` + 计数短语
+  `2 negative, 2 healthy, 1 mutation`，弱化/删负向用例即红）。
+- `evals/README.md`：文件表 yaml 用例数 25→26、新增 sink_layers selftest 文件行、seed 段计数与列举加 #26、用例表加
+  #26 行、新增「sink-layers 六层表格行首标签锚定负向自测（#26）」专节。
+- `docs/refactor/ITERATION_LOG.md`：评分口径行 25→26 并加 #26 描述 + 本小节。
+
+### 分数前后对比 / 产物检查（本机 vanilla box，无 ROS）
+
+- Gate：**13/13 all gates green**（未改任何 gate/helper，行为不变）。
+- stdout 指纹：**15/15 stable**（gate/load.py stdout 零变化，未动 fixtures、无需 `--update`）。
+- guard 负向自测：**#18–#26 九个全部 exit 0**（本轮新增 sink_layers: PASS，2 negative/2 healthy/1 mutation）。
+- Eval：**25 → 26 用例，26/26 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#26 PASS，Duration 5s，
+  eval ID `eval-DVz-2026-09-20T03:29:39`，UTC；约合 CST 11:29）。
+- `python3 -m py_compile evals/sink_layers_guard_selftest.py` 通过。
+- 可视化/产物检查：selftest stdout 实跑核对计数串与 marker；yaml/README 改动经 grep 复核四处登记一致。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字（selftest 仅把两者**只读复制**进 tempdir）。
+- 未启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、
+  未重写 Bridge runtime。双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整（eval-only 测试 + 文档）；promptfoo 仅 npx 缓存运行、未写入运行时依赖。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 测试/文档 only，不改生产或 gate 代码，风险低。selftest 复制真实文件、锚点 fail-loud：若 sink 文档六个粗体层标签或
+  七个被复制文件的路径**合法演进**，该 PR 须同步更新锚点（与 #20/#22/#23/#24/#25 同一 fail-loud 契约）。
+- 真·双链 pub/sub、p99、跨机 UDP、三链复现仍 `STATUS: blocked`（本机无 Humble runtime），本轮不伪造任何通过。
+- 本机到 GitHub 443 在轮次 19 曾多次 SSL_ERROR_SYSCALL/EOF；本轮 push/PR 若再遇中断，沿用探测退避（每 20s 探
+  http_code 直到 200 再续推），不硬闯、不换凭证。
+
+### 下一步（轮次 21 候选）
+
+1. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`：之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，优先把纯 python、无需 npx 联网的
+   `fingerprint_check.py` 与 #18–#26 各 selftest **先于整套 promptfoo** 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+2. **[不依赖授权·边际继续递减]** `check_three_chain_repro.py`：须先 Read 全文证实 `_has_three_chains` 的 OR 组合
+   （publish+History+(wait→callback 或 WaitSet+callback)）或 `map = reproduce` 等号伪造确有"可被改宽且正向全绿"、
+   且与 #23/#24 fabricate 不重复的独立盲区，能 tempdir 构造，才做 #27；否则停止堆 guard selftest。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做一次完整 gate+指纹+#18–#26+promptfoo 回归并在日志标注「等待新指令」，
+   不制造无意义提交。

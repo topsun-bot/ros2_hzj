@@ -364,3 +364,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '5 negative, 2 healthy, 1 mutation'
+
+  # Negative self-test for the sink-layers guard (eval-only, not a CI gate).
+  # Covers its one unique parser, _LAYER_ROW_RE, not the plain marker
+  # substrings (positive #10) or the absent-vendor-tree mechanism (#22). The
+  # line-anchored bold-label match must not degrade to a bare-word scan: the
+  # app row body literally contains rclpy and the prose is full of DDS, so
+  # blanking the | **rcl** | / | **DDS** | row label while keeping the row body
+  # must FAIL layers with no collateral FAIL markers/policy; widening the
+  # regex to bare words demonstrably silences the missing-rcl-row check.
+  - description: 'sink_layers_guard_selftest.py: the six-layer table-row anchor actually fires on a blanked label (negative regression, tempdir-only)'
+    vars:
+      script: evals/sink_layers_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'sink layers guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '2 negative, 2 healthy, 1 mutation'

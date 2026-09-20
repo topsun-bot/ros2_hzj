@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 25 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 26 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -24,6 +24,7 @@
 | `dod_evidence_guard_selftest.py` | 产品 DoD 诚实性 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD 仅占位），只覆盖其独有的反伪造逻辑——伪造的 `STATUS: PASS`/`DoD: met`/this-host measured-delta/“Humble 在此跑过”声明与虚构的 booked p99 分位必报；同行禁止句（do not write STATUS: PASS）与政策词“分位数”不得误报；STATUS 伪造正则被改宽即漏报 |
 | `cega_bridge_hold_guard_selftest.py` | Cega / Bridge Hold guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 Hold 文档与 ADR 两个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD/9 个只读 runtime 路径仅占位），只覆盖其独有解析——ADR §13(4) 表格 cell 必须以 `**Hold**` 开头且不含 PASS/已接 Cega/integrate Cega（cell 翻 PASS、Hold cell 夹带裸 PASS、删行必报）、guard 内置内存行自检生效、首行 `Status:` 翻转与独立“已接 Cega”声明必报；同行禁止句在两份文档中均不得误报；“已接 Cega”正则被改宽即漏报（通用 STATUS:-PASS+禁止句机制与 #23 同形，不重复） |
 | `runtime_provenance_guard_selftest.py` | runtime-provenance guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件（MANIFEST/VERSIONS/Dockerfile/provenance 文档/prove_rmw.py）复制进 `tempfile` 再逐个变异，只覆盖其两个独有解析器——`_dockerfile_pins_humble` 对 rolling 钉版/缺失 ENV/有 ENV 无值三种分支必报，`_versions_rows` 要求 vendor 树名与 40 位 SHA 在**同一行**（删 SHA、SHA 挪到别的行必报）；健康树不误报；SHA 正则被改宽为任意单词即漏报（直白 marker substring 检查不重复） |
+| `sink_layers_guard_selftest.py` | sink-layers guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实文件（sink/ADR/source-map/executor/swap 文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进 `tempfile`，只覆盖其唯一独有解析器 `_LAYER_ROW_RE`——六层表格行首粗体标签锚定：把 `\| **rcl** \|`/`\| **DDS** \|` 行标签置空但保留整行正文（app 行本就含 `rclpy`、executor 行含 `rclcpp`、散文满是 DDS）必须报 FAIL layers 且不连带 FAIL markers/policy；健康六行树不误报；正则被改宽为裸词扫描即漏报（直白 marker substring 与 absent-vendor-tree 机制分别由正向用例/#22 覆盖，不重复） |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -36,15 +37,16 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（25 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（26 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
   交叉断言 guard 的负向自测用例（#19）、1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
   （#20）、1 个 ros2-source-map guard 的负向自测用例（#21）、1 个 Executor/WaitSet map
   guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
-  1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24），以及 1 个 runtime-provenance
-  guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25，均见下文专节）：
+  1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24）、1 个 runtime-provenance
+  guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25），以及 1 个 sink-layers
+  guard 的六层表格行首标签锚定解析器负向自测用例（#26，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -73,6 +75,35 @@
 | 23 | `evals/dod_evidence_guard_selftest.py` | `dod evidence guard selftest: PASS`、`5 negative, 2 non-flag, 2 healthy, 1 mutation`（伪造 STATUS: PASS/DoD: met/measured-delta/Humble-here 声明与虚构 booked p99 必报；同行禁止句与政策词“分位数”不误报；STATUS 伪造正则被改宽即漏报） |
 | 24 | `evals/cega_bridge_hold_guard_selftest.py` | `cega bridge hold guard selftest: PASS`、`5 negative, 2 non-flag, 1 builtin self-check, 2 healthy, 1 mutation`（ADR §13(4) cell 翻 PASS/Hold cell 夹带裸 PASS/删行、首行 Status 翻转、独立“已接 Cega”必报；内置行自检生效；同行禁止句在两文档中不误报；“已接 Cega”正则被改宽即漏报） |
 | 25 | `evals/runtime_provenance_guard_selftest.py` | `runtime provenance guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（Dockerfile 钉 rolling/缺失 ENV/有 ENV 无值三分支必报；VERSIONS 行删 SHA、SHA 挪到别的行必报；健康树不误报；SHA 正则被改宽为任意单词即漏报） |
+| 26 | `evals/sink_layers_guard_selftest.py` | `sink layers guard selftest: PASS`、`2 negative, 2 healthy, 1 mutation`（rcl/DDS 表格行首粗体标签被置空但保留行正文时必报 FAIL layers 且不连带 markers/policy；健康六行树不误报；行锚定正则被改宽为裸词扫描即被 rclpy/DDS 散文救回而漏报） |
+
+### sink-layers 六层表格行首标签锚定负向自测（#26，eval-only）
+
+- #9 的正向运行与 #17 指纹只证明**当前健康文档渲染为绿**，证明不了 `check_sink_layers.py`（飞书《通信中间件》
+  sink 分层 app / rcl / rmw / DDS / executor / memory）唯一的**结构化解析器** `_LAYER_ROW_RE` 仍然会触发。该
+  正则以**行首 + 粗体标签**锚定六层表格行：`(?m)^\|\s*\*\*(app|rcl|rmw|DDS|executor|memory)\*\*\s*\|`。脚本
+  自带注释明示：裸 substring `rcl` 会同时命中 **app** 行正文里的 `rclpy`。真实文档里 app 行本就写着 `rclpy`、
+  executor 行写着 `rclcpp` / `rclpy`，散文里 `DDS` 更是满屏。若有人把行检查"简化"成裸词扫描，删掉
+  `| **rcl** |`（或 `| **DDS** |`）表格行标签、只留周围正文，会让 gate、#9、#17 指纹（比对健康树输出）继续全绿，
+  六层 sink 表却已悄悄丢了一行。
+- **刻意只覆盖独有解析器**：`_SINK_MARKERS` / `_POLICY_CLAUSES` / Hold vs allowed / three-chain / Unitree
+  pointer 都是直白 `token in text` 检查、与正向用例同形，不重复堆夹具；`ABSENT_VENDOR_TREES`（含 iceoryx）的
+  vendored-tree 缺席机制已由 #22 executor-map 自测覆盖。#26 只测行首标签锚定这一件 #17/#18–#25 都没钉的事。
+- 五个内容文档带大量连续 marker，手写最小健康文档易腐；故 `sink_layers_guard_selftest.py` 把 guard 读取的
+  **7 个真实文件**（sink、ADR、source-map、executor、Unitree-swap 文档，加仅验存在的 fastdds.xml / SCOREBOARD）
+  复制进 `tempfile`，再每次只把 sink 文档的一个行标签置空（`| **rcl** |`→`|  |`，**整行正文一字不动**，故
+  Humble/Rolling/eCAL/0.10.2 等行内 marker 都保留），驱动可注入的 `render(root=...)`，**不改动仓库**、纯标准库：
+  - **2 个负向场景**：N1 置空 `| **rcl** |` 标签（裸词扫描会被 app 行 `rclpy`、executor 行 `rclcpp` 救回）；
+    N2 置空 `| **DDS** |` 标签（裸词扫描会被满屏散文 `DDS` 救回）；两者都必须 exit 1、打印
+    `FAIL layers` 并点名对应 `| **<层>** |`，且**不得连带** FAIL markers / FAIL policy（证明只触发行检查）；
+  - **2 个健康对照（双向契约）**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印
+    `sink layers: mapped (Hold vs allowed)`——同时证明 app/executor 行里丰富的 `rclpy`/`rclcpp`/`DDS`
+    散文不会被误判成缺行或多行（防改严误报方向）；
+  - **1 个变异**：把 `_LAYER_ROW_RE` 改宽为去掉行首锚定与粗体要求的裸词 `(?m)(app|rcl|rmw|DDS|executor|memory)`
+    （try/finally 恢复）后 N1 必须**漏报**（exit 0、无 FAIL layers），恢复后必须重新抓到——精确复现脚本注释
+    警告的 substring 陷阱，证明 N1 确实依赖行首粗体锚定。
+- 与 #17/#18–#25 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、
+  不需要 ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### runtime-provenance Humble 钉版 / VERSIONS 同行 SHA 负向自测（#25，eval-only）
 
