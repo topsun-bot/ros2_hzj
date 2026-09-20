@@ -346,3 +346,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '5 negative, 2 non-flag, 1 builtin self-check, 2 healthy, 1 mutation'
+
+  # Negative self-test for the runtime-provenance guard (eval-only, not a
+  # CI gate). Covers its two unique parsers, not the plain marker-substring
+  # checks: _dockerfile_pins_humble must catch a rolling pin, a missing
+  # ENV ROS_DISTRO directive, and a present-but-valueless ENV (three distinct
+  # branches), and _versions_rows must require the vendored-tree name and a
+  # 40-hex SHA on the SAME table row (a stripped SHA or a SHA moved to another
+  # line must FAIL VERSIONS rows); widening the SHA regex to any word
+  # demonstrably silences the row check.
+  - description: 'runtime_provenance_guard_selftest.py: the Humble-pin and VERSIONS-SHA-row checks actually fire on tampering (negative regression, tempdir-only)'
+    vars:
+      script: evals/runtime_provenance_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'runtime provenance guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '5 negative, 2 healthy, 1 mutation'
