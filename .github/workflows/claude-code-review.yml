@@ -3,8 +3,10 @@ name: claude-code-review
 # Claude as an automated PR reviewer (advisory; not a required status check).
 # Runs the official `code-review` plugin skill via anthropics/claude-code-action
 # and posts findings as inline PR comments (`--comment`), or one summary comment
-# when it finds nothing. Draft PRs are skipped. On fork PRs GitHub withholds
-# secrets, so the review only runs for branches in this repository.
+# when it finds nothing. Draft PRs and fork PRs are skipped at the job level
+# (GitHub withholds secrets from fork runs). If neither ANTHROPIC_API_KEY nor
+# CLAUDE_CODE_OAUTH_TOKEN is configured, the job logs a notice and exits green
+# instead of failing, so initial setup does not show as a red check.
 #
 # Setup (one-time, repo admin):
 #   1. Install the Claude GitHub App: https://github.com/apps/claude
@@ -23,7 +25,11 @@ concurrency:
 jobs:
   review:
     name: review
-    if: github.event.pull_request.draft == false
+    # Skip drafts and fork PRs. Secret presence is checked in the first step:
+    # the `secrets` context is not available in a job-level `if`.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -32,11 +38,27 @@ jobs:
       issues: read
       id-token: write
     steps:
+      - name: Check review credentials
+        id: creds
+        env:
+          HAS_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$HAS_API_KEY" = "true" ] || [ "$HAS_OAUTH_TOKEN" = "true" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=claude-code-review skipped::Add repository secret ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN) to enable Claude PR review. See docs/architecture/ci-cd-gates.md §5.1."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.creds.outputs.configured == 'true'
         with:
           fetch-depth: 1
 
       - uses: anthropics/claude-code-action@v1
+        if: steps.creds.outputs.configured == 'true'
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"

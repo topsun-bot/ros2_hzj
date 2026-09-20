@@ -89,8 +89,8 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 - **advisory only**：不设为 required status check；`structure` / `contracts` / `boundary` 仍是唯一必绿闸门。评审意见不替代人类批准 merge。
 - **Hold 提示**：`claude_args` 里 `--append-system-prompt` 让评审先读 [AGENTS.md](../../AGENTS.md)，并把碰冻结路径（`config/fastdds.xml`、`SCOREBOARD.md`）、`agnocast` / `zenoh` 路径、`dimos_bridge` / `vendor/` 改动、编造分位数 / PASS / PROVEN 视为 Important。这是对 `boundary` 闸的补充，不是替代。
-- **一次性配置（repo admin）**：安装 [Claude GitHub App](https://github.com/apps/claude)；在仓库 secrets 加 `ANTHROPIC_API_KEY`（或 `CLAUDE_CODE_OAUTH_TOKEN`，并把工作流里的 `anthropic_api_key` 行换成 `claude_code_oauth_token`）。secret 缺失时该 job 失败，但不影响 `ci.yml` 三个 job。
-- **不跑的情况**：draft PR（`if: draft == false`，skill 本身也跳过 draft）；fork PR（GitHub 不给 fork 运行 secrets）；已经有 Claude comment 的 PR（skill 自行跳过）。
+- **一次性配置（repo admin）**：安装 [Claude GitHub App](https://github.com/apps/claude)；在仓库 secrets 加 `ANTHROPIC_API_KEY`（或 `CLAUDE_CODE_OAUTH_TOKEN`，并把工作流里的 `anthropic_api_key` 行换成 `claude_code_oauth_token`）。两个 secret 都缺失时，第一步 `Check review credentials` 打一条 `::notice` 然后 job **绿**退出（不装 plugin、不跑评审），不会因为尚未配置就出红叉；`ci.yml` 三个 job 不受影响。
+- **不跑的情况**：draft PR 与 fork PR 在 job 级 `if` 跳过（fork 拿不到 secrets；skill 本身也跳过 draft）；没配 secret 时如上绿退；已经有 Claude comment 的 PR（skill 自行跳过）。
 - 参考：[Claude Code GitHub Actions](https://code.claude.com/docs/en/github-actions)。托管版 [Code Review](https://code.claude.com/docs/en/code-review)（无需 workflow 文件，Team / Enterprise 订阅）是另一条路，本仓先走 workflow 文件以便 diff 可见。
 
 ---
