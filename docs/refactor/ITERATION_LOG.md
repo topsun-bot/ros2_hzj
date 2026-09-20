@@ -1288,7 +1288,7 @@
 
 ## 轮次 18 — 2026-09-20 09:15（Asia/Shanghai）《5》深化：Cega / Bridge Hold guard 独有解析负向自测沉淀为 eval 用例 #24
 
-> 定时任务第 18 轮。分支 `test/cega-hold-guard-selftest`，功能 PR #<待回填>（main HEAD `a4e96fb` 上创建）。
+> 定时任务第 18 轮。分支 `test/cega-hold-guard-selftest`，PR #74（已 squash-merge，main HEAD `0e6e065`）。
 > 开工核对：轮次 17 功能 PR #72 与回填 PR #73 均已 squash-merge，main HEAD `a4e96fb`；`gh pr list` 中在途 PR
 > （#65/#61/#56/#46/#45/#44/#43/#42/#41/#32/#31/#30）全是他人 claude/cursor/codex 机器人 PR，未触碰；本循环
 > 无在途 PR。`workflow` scope 仍未授予、CVE 修复仍待批准。本轮执行轮次 17「下一步候选 2」：逐一评估剩余六个
@@ -1358,7 +1358,7 @@
 - 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
 - #18 frozen、#19 env、#20 unitree、#21 source-map、#22 executor-map、#23 dod 负向自测：均仍 PASS。
 - Eval：**23 → 24 用例，24/24 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#24 PASS，Duration 2s）。
-- **合并后回归（main HEAD `<待回填>`）**：<待功能 PR 合并并回 main 后回填 required checks / CodeQL / Cursor 状态与全套回归实测>。
+- **合并后回归（main HEAD `0e6e065`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，pending 可忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18/#19/#20/#21/#22/#23/#24 七个负向自测均 PASS、promptfoo **24/24 (100%) / 0 failed / 0 errors**（eval ID `eval-iTz-2026-09-20T01:21:13`）。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
