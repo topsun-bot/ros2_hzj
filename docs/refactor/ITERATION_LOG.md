@@ -1812,7 +1812,7 @@
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 ## 轮次 24 — 2026-09-20 15:18（Asia/Shanghai）《2》小步重构：dual-chain guard 的 existence-only 循环反转为单一 ok 出口（该模式两处清零）
 
-> 定时任务第 24 轮。分支 `refactor/dual-chain-existence-only-single-exit`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 24 轮。分支 `refactor/dual-chain-existence-only-single-exit`，功能 PR #86（已 squash-merge，main HEAD `b6a8fc9`）。
 > 本轮直接执行轮次 23 日志「下一步」点名的最直接项：用**完全相同的手法**收敛 `check_dual_chain_baseline.py`
 > 里那段与 dod 逐字同构的 existence_only 循环。行为不变、纯控制流简化（plan §3「简化控制流」），
 > #17 stdout 指纹逐字节护航、#19 负向自测端到端兜底。一次只改一个脚本。
@@ -1850,6 +1850,7 @@
   #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-Qy9-2026-09-20T07:17:53`，UTC；约合 CST 15:17，Duration 3s）。本轮不新增 eval 用例（纯内部控制流简化、
   无新行为；负向能力已由 #19 覆盖）。
+- **合并后回归（main HEAD `b6a8fc9`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-w7P-2026-09-20T07:23:43`，Duration 2s）。
 
 ### 模式清零说明
 
