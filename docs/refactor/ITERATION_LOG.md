@@ -2728,7 +2728,7 @@
 
 ---
 
-## 轮次 36 — 2026-09-21 04:22（Asia/Shanghai）— eval #33：local-script provider 自身契约/负向自测（功能 PR TBD）
+## 轮次 36 — 2026-09-21 04:22（Asia/Shanghai）— eval #33：local-script provider 自身契约/负向自测（功能 PR #114，squash-merge main `cb91e1e`）
 
 ### 背景与取证（先探针、后写脚本）
 
@@ -2754,6 +2754,8 @@
 - eval-only 自测：**16 个全 PASS**（fail=0，含新增 `local_script_provider_selftest.py`，本地见 7 个 `  ok ...` + PASS + 计数串）；
 - promptfoo：**33/33 passed (100%)、0 failed、0 errors**（合并前 eval `eval-wzt-2026-09-20T20:21:55`，Duration 14s）。
 
+**合并后回归（main cb91e1e，2026-09-21 04:32 CST）**：功能 PR #114 squash-merge 后回 main 复跑——`compileall` 通过；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；eval-only 自测 **16 个全 PASS**（fail=0）；promptfoo **33/33 passed (100%)、0 failed、0 errors**（合并后 eval `eval-cMD-2026-09-20T20:32:38`，Duration 13s）。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装 `chain_a.sh`/`chain_b.sh`；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
@@ -2770,7 +2772,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 33/33），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 33/33），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ 已完成：功能 PR #114 squash main `cb91e1e`，合并后 33/33（eval `eval-cMD-2026-09-20T20:32:38`），由本回填 PR 收尾。
 2. 取证薄包装 `dimos_bridge/dual_chain_env.py`（importlib 二次导出 load.py）与真源的一致性是否已有断言（#32 钉了 load.py 本体，薄包装的「声明唯一真源 + 再导出」面可能仍零断言）；先 /tmp 探针确认真实未覆盖的独有分支再决定是否新增，不为凑数。
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #33）接进 CI（先纯 python 项；#33 依赖 node，CI 已有 node 但应排在纯 python 项之后）。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
