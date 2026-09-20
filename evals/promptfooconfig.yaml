@@ -473,3 +473,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '4 negative, 1 non-flag, 1 healthy, 1 mutation'
+
+  # #32 dual-chain env source-of-truth self-test: case #19 only proves the env
+  # guard detects tampered shell fixtures; it never pins load.py itself. Pins
+  # describe() values + unknown-chain ValueError, the six CLI subcommands
+  # (unknown -> exit 2), Chain B apply() popping CYCLONEDDS_URI, POSIX-shell
+  # quote escaping that round-trips a quoted value, import purity (no
+  # os.environ mutation), and an apply stub that skips the unset pop and leaks
+  # the URI (mutation, then re-caught).
+  - description: 'dual_chain_env_load_selftest.py: config/env/load.py must return the exact Chain A/B contract, raise ValueError on an unknown chain, reject an unknown CLI subcommand with exit 2, unset CYCLONEDDS_URI on Chain B apply, emit POSIX-shell-safe exports that round-trip a quoted value, and leave os.environ unchanged on import; an apply that skips the unset pop leaks the URI, subprocess/snapshot-only'
+    vars:
+      script: evals/dual_chain_env_load_selftest.py
+    assert:
+      - type: contains
+        value: 'dual-chain env load selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
