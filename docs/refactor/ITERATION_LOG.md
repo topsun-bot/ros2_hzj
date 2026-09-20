@@ -2407,7 +2407,7 @@
 
 ---
 
-## 轮次 31 — 2026-09-20 23:18（Asia/Shanghai）— eval #28：补 `print_bench_gates` 跨机目录存在性 / STATUS-blocked 正则负向自测（功能 PR TBD）
+## 轮次 31 — 2026-09-20 23:18（Asia/Shanghai）— eval #28：补 `print_bench_gates` 跨机目录存在性 / STATUS-blocked 正则负向自测（功能 PR #101，squash main `a3f3a30`）
 
 ### 背景与取证（为什么不是「等待新指令」）
 
@@ -2457,6 +2457,11 @@
 - 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 27/27 → **28/28**（净增 1 条对真实 guard 负向能力的断言，非放水）；
   guard 负向自测由 10 个增至 **11 个**。
 
+### 合并后回归（main `a3f3a30`，PR #101 squash-merge、远端分支已删）
+
+- 回 main `git pull --ff-only` 至 `a3f3a30` 后重跑：gate **13/13 all gates green**；stdout 指纹 **15/15 stable**；#18–#28 **11 个**负向自测全 exit 0；promptfoo **28/28 passed (100%) / 0 failed / 0 errors**（合并后 eval ID `eval-4eJ-2026-09-20T15:24:28`，UTC，约合 CST 23:24，Duration 3s）。
+- 功能 PR **#101**（分支 `test/bench-gates-guard-selftest`，分支 commit `3c6b867`，squash main `a3f3a30`）required checks structure/contracts/boundary 全 pass、CodeQL 三项全 pass、Cursor Approval APPROVED 后合并；非 required 的 Cursor Security Reviewer 为非阻塞项。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 的任何数字或内容（仅在 tempdir **副本**上变异）；
@@ -2478,7 +2483,7 @@
 
 ### 下一步（轮次 32 候选）
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. ~~功能 PR 合并后回 main 回归并开 docs-only 回填 PR~~（已完成：功能 PR **#101** / main `a3f3a30` / 合并后 eval `eval-4eJ-2026-09-20T15:24:28`，由本回填 PR 登记）。
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #28）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#28 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
