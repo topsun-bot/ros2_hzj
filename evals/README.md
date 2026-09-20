@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 35 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 36 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -31,6 +31,7 @@
 | `gate_execution_selftest.py` | gate-runner **执行判定语义负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线；对象是 runner 的 `run_one`/`main` 而非注册表）：在 `tempfile` 放假 gate 并把 `run_all_gates.REPO_ROOT`/`GATES` 指过去（`finally` 恢复），钉「exit 0 且在 stdout/stderr 合并输出里打印健康 marker 才算过」——exit 0 但不打印 marker 必计 `zero-but-missing-marker` 并 FAIL、非零退出（即便打印 marker）必 FAIL、GATES 指向缺失脚本必返回 `127`/`missing:` 并 FAIL；marker 只打到 stderr 且 exit 0 仍算过（钉 combined 语义、防误报）；把 `run_one` 换成「恒报 marker 存在」的桩则空壳 exit-0 gate 必漏报（恢复后抓回）。补齐 #29 只钉注册表、不执行 gate 的盲区 |
 | `fingerprint_guard_selftest.py` | stdout 指纹严格层（#17 `fingerprint_check.py`）的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 把 `fingerprint_check` 的 ROOT/FIX_DIR/COMMANDS 指到假命令（`finally` 恢复），钉逐字节比对真会 fail——live 输出与 fixture 不符必 `FAIL stdout drift`+DRIFT、健康命令缺 fixture 必 `FAIL missing fixture`、命令非零退出必 `FAIL command exit N`、`--update` 遇失败命令必在 stderr 拒绝且不写 fixture；命令 stdout 内嵌绝对仓库路径时 `normalize` 必归一化为 `<REPO_ROOT>`（可移植、防假 DRIFT 误报）；把 `normalize` 换成恒返回 fixture 内容的桩则 drift 漏报为绿（恢复后抓回）。补齐 #17 只断言健康 stable 的盲区 |
 | `dual_chain_env_load_selftest.py` | 双链环境**真源** `config/env/load.py` 的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线；区别于 #19 测 guard 检测假夹具）：钉 `describe` 返回精确 Chain A/B 契约值（fastrtps/42/fastdds.xml 绝对路径、cyclone/0）、未知 chain 抛 `ValueError`、未知 CLI 子命令 argparse exit 2、Chain B `apply` 必 `unset CYCLONEDDS_URI`（预置外部 URI 必须被删除）、`export_shell` 单引号转义可被 POSIX shell 原样 round-trip、import 不改 `os.environ`（import 纯净）；`apply` 只 update 不 pop 的盲桩会让 CYCLONEDDS_URI 泄漏（恢复后抓回）。进程内 apply 快照/恢复、CLI 与 import 纯净走隔离子进程 |
+| `doc_link_selftest.py` | 本循环所写文档（`docs/refactor/**.md`、`evals/**.md`）的 **markdown 相对链接完整性**自测（eval-only，不是 CI gate、无需 ci.yml 接线）：CI contracts 只对固定白名单 `test -f`、不解析链接且不含这两个目录，source_map/executor_map 只解析两份架构图；本项剥离围栏/行内代码后，要求每个相对 `[text](target)` 链接不越出仓库根且目标在磁盘存在（文件或目录）；external/锚点/mailto 跳过；缺失同级文件、`../` 越界、缺失目录必报，真实目标被强制判失也必报（非恒真） |
 | `eval_registry_selftest.py` | Promptfoo **eval 套件自身注册面**的一致性自测（eval-only，不是 CI gate、无需 ci.yml 接线）：与 #29（钉 gate runner 注册面 vs scripts/）对称，本项钉 promptfoo 注册面——磁盘 `evals/*_selftest.py` ↔ yaml `script:` 引用双向一致（无 orphan 自测、无引用已删脚本）、每个 yaml script 路径磁盘存在、每 case 恰一个 script、固定严格层 fingerprint_check.py 必须在册、每个 evals 自测（含 fingerprint_check）的 SUCCESS/STABLE marker 必须在 yaml 被 `value:` 断言（防登记脚本却不断言成功路径的放水）、README 两处标题用例数等于 yaml case 数；读真实仓库，负向用内存变异（新增 orphan/缺失路径/计数漂移/删 marker 断言），无 tempdir 文件 |
 | `dual_chain_env_wrapper_selftest.py` | DimOS 薄包装 `dimos_bridge/dual_chain_env.py`（importlib 再导出 load.py）的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线）：#32 钉 load.py 本体、#19 钉读 shell 的 guard，本项钉中间薄包装层——CHAIN_A/CHAIN_B 必须是真源**同一对象**（重导出而非复制常量，防漂移）、chain_a_env/chain_b_env 委托 describe 且返回 fresh dict（调用方改不到常量）、`_ENV_PY` 解析到 config/env/load.py、`__all__` 恰 6 项；import 包装不得改 os.environ；apply_chain_b 必须转发 unset 删除预置 CYCLONEDDS_URI、apply_chain_a 设置 Chain A 三元组；真源 load.py 缺失时包装形态 import 必失败；盲委托（apply 不传 unset）泄漏 URI 而真实包装删除（mutation）。进程内 apply 用 env 快照恢复，纯净/缺源走隔离子进程，tempdir only |
 | `local_script_provider_selftest.py` | promptfoo **local-script provider 自身**（`localScriptProvider.mjs`）的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线）：provider 是 #12–#32 全部用例的执行器，非零退出必须转成 promptfoo `error`（负向 eval「exit1→case fail」的根基）。python 主体在 tempdir 写 Node harness、经 file:// URL import 真实 .mjs provider 并跑临时 python 夹具：钉 id=`local-script`、空/纯空白 prompt→empty error、exit1→`exited with code 1` 且 output 含 stdout+stderr、缺失脚本（python3 exit2）→`exited with code 2`、成功 output 仅 stdout（stderr 不得污染 contains/指纹）、argv 空白拆分 + cwd=repoRoot；盲 provider（catch 不返回 error）吞掉非零退出会漏报、真实 provider 报 error（mutation 可区分）。不在树内建 fixture、不编辑仓库 |
@@ -46,7 +47,7 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（35 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（36 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
@@ -55,7 +56,7 @@
   guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
   1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24）、1 个 runtime-provenance
   guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25），以及 1 个 sink-layers
-  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate），以及 1 个双链环境真源 load.py 自身的契约/负向自测（describe 精确契约 / 未知 chain ValueError / 未知子命令 exit 2 / Chain B apply 必 unset CYCLONEDDS_URI / shell 转义 round-trip / import 纯净 / apply 不 pop 泄漏变异）用例（#32，对象是 env 真源而非 #19 的 guard），以及 1 个 local-script provider 自身的契约/负向自测（空/空白 prompt error、exit1 透传 error+stdout/stderr、缺失脚本 code2、成功 output 仅 stdout、argv 拆分/cwd、盲 provider 吞非零退出变异）用例（#33，对象是 promptfoo 执行器 .mjs 本身，python 经 tempdir Node harness 桥接），以及 1 个 DimOS 薄包装 dual_chain_env.py 再导出/委托的契约负向自测（同一对象重导出不复制、describe fresh dict、import 纯净、apply_chain_b 转发 unset 删 CYCLONEDDS_URI、缺源必失败、盲委托漏 unset 变异）用例（#34，对象是 load.py 真源与 DimOS 之间的薄包装），以及 1 个 Promptfoo eval 套件自身注册面一致性自测（磁盘 selftest↔yaml 双向无 orphan/missing、路径存在、一 case 一 script、fingerprint_check 在册、每个 PASS marker 被 yaml 断言、README 计数==yaml case 数；与 #29 gate 注册面对称）用例（#35，对象是 eval 套件注册面，均见下文专节）：
+  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate），以及 1 个双链环境真源 load.py 自身的契约/负向自测（describe 精确契约 / 未知 chain ValueError / 未知子命令 exit 2 / Chain B apply 必 unset CYCLONEDDS_URI / shell 转义 round-trip / import 纯净 / apply 不 pop 泄漏变异）用例（#32，对象是 env 真源而非 #19 的 guard），以及 1 个 local-script provider 自身的契约/负向自测（空/空白 prompt error、exit1 透传 error+stdout/stderr、缺失脚本 code2、成功 output 仅 stdout、argv 拆分/cwd、盲 provider 吞非零退出变异）用例（#33，对象是 promptfoo 执行器 .mjs 本身，python 经 tempdir Node harness 桥接），以及 1 个 DimOS 薄包装 dual_chain_env.py 再导出/委托的契约负向自测（同一对象重导出不复制、describe fresh dict、import 纯净、apply_chain_b 转发 unset 删 CYCLONEDDS_URI、缺源必失败、盲委托漏 unset 变异）用例（#34，对象是 load.py 真源与 DimOS 之间的薄包装），以及 1 个 Promptfoo eval 套件自身注册面一致性自测（磁盘 selftest↔yaml 双向无 orphan/missing、路径存在、一 case 一 script、fingerprint_check 在册、每个 PASS marker 被 yaml 断言、README 计数==yaml case 数；与 #29 gate 注册面对称）用例（#35，对象是 eval 套件注册面），以及 1 个文档相对链接完整性自测（docs/refactor 与 evals 文档的相对 markdown 链接必须在磁盘解析、不越界、代码块内伪链接不扫）用例（#36，对象是文档链接同构面，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -94,6 +95,18 @@
 | 33 | `evals/local_script_provider_selftest.py` | `local-script provider selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（空 prompt 必 error、exit1 必透传 error 且含 stdout/stderr、缺失脚本必 code 2；纯空白不绕过、成功 output 不含 stderr 防误报；盲 provider 吞非零退出漏报、真实 provider 报 error） |
 | 34 | `evals/dual_chain_env_wrapper_selftest.py` | `dual-chain env wrapper selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（import 不改 env、apply_chain_b 必删预置 CYCLONEDDS_URI、缺 load.py 必 import 失败；apply_chain_a 置 Chain A、describe 返回 fresh dict 防污染；CHAIN_A/B 与真源同对象、`_ENV_PY`/`__all__` 契约；盲委托漏 unset 泄漏、真实包装删除） |
 | 35 | `evals/eval_registry_selftest.py` | `eval registry selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（磁盘 selftest 未登记 yaml=orphan、yaml 引用磁盘缺失=missing、README 计数漂移必报；fingerprint_check.py 固定在册、每个自测/fingerprint 的 PASS marker 必被 yaml 断言；删某 marker 断言的变异必被检出） |
+| 36 | `evals/doc_link_selftest.py` | `doc link selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（缺失同级文件、`../` 越出仓库根、缺失目录链接必报；http/#锚点/mailto 跳过、围栏与行内代码内伪链接不扫；真实目标被 exists 包装强制判失必报；健康基线 5 个 md、165 个相对链接零断链） |
+
+### 文档相对链接完整性自测（#36，eval-only）
+
+- CI `contracts` job 只对固定白名单做 `test -f`（**不解析** markdown 链接，且白名单不含 `docs/refactor/**` 与 `evals/**`）；`scripts/_md_paths.py` 的 `parse_map` 虽解析引用，但只服务 `check_source_map.py` / `check_executor_map.py` 两份特定架构图，且把反引号 `` `path` `` 也当引用（配 allowlist），与「纯 markdown 链接存在性」是不同职责。
+- 因此本循环每轮产出的文档——`docs/refactor/01-dds-request-flow.md`、`02-modernization-plan.md`、`ITERATION_LOG.md` 与 `evals/README.md`、`evals/results/BASELINE.md`——共约 165 个相对链接（`../../scripts/...`、`../architecture/...`、同目录 `ITERATION_LOG.md` 等），其目标是否仍存在**此前零机器检查**；重命名/移动文件不更新链接会静默腐烂。
+- `doc_link_selftest.py`（对象是**文档链接同构面**，中缀 `doc_link`；纯标准库，读**真实仓库**做健康对照，负向用**内存注入链接**、不写 tempdir、不改仓库）：先剥围栏代码块（```` ``` ````）与行内代码（`` `...` ``），避免正则片段/命令样例里的 `](...)` 被误判；再对每个 inline/图片链接分类——external（http/https/mailto/`#锚点`/`<...>`/web 根绝对路径）跳过，相对路径相对当前 md 目录解析，越出仓库根报 `escapes repo root`、目标（文件或目录，允许末尾 `/`）不存在报 `missing target`。
+  - **1 个健康对照**：真实仓库 5 个 md、≥100 个相对链接、零断链（设文件数/链接数下限，防 glob 失效导致空扫恒真）；
+  - **3 个负向**：注入缺失同级文件链接必报 missing；注入 `../../../../` 越界链接必报 escape；注入缺失目录（末尾 `/`）链接必报 missing；
+  - **2 个 non-flag**：external/锚点/mailto 链接一律不检查；围栏代码块与行内代码中的伪 `](x.md)` 链接不被扫描；
+  - **1 个变异**：用 exists 包装把一个真实存在的目标强制判失，必被报 missing，证明检查非恒真。
+- 与 #18–#35 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、不需要 ci.yml 接线；不重复 source_map/executor_map 的反引号引用 + 符号 allowlist 检查。
 
 ### Promptfoo eval 套件注册面一致性自测（#35，eval-only）
 
