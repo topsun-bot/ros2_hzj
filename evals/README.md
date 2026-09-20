@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 24 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 25 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -23,6 +23,7 @@
 | `executor_map_guard_selftest.py` | Executor/WaitSet map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：复制 11 个真实 allowlisted 符号文件 + 手写最小 map 进 `tempfile`，只覆盖 executor 独有分支——vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未被引用/必需文档缺失必报，`absent_keys` 与 `reject_bare_words` 两个独有解析参数生效、健康树不误报（共享的路径/符号循环由 #21 覆盖，不重复） |
 | `dod_evidence_guard_selftest.py` | 产品 DoD 诚实性 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD 仅占位），只覆盖其独有的反伪造逻辑——伪造的 `STATUS: PASS`/`DoD: met`/this-host measured-delta/“Humble 在此跑过”声明与虚构的 booked p99 分位必报；同行禁止句（do not write STATUS: PASS）与政策词“分位数”不得误报；STATUS 伪造正则被改宽即漏报 |
 | `cega_bridge_hold_guard_selftest.py` | Cega / Bridge Hold guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 Hold 文档与 ADR 两个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD/9 个只读 runtime 路径仅占位），只覆盖其独有解析——ADR §13(4) 表格 cell 必须以 `**Hold**` 开头且不含 PASS/已接 Cega/integrate Cega（cell 翻 PASS、Hold cell 夹带裸 PASS、删行必报）、guard 内置内存行自检生效、首行 `Status:` 翻转与独立“已接 Cega”声明必报；同行禁止句在两份文档中均不得误报；“已接 Cega”正则被改宽即漏报（通用 STATUS:-PASS+禁止句机制与 #23 同形，不重复） |
+| `runtime_provenance_guard_selftest.py` | runtime-provenance guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件（MANIFEST/VERSIONS/Dockerfile/provenance 文档/prove_rmw.py）复制进 `tempfile` 再逐个变异，只覆盖其两个独有解析器——`_dockerfile_pins_humble` 对 rolling 钉版/缺失 ENV/有 ENV 无值三种分支必报，`_versions_rows` 要求 vendor 树名与 40 位 SHA 在**同一行**（删 SHA、SHA 挪到别的行必报）；健康树不误报；SHA 正则被改宽为任意单词即漏报（直白 marker substring 检查不重复） |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -35,14 +36,15 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（24 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（25 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
   交叉断言 guard 的负向自测用例（#19）、1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
   （#20）、1 个 ros2-source-map guard 的负向自测用例（#21）、1 个 Executor/WaitSet map
-  guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23），
-  以及 1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24，均见下文专节）：
+  guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
+  1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24），以及 1 个 runtime-provenance
+  guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -70,6 +72,35 @@
 | 22 | `evals/executor_map_guard_selftest.py` | `executor map guard selftest: PASS`、`5 negative, 2 parse-guard, 2 healthy, 1 mutation`（vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未引用/必需文档缺失必报；`absent_keys` 与 `reject_bare_words` 两个 executor 独有解析参数生效、健康树不误报；vendored 检查被改宽即漏报） |
 | 23 | `evals/dod_evidence_guard_selftest.py` | `dod evidence guard selftest: PASS`、`5 negative, 2 non-flag, 2 healthy, 1 mutation`（伪造 STATUS: PASS/DoD: met/measured-delta/Humble-here 声明与虚构 booked p99 必报；同行禁止句与政策词“分位数”不误报；STATUS 伪造正则被改宽即漏报） |
 | 24 | `evals/cega_bridge_hold_guard_selftest.py` | `cega bridge hold guard selftest: PASS`、`5 negative, 2 non-flag, 1 builtin self-check, 2 healthy, 1 mutation`（ADR §13(4) cell 翻 PASS/Hold cell 夹带裸 PASS/删行、首行 Status 翻转、独立“已接 Cega”必报；内置行自检生效；同行禁止句在两文档中不误报；“已接 Cega”正则被改宽即漏报） |
+| 25 | `evals/runtime_provenance_guard_selftest.py` | `runtime provenance guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（Dockerfile 钉 rolling/缺失 ENV/有 ENV 无值三分支必报；VERSIONS 行删 SHA、SHA 挪到别的行必报；健康树不误报；SHA 正则被改宽为任意单词即漏报） |
+
+### runtime-provenance Humble 钉版 / VERSIONS 同行 SHA 负向自测（#25，eval-only）
+
+- #6 的正向运行与 #17 指纹只证明**当前健康树渲染为绿**，证明不了 `check_runtime_provenance.py`（wiki3 §13
+  underlay vs overlay vs vendor snapshot）独有的**两个解析器**仍然会触发。该 guard 守护：Docker 镜像必须钉
+  Humble underlay（`ENV ROS_DISTRO=humble`），`vendor/VERSIONS.md` 里六棵 vendor 树每一行都必须带 40 位 SHA。
+  若有人把这两个解析器改宽，一份钉成 `rolling` 的 Dockerfile、或 SHA 从表格行上脱落的 VERSIONS 表会让 gate、
+  #6、#17 指纹（比对的都是健康树输出）继续全绿，underlay/vendor 溯源裁决却已悄悄失真。
+- **刻意只覆盖独有解析逻辑**：MANIFEST/provenance 文档的 marker 是直白 `token in text` substring 检查、无解析器，
+  与正向用例同形，不重复堆夹具；#25 只测本 guard 独有的两部分——
+  ① `_dockerfile_pins_humble` 用 `_ENV_DISTRO_RE` 多行解析 `ENV ROS_DISTRO`，有三个不同失败分支（指令完全缺失 /
+  指令在但值无法解析 / 钉了非 humble 的发行版，含多行 ENV）；
+  ② `_versions_rows` 要求 vendor 树名与 40 位 SHA 在**同一行**（`row in line and _SHA_RE.search(line)`），SHA 漂到
+  别的行不能让该行通过——不是"全文某处有 SHA 就行"。
+- 五个文件都带连续 marker，手写最小健康树易腐；故 `runtime_provenance_guard_selftest.py` 把 guard 读取的
+  **5 个真实文件**（MANIFEST、VERSIONS、Dockerfile、provenance 文档、prove_rmw.py）复制进 `tempfile`，再每次只
+  变异一个文件，驱动可注入的 `render(root=...)`，**不改动仓库**、纯标准库：
+  - **5 个负向场景**：N1 Dockerfile `ENV ROS_DISTRO=humble`→`rolling`（报 FAIL Dockerfile pins …）；N2 删除
+    ENV 行（报 FAIL Dockerfile missing …）；N3 保留 `ENV ROS_DISTRO` 但不给可解析值（报 FAIL Dockerfile
+    is not humble，覆盖 present-but-unparsed 分支）；N4 把 `vendor/rmw/` 行的 40 位 SHA 替换为 NO_SHA、保留该行
+    （报 FAIL VERSIONS rows）；N5 把该 SHA 挪到文件首行、原行留 NO_SHA（报 FAIL VERSIONS rows，证明是同行约束
+    而非全文 SHA 扫描）；
+  - **2 个健康对照**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印 `underlay != vendor snapshot`；
+  - **1 个变异**：把 `_SHA_RE` 从 40 位 hex 边界匹配改宽为任意单词 `\b\w+\b`（try/finally 恢复）后 N4 必须**漏报**
+    （被篡改行仍含 `vendor/rmw/`、`rolling` 等单词，exit 0、无 FAIL VERSIONS rows），恢复后必须重新抓到——证明
+    N4 确实依赖严格的 SHA 检测器。
+- 与 #17/#18–#24 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、
+  不需要 ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### Cega / Bridge Hold 负向自测（#24，eval-only）
 

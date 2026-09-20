@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 24 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测；#22 为 Executor/WaitSet map guard 独有分支的负向自测；#23 为产品 DoD 诚实性 guard 反伪造逻辑的负向自测；#24 为 Cega / Bridge Hold guard 独有 ADR 表格 cell 解析/内置行自检/中文“已接 Cega”伪造/首行 Status 的负向自测） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 25 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测；#22 为 Executor/WaitSet map guard 独有分支的负向自测；#23 为产品 DoD 诚实性 guard 反伪造逻辑的负向自测；#24 为 Cega / Bridge Hold guard 独有 ADR 表格 cell 解析/内置行自检/中文“已接 Cega”伪造/首行 Status 的负向自测；#25 为 runtime-provenance guard 独有 Dockerfile Humble 钉版三分支/VERSIONS 树名与 40 位 SHA 同行约束的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -1385,3 +1385,106 @@
 3. 视批准推进 CVE 修复独立 PR；4 份飞书文档授权后补读。
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18–#24+eval 回归并在日志标注「等待新指令」，
    不制造无意义提交。
+
+---
+
+## 轮次 19 — 2026-09-20 10:31（Asia/Shanghai）《5》深化：runtime-provenance guard 独有解析器负向自测沉淀为 eval 用例 #25
+
+> 定时任务第 19 轮。分支 `test/runtime-provenance-guard-selftest`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 开工核对：main HEAD `3897cc8`（轮次 18 回填 PR #75 squash），工作区干净（仅受保护旧草稿 `docs/01-dds-request-flow.md`
+> untracked，未触碰）；`gh pr list` 中在途 PR（#65/#61/#56/#46/#45/#44/#43/#42/#41/#32/#31/#30）全是他人
+> claude/cursor/codex 机器人 PR，未触碰，本循环无在途 PR。`gh auth status` 复核：active 账号仍为 `yixinzhangagent`
+> （scopes gist/read:org/repo，**无 workflow**，Git over ssh）；`zhangyinxina-ui` 含 workflow 但 Active=false 且对本仓
+> 历史 403——不换凭证、不硬闯，ci.yml 接线 / fingerprint·#18–#25 进 CI / §5.3 规则 2 机器化继续阻塞；CVE 修复仍待批准。
+> 本轮执行轮次 18「下一步候选 2」：逐一读完剩余五个未沉淀 guard 中的三个（risk_matrix/print_bench 前轮已确认直白低价值），
+> 先证不重复、再挑出**独有解析器无同构覆盖**的一个——`check_runtime_provenance.py`（wiki3 §13 underlay vs overlay vs
+> vendor snapshot）。
+
+### 背景 / 三候选横向取舍（先证与 #6/#17/#18–#24 不重复）
+- 逐一读完三个仍有少量独有逻辑的候选 guard：
+  - `check_three_chain_repro.py`（231 行）：`_STATUS_FABRICATE_RE` + `_PROHIBITION_RE` 同行豁免与 #23/#24 高度同构；
+    独有仅 `_FABRICATE_RES` 三正则（three-chain repro:PASS / reproduce:PASS / `map = reproduce` 等号伪造）与
+    `_has_three_chains` 的 OR 组合（publish+History+(wait→callback 或 WaitSet+callback)），机制重复度高，**未选**。
+  - `check_sink_layers.py`（248 行）：独有 `_LAYER_ROW_RE`（`^\|\s*\*\*(app|rcl|rmw|DDS|executor|memory)\*\*\|`
+    表格行行首锚定，注释明示裸 substring "rcl" 会误匹配 app 行里的 rclpy）；ABSENT_VENDOR_TREES 比 executor 多 iceoryx
+    但 absent 机制已被 #22 覆盖；policy clauses 是直白 substring，价值中等，**未选**。
+  - **`check_runtime_provenance.py`（210 行）= 选定**：两个独有解析器在 #18–#24 中**无同构覆盖**（#20 测的是 unitree
+    guard 自己的 VERSIONS 检查，不是本脚本的 `_versions_rows`），守护 underlay/overlay/vendor-snapshot 诚实性与
+    "Humble underlay 钉版"。
+- 选定 guard 的两个独有解析器：
+  ①`_dockerfile_pins_humble(text)->(bool,str)` 用 `_ENV_DISTRO_RE` 多行解析 `ENV ROS_DISTRO`，有三个不同失败分支——
+    指令完全缺失（missing）、指令在但 `findall` 为空即值无法解析（is not humble）、钉了非 humble 发行版（pins {bad}）；
+  ②`_versions_rows(text)->list[str]` 逐行判定，要求 vendor 树名与 40 位 SHA（`_SHA_RE=\b[0-9a-f]{40}\b`）在**同一行**
+    （`row in line and _SHA_RE.search(line)`），SHA 漂到别的行不能让该行通过——不是"全文某处有 SHA 就行"。
+  若有人把 ENV 值判断或 SHA 正则改宽，一份钉成 rolling 的 Dockerfile、或 SHA 从表格行脱落的 VERSIONS 表会让 gate、#6、
+  #17 指纹（比对的都是健康树输出）继续全绿，underlay/vendor 溯源裁决却已悄悄失真。
+- 可行性探针（一次性 `/tmp/probe_runtime_provenance.py`，未入仓，先逐字取真实 FAIL 行再写脚本）：复制全部 5 个真实文件
+  （MANIFEST/VERSIONS/Dockerfile/provenance 文档/prove_rmw.py）进 tempdir 再变异，REAL/COPY/N1–N5/四分支直调/mutation
+  全部符合预期（详见下）。
+
+### 本轮改动（一项重点改进，仅 evals/；不改任何 gate/生产代码、不碰 ci.yml）
+- **新增 `evals/runtime_provenance_guard_selftest.py`（eval-only，纯标准库，tempdir-only，不是 gate）**：不进
+  `run_all_gates.GATES`、不被 CI structure 枚举、无需 ci.yml 接线（不受 workflow scope 阻塞）。夹具策略同 #20/#22/#23/#24：
+  把 guard 读取的 **5 个真实文件**（MANIFEST、VERSIONS、Dockerfile、provenance 文档、prove_rmw.py，均带连续 marker，
+  手写最小健康树易腐）复制进 `tempfile`，再每次只变异一个文件，驱动可注入的 `render(root=...)`：
+  1. **5 个负向场景**：N1 Dockerfile `ENV ROS_DISTRO=humble`→`rolling`（报 `FAIL Dockerfile`，pins rolling）；N2 删除
+     ENV ROS_DISTRO 行（报 `FAIL Dockerfile`，missing ENV ROS_DISTRO=humble）；N3 保留 `ENV ROS_DISTRO` 但不给可解析值
+     （报 `FAIL Dockerfile`，is not humble，覆盖 present-but-unparsed 分支）；N4 把 `vendor/rmw/` 行的 40 位 SHA 替换为
+     NO_SHA、保留该行（报 `FAIL VERSIONS rows`，点名 vendor/rmw/）；N5 把该 SHA 挪到文件首行 `moved sha …`、原行留 NO_SHA
+     （报 `FAIL VERSIONS rows`，证明是**同行约束**而非全文 SHA 扫描）；
+  2. **2 个健康对照**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印 `underlay != vendor snapshot`（证明复制夹具
+     与真实树等价，负向场景不会因错误原因失败）；
+  3. **1 个变异**：把 `_SHA_RE` 从 40 位 hex 边界匹配改宽为任意单词 `\b\w+\b`（try/finally 恢复）后 N4 必须**漏报**
+     （被篡改行仍含 `vendor/rmw/`、`rolling`、`7.11.2` 等单词，exit 0、无 FAIL VERSIONS rows），恢复后同一树必须重新抓到
+     exit 1 + FAIL VERSIONS rows——证明 N4 确实依赖严格 SHA 检测器。
+  - 探针中还直接调用 `_dockerfile_pins_humble` 逐字确认四分支返回串：rolling→`(False, 'Dockerfile ENV ROS_DISTRO pins
+    rolling (need humble)')`、无 ENV→`(False, 'Dockerfile missing ENV ROS_DISTRO=humble')`、无值→`(False, 'Dockerfile
+    ENV ROS_DISTRO is not humble')`、健康→`(True, 'ENV ROS_DISTRO=humble')`。
+- `evals/promptfooconfig.yaml`：新增用例 **#25**（断言 `runtime provenance guard selftest: PASS` + 计数短语
+  `5 negative, 2 healthy, 1 mutation`，锁夹具数、防悄悄删负向样本）；用例 24→25。
+- `evals/README.md`：文件表加自测脚本、用例数 24→25、seed 段加 #25、用例表加 #25 行、新增「runtime-provenance Humble
+  钉版 / VERSIONS 同行 SHA 负向自测（#25）」小节（为何 #6 正向/#17 指纹证明不了两个解析器会触发、刻意不重复直白 marker
+  substring 检查、复制 5 真实文件夹具策略、5/2/1 清单、三分支与同行约束、SHA 正则变异验证、eval-only 定位）。
+- **未做（Hold/边界）**：未改 `check_runtime_provenance.py` 或任何 gate（正常仓 stdout 零变化）；未碰 ci.yml、fastdds.xml、
+  SCOREBOARD.md、vendor、`dimos_bridge`；未启用 zenoh/Agnocast、未集成 Cega；无框架/依赖/API 变更；不新增 gate（不加剧
+  "本地 13 vs CI 12"背离）。
+
+### 负向有效性验证（证明自测不是摆设）
+- 一次性 /tmp 探针逐场景打印真实输出：REAL/COPY exit 0 + marker；N1/N2/N3 exit 1 且 FAIL Dockerfile 分支串逐字正确；
+  N4/N5 exit 1 且 FAIL VERSIONS rows + vendor/rmw/；宽化 `_SHA_RE=\b\w+\b` 后 N4 干净漏报（exit 0、无 FAIL VERSIONS rows），
+  恢复后同一树 exit 1 重新抓到。
+- 正式脚本：`python3 evals/runtime_provenance_guard_selftest.py` → negative 5/5、healthy 2/2、mutation 1/1，
+  打印 `runtime provenance guard selftest: PASS (5 negative, 2 healthy, 1 mutation)`、exit 0；`py_compile` 通过。
+
+### 分数前后对比
+- Gate：**13/13（100%）all gates green**，与轮次 18 持平（未改任何 gate，run_all_gates 不受影响）。
+- 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
+- #18 frozen、#19 env、#20 unitree、#21 source-map、#22 executor-map、#23 dod、#24 cega 负向自测：均仍 PASS（八个自测全绿）。
+- Eval：**24 → 25 用例，25/25 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#25 PASS，Duration 15s，
+  eval ID `eval-ElJ-2026-09-20T02:29:10`）。
+- **合并后回归（main HEAD TBD）**：TBD——由 docs-only 回填 PR 补登 required checks（structure/contracts/boundary + CodeQL +
+  Cursor Approval）结果与 squash-merge 后回 main 的 gate/指纹/八个自测/promptfoo 25/25 实测。
+
+### 剩余风险 / 薄弱环节
+1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
+2. **[凭证·仍阻塞]** workflow scope 未授予：frozen gate ci.yml 接线、fingerprint/#18–#25 进 CI、§5.3 规则 2 机器化仍无法
+   落地；九个 eval-only 严格/负向层（#17/#18/#19/#20/#21/#22/#23/#24/#25）目前都只在本地/本循环把关，未进 GitHub required checks。
+3. #25 复制 5 个真实文件；若 Dockerfile 钉版行或 VERSIONS 六行 SHA 的**合法演进**改变了变异锚点（如未来升级 underlay 发行版、
+   vendor 树 SHA 例行更新），夹具会因锚点 `fixture anchor ... not found` 显式 RuntimeError fail-loud，需在同一 PR 同步本自测
+   ——有意的 fail-loud（同 #20/#22/#23/#24 策略）。MANIFEST/provenance 文档的直白 marker substring 检查刻意不逐串堆夹具
+   （与正向用例同形、无解析器）。
+4. 剩余未做负向沉淀的 guard：risk_matrix/print_bench 已确认直白低价值；sink_layers 仅剩 `_LAYER_ROW_RE` 表格行锚定（可造"缺
+   rcl 行但 app 行含 rclpy"夹具）、three_chain 仅剩 `map = reproduce` 等号伪造与 `_has_three_chains` OR 组合尚有少量独有逻辑，
+   但边际价值继续递减，下一轮须先证明确有"可被改宽且正向全绿"盲区且与 #17/#18–#25 不重复才做。
+5. 真·双链 pub/sub / p99 / 跨机 UDP / 三链复现本机仍 blocked（无 Humble runtime）。
+
+### 下一步（轮次 20 候选）
+1. **（阻塞解除后最高优先）** 授予 workflow scope（本机 `gh auth refresh -h github.com -s workflow`，active 账号
+   `yixinzhangagent`；不要擅自切到 `zhangyinxina-ui`，它对本仓 403），用离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`
+   补仅含 ci.yml 接线的独立 PR——优先把纯 python、无需 npx 联网的 fingerprint_check.py 与八个 guard selftest 先于整套 promptfoo
+   纳入 CI，回填 ci-cd-gates.md §1、删 §6 pending；接线后再做 §5.3 规则 2 机器化。
+2. 评估 sink_layers `_LAYER_ROW_RE` 表格行锚定、three_chain `map = reproduce` 等号伪造/`_has_three_chains` OR 组合是否仍有独有、
+   可被改宽的检测器：须先证与正向用例/#17 指纹/#18–#25 不重复、夹具可在 tempdir 构造、且有真实盲区才沉淀；重复或低价值则不做，
+   避免断言堆砌。
+3. 视批准推进 CVE 修复独立 PR（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）；4 份飞书文档授权后补读。
+4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18–#25+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
