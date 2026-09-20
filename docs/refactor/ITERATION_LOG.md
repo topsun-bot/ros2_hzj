@@ -2562,3 +2562,61 @@
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #29）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#29 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
+
+## 轮次 33 — 2026-09-21 01:18（Asia/Shanghai）— eval #30：gate-runner 执行判定语义负向自测（功能 PR TBD）
+
+### re-ground
+
+- 本地 `main` HEAD 与 `origin/main` 引用均为 `d6fbe59`（轮次32 回填 #104 squash）；本轮触发时 GitHub 端点 8 次 `curl` 探测全 `000`、`git fetch` 未刷新（网络抖动），但 #103/#104 是本循环最后的写 main 动作且上轮已 pull 到 `d6fbe59`，push 前网络恢复后再 fetch 复核。
+- `gh pr list` 过滤本循环分支（refactor/*、test/*、docs/log*、docs/refactor*、feat/*、fix/*）：**无在途 PR**（open 列表全是 claude/codex/cursor 他人/机器人分支，按惯例不碰）。
+- `gh auth status`：active 账号仍为 `yixinzhangagent`（scopes gist/read:org/repo，**无 workflow**）；`zhangyinxina-ui` 含 workflow 但非 active、对本仓历史 403，不擅自切换。ci.yml 接线继续 blocked。
+- 工作区仅余受保护旧草稿 `docs/01-dds-request-flow.md` untracked（不 add/不改/不删）。
+
+### 取证：runner 的「执行面」此前零断言
+
+- 延续轮次31/32「决定等待前先取证」纪律。#29（gate_registry）钉的是 runner 的**注册面**——磁盘 gate 集合 ↔ `run_all_gates.GATES` 双向相等；它**从不真正执行任何 gate**，因此保护不了 runner 的**执行面**，即 `scripts/run_all_gates.py` 的 `run_one`/`main` 裁决逻辑：
+  - `run_one` 对「exit 0 但没打印健康 marker」返回 `(0, False, …)`，`main` 必须把它计入 `zero-but-missing-marker` 并 FAIL（防 guard 被掏空成 `sys.exit(0)` 空跑、头条仍绿）；
+  - 非零退出（即便打印了 marker）必须 FAIL（exit code 优先于 marker）；
+  - GATES 指向缺失脚本必须返回 `127, False` 且输出 `missing: <rel>`、`main` FAIL；
+  - marker 在 **stderr**（exit 0）须按 stdout+stderr combined 判为存在（防误报，同时不放松 exit 0）。
+- 若未来 `main` 退化成「只看退出码、忽略 marker」、`run_one` 恒报 marker 存在、或缺失文件被当通过，13-gate 循环会在 guard 被静默禁用时仍报绿，而 #29 注册一致性测不出来。属 runner 类别、与 #29 互补不重复，是真实负向缺口（非凑数）。
+- /tmp 探针在 tempdir 逐字取到真实行为：健康 gate `main` rc=0 绿；exit0-缺-marker `run_one=(0,False)`、`main` rc=1 含 `zero-but-missing-marker: 1`+FAIL；exit1（带 marker）rc=1、`non-zero: 1`+FAIL；缺失文件 rc=127、`missing: scripts/does_not_exist.py`、`main` rc=1；marker 仅在 stderr 时 `(0,True)`、`main` rc=0 绿；把 `run_one` 换成「恒报 marker=True」的桩则 exit0-缺-marker 漏报为 rc=0，恢复真实 `run_one` 后重新 rc=1。
+
+### 改动（纯 eval-only，0 生产代码）
+
+- 新增 `evals/gate_execution_selftest.py`（#30，对象同为 **runner** 而非 guard，命名沿用 `gate_*` 族、无 `_guard` 中缀）：`tempfile` 写假 gate，monkeypatch `run_all_gates.REPO_ROOT`/`GATES`（`contextmanager` + `finally` 恢复），`contextlib.redirect_stdout` 捕获 `main()` 输出，纯标准库、不改仓库。
+  - **3 negative**：N1 exit0 缺 marker → `run_one (0,False)`、`main` return 1 + `zero-but-missing-marker: 1` + FAIL；N2 打印 marker 但 `sys.exit(1)` → rc 非 0、`non-zero: 1` + FAIL；N3 GATES 指向不存在脚本 → `run_one` 返回 `127,False` 且含 `missing: <rel>`、`main` FAIL；
+  - **1 non-flag**：marker 只打到 stderr、exit 0 → combined 判 `(0,True)`、`main` 绿（钉 stdout+stderr 合并语义）；
+  - **1 healthy**：exit0 + stdout marker → `(0,True)`、`main` return 0、`zero-but-missing-marker: 0` + 绿横幅；
+  - **1 mutation**：`run_one` 换成恒报 marker 存在的桩（等价于只看退出码的退化）→ N1 空壳 gate 漏报为 `main` return 0；恢复真实 `run_one` 后同场景 return 1（证明缺-marker 检测非空转）。
+  - PASS 计数串：`3 negative, 1 non-flag, 1 healthy, 1 mutation`，PASS 短语 `gate runner execution selftest: PASS`。
+- `evals/promptfooconfig.yaml`：29 → **30** 用例（末尾追加 #30 块，2 条 contains：PASS 短语 + 计数串）。
+- `evals/README.md`：六处登记——配置表「30 个 seed 用例」、seed 叙述「（30 个）」、文件表新增 `gate_execution_selftest.py` 行、seed 枚举句追加 #30、明细表新增 `| 30 | … |`、新增 #30 专节（**倒序置于 #29 专节之前**，含范围边界：不替 CI structure 12/13 缺口断言、不跑真实 gate）。
+
+### 合并前回归（分支工作区，main `d6fbe59` + 本轮 eval 改动）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py` 通过；gate **13/13 all gates green**（新脚本不进 GATES、不被 CI structure 枚举、无需 ci.yml 接线）；
+  stdout 指纹 **15/15 stable**（新脚本不在 15 个被比对命令内，健康 stdout 零变化）；eval-only 自测由 12 个增至 **13 个**（11 guard + gate_registry + gate_execution）全 exit 0；
+  promptfoo **30/30 passed (100%) / 0 failed / 0 errors**（合并前 eval ID `eval-d7X-2026-09-20T17:18:09`，UTC，约合 CST 次日 01:18，Duration 4s）。
+- 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 29/29 → **30/30**（净增 1 条对 runner 执行裁决语义的真实负向断言，非放水）；eval-only 自测脚本 12 → **13**。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md`；未碰 `.github/workflows/ci.yml`（workflow scope 仍缺，接线保持 blocked）；
+  未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；双链契约不动；
+  无框架/依赖/API/架构变更（纯 eval-only 测试新增，生产脚本与 `run_all_gates.py` 零改动，仅只读 import 并在 tempdir monkeypatch 后恢复）。
+- 《6》CVE 审计保持只读；promptfoo 仅以 `npx --yes promptfoo@0.123.1` 缓存运行、未写入运行时依赖；
+  受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险与状态
+
+- runner 双面现已闭环：**注册面**（#29，磁盘↔GATES 双向一致）+ **执行面**（#30，exit0+marker 才过、非零/缺脚本/缺 marker 必 FAIL、stderr combined、变异反证）。
+  11 个带独有解析器的 guard 负向自测（#18–#28）此前已闭环；`prove_rmw`（恒 exit 0、无 FAIL 路径，Mac HIL 覆盖）、`check_risk_matrix`（直白 marker substring、§9.4 order 块 5 token 全在 marker 元组内）维持无脚本的合理空缺。
+- 仍 blocked / 待拍板（均不得自行突破）：① ci.yml 接线需本机 `gh auth refresh -h github.com -s workflow`（active `yixinzhangagent` 缺 scope；离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`；授权后优先把纯 python 的 fingerprint + #18–#30 自测纳入 CI、先于整套 promptfoo，并把第 13 闸接进 structure 枚举），再做计划 §5.3 规则 2 机器化；② CVE 修复三项待用户明确批准、拆 3 个独立 PR；③ 4 份飞书文档 3380004 无权限；④ 无 Humble Linux 主机，真·双链 pub/sub、p99、跨机 UDP、三链实际复现恒 `STATUS: blocked`，不伪造。
+
+### 下一步（轮次 34 候选）
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #30）接进 CI（先纯 python 项）。
+3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+4. 若以上均不可推进：再做一次取证扫描（runner/guard/config/docs 是否还有未被任何断言钉住的独有判定分支或注册/契约漂移面，例如 `fingerprint_check.py` 自身的 DRIFT 负向能力是否值得补），确无新高价值项才做完整 gate + 指纹 + #18–#30 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
