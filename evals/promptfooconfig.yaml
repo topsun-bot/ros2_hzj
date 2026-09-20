@@ -382,3 +382,22 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '2 negative, 2 healthy, 1 mutation'
+
+  # Negative self-test for the three-chain-reproduce guard (eval-only, not a
+  # CI gate). Covers the two _FABRICATE_RES patterns unique to that record: an
+  # extra contradictory `map = reproduce` and a `three-chain repro: PROVEN`
+  # appended while map != reproduce / STATUS: blocked and all chain markers
+  # stay present (so phrase/status existence checks pass and only the
+  # fabricate regex can catch it). The same STATUS-fabricate family on the DoD
+  # and Cega docs is already pinned by #23/#24, and the marker-co-occurrence
+  # chain check is the guard's stated marker-only boundary. A same-line
+  # prohibition stays exempt; neutralising the map=reproduce regex silences N1.
+  - description: 'three_chain_repro_guard_selftest.py: the map=reproduce / repro-PROVEN fabricate regexes actually fire on an extra contradictory sentence (negative regression, tempdir-only)'
+    vars:
+      script: evals/three_chain_repro_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'three-chain repro guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
