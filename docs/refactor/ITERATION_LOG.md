@@ -1886,3 +1886,80 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+## 轮次 25 — 2026-09-20 16:32（Asia/Shanghai）《2》小步重构：三处逐字相同的 `_line_at` 下沉为共享 `_repo.line_at`
+
+> 定时任务第 25 轮。分支 `refactor/line-at-shared-helper`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 本轮按轮次 24「下一步」做全仓重复取证，落到一个有 **3 个消费方、逐字相同**的纯工具下沉，
+> 属 plan §5.3 helper-boundary（迭代 5 建 `_repo.py`、迭代 9 `_md_paths` 复用 `read_utf8` 的延续）。
+> 行为不变：新旧实现对拍逐字等价、三个 guard 的 stdout 逐字节不变，#23/#24/#27 负向自测端到端兜底。
+
+### 取证与选题
+
+- re-ground：main 与 origin/main 同步于 `a4a106e`（轮次 24 回填 #87），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；本循环无在途 PR。
+- 列出 `scripts/` 全部顶层函数后，跨脚本同名工具盘点结果：
+  - **`_line_at(text, index)`**：在 `check_cega_bridge_hold.py`、`check_dod_evidence.py`、
+    `check_three_chain_repro.py` 三处**逐字相同**（同样 6 行函数体：`rfind` 定位行首、`find` 定位行尾、
+    末尾无换行则取 `len(text)`）。它是「同行禁止句」判定的纯工具——给定字符 index 返回所在整行，
+    供 `_PROHIBITION_RE.search(line_at(...))` 判断被标记 token 是否与豁免句同行。3 个消费方、零业务断言，
+    符合下沉 `_repo.py` 的标准（≥2 消费方才下沉，避免过早抽象）。
+  - `_fabricate_hits(text)` 虽也在这三个脚本同名出现，但各自的正则集合**独有且不同**
+    （dod 的 STATUS/DoD/p99、cega 的 PASS/已接 Cega、three_chain 的 map=reproduce/PROVEN），且分别被
+    #23/#24/#27 负向自测的 mutation 用例锚定——**不收敛**，强行合并会制造参数负担、削弱检测器，明确保留。
+- selftest 代码本身不 import/调用 `_line_at`（仅 `evals/README.md` 与 #27 selftest 的 docstring 在文字里提到该工具名）。
+
+### 改了什么（净 −8 行，+27/−35，6 个文件）
+
+- `scripts/_repo.py`：新增公共函数 `line_at(text, index)`（实现逐字采用三份副本，补 docstring），
+  并在模块 docstring 的 helper 清单加入第三项；该模块仍只承载无业务断言的通用工具。
+- 三个 guard：`from _repo import repo_root, read_utf8` → 增加 `line_at`（字母序），删除各自本地
+  `def _line_at`（6 行 + 分隔空行），5 处调用点 `_line_at(` → `line_at(`（cega 2、dod 1、three_chain 2）。
+- 文档工具名同步（各 1 处、纯文字）：`evals/README.md` 的 #27 non-flag 豁免说明、
+  `evals/three_chain_repro_guard_selftest.py` 的 docstring，`_line_at` → `line_at`。
+- 全仓 `git grep _line_at`（scripts/ + evals/）已无残留；无 bare `line_at` 命名冲突。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **新旧实现对拍**：从 `git show HEAD:scripts/check_dod_evidence.py` 取出重构前原始 `_line_at`，与新
+  `_repo.line_at` 在 6 组样本（含无换行、首尾换行、空行、中文多行）的**每个字符 index** 上对拍，结果逐字一致
+  （IDENTICAL across all indices）。
+- **stdout 逐字节**：cega / dod / three_chain 三个 guard 重构前后各跑一次（均 exit 0，35 / 30 / 23 行），
+  三份 `diff` 全空。
+- **端到端负向回归**：#23 `dod_evidence_guard_selftest`、#24 `cega_bridge_hold_guard_selftest`、
+  #27 `three_chain_repro_guard_selftest` 全 PASS——「被标记 token 与豁免句同行则不报」的豁免逻辑、
+  以及「正则被改宽即漏报、自测变红」的 mutation 用例在函数搬家后照常工作。
+- `python3 -m compileall -q scripts config/env dimos_bridge/dual_chain_env.py` 通过；
+  gate **13/13 all gates green**；stdout 指纹 **15/15 stable**（三个被改 guard 均在 15 条命令内，逐字节无漂移、
+  未动 fixtures）；#18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-rOi-2026-09-20T08:32:05`，UTC；约合 CST 16:32，Duration 2s）。本轮不新增 eval 用例
+  （纯工具搬家、无新行为；同行豁免负向能力已由 #23/#24/#27 覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；三个 guard 对 frozen 文件的
+  existence-only / 不读取边界不变（本轮只动同行定位工具，未触碰 required 循环与读取集合）。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整：guard 的命令名、argv、exit code、关键打印短语全部不变
+  （公共契约即 stdout，指纹逐字节证明）；`line_at` 是下划线 helper 模块内的新公共函数，不进 CI 命令枚举。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。纯函数从三个 guard 搬到共享 helper：新旧体现在全 index 对拍等价、三个 guard stdout 逐字节不变，
+  且依赖该工具的三个负向自测（含 mutation）全过。改动反而消除了三份未来可能漂移的副本（单一真源）。
+- A 面低垂果实继续收敛中（轮次 22 helper、23–24 existence-only 循环、本轮 line_at）。仍坚持
+  「先 grep 取证重复 / ≥2 消费方才下沉 / 指纹 + 负向自测护航」，不为凑改动抽象独有逻辑（如 `_fabricate_hits`）。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 26 候选）
+
+1. **[《2》续做]** 继续全仓取证下一类真实重复：候选方向是各 guard 末尾「FAIL 汇总 + ok/SUCCESS 收尾」渲染块、
+   以及 `_has_*` / 行解析小工具是否在 ≥2 个脚本逐字同构（须先 grep + 逐字比对确认，独有正则/独有措辞一律不合并）；
+   一次一项、行为不变、stdout 逐字节 diff 空、helper 单一真源。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。

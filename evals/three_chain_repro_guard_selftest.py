@@ -39,7 +39,7 @@ The marker-substring file checks and ``_has_three_chains`` are intentionally
 not re-tested: they are direct ``token in text`` / marker-co-occurrence checks
 whose stated design boundary is "filesystem + honesty markers only" (the guard
 makes no claim of semantic chain validation). The same-line prohibition
-exemption (``_PROHIBITION_RE`` + ``_line_at``) is pinned here on this guard's
+exemption (``_PROHIBITION_RE`` + ``line_at``) is pinned here on this guard's
 own Chinese/English prohibition vocabulary, so a future tightening that
 flagged a legitimate "do not write …" instruction would also go red.
 
