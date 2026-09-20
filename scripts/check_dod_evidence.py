@@ -28,7 +28,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import repo_root, read_utf8
+from _repo import line_at, repo_root, read_utf8
 
 
 DOD_REL = Path("docs/architecture/feishu-dod-evidence.md")
@@ -133,19 +133,11 @@ _PERCENTILE_RE = re.compile(
 )
 
 
-def _line_at(text: str, index: int) -> str:
-    start = text.rfind("\n", 0, index) + 1
-    end = text.find("\n", index)
-    if end < 0:
-        end = len(text)
-    return text[start:end]
-
-
 def _fabricate_hits(text: str) -> list[str]:
     hits: list[str] = []
     for pattern in (_STATUS_FABRICATE_RE, _DOD_FABRICATE_RE, *_FABRICATE_RES):
         for match in pattern.finditer(text):
-            if _PROHIBITION_RE.search(_line_at(text, match.start())):
+            if _PROHIBITION_RE.search(line_at(text, match.start())):
                 continue
             hits.append(match.group(0).strip())
     return hits

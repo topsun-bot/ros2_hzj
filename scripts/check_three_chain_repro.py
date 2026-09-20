@@ -27,7 +27,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import repo_root, read_utf8
+from _repo import line_at, repo_root, read_utf8
 
 
 REPRO_REL = Path("docs/architecture/feishu-three-chain-repro.md")
@@ -79,24 +79,16 @@ _FABRICATE_RES = (
 )
 
 
-def _line_at(text: str, index: int) -> str:
-    start = text.rfind("\n", 0, index) + 1
-    end = text.find("\n", index)
-    if end < 0:
-        end = len(text)
-    return text[start:end]
-
-
 def _fabricate_hits(text: str) -> list[str]:
     hits: list[str] = []
     for match in _STATUS_FABRICATE_RE.finditer(text):
-        if _PROHIBITION_RE.search(_line_at(text, match.start())):
+        if _PROHIBITION_RE.search(line_at(text, match.start())):
             continue
         hits.append(match.group(0).strip())
     for pattern in _FABRICATE_RES:
         match = pattern.search(text)
         if match:
-            if _PROHIBITION_RE.search(_line_at(text, match.start())):
+            if _PROHIBITION_RE.search(line_at(text, match.start())):
                 continue
             hits.append(match.group(0).strip())
     return hits

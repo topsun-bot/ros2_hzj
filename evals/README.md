@@ -97,7 +97,7 @@
     `(three-chain repro|三条链复现) : (PASS|PROVEN|OK)`；相邻的 `reproduce:` 正则刻意不匹配短词 `repro`）。两者都必须
     exit 1、打印 `FAIL fabricate` 并点名伪造串，且**不得连带** FAIL missing/markers/phrase/status/chains（证明健康 marker
     全存活、只触发诚实性检查）；
-  - **1 个 non-flag（豁免契约）**：同行禁止句「不要把 map = reproduce 写进结论」必须被 `_PROHIBITION_RE` + `_line_at`
+  - **1 个 non-flag（豁免契约）**：同行禁止句「不要把 map = reproduce 写进结论」必须被 `_PROHIBITION_RE` + `line_at`
     豁免、整树 exit 0 且无 FAIL fabricate（防止未来把豁免改严、误杀合法的「不要写」指令）；
   - **2 个健康对照**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印 `three-chain repro: blocked (map only)`；
   - **1 个变异**：把 `\bmap\s*=\s*reproduce\b` 替换为永不匹配的 `(?!)`（try/finally 恢复整个 `_FABRICATE_RES` 元组）
