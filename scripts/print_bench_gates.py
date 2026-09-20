@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 
 from _freeze_paths import SCOREBOARD_REL
-from _repo import append_bullets, emit_render, repo_root, read_utf8
+from _repo import append_bullets, emit_render, repo_root, read_utf8, report_missing_file
 
 
 BENCH_README_REL = Path("docs/artifacts/bench/README.md")
@@ -64,8 +64,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
         path = root / rel
         key = rel.as_posix()
         if not path.is_file():
-            failures.append(f"missing file `{key}`")
-            lines.append(f"- **FAIL missing:** `{key}`")
+            report_missing_file(failures, lines, key)
             continue
         text = read_utf8(path)
         missing_markers = [m for m in markers if m not in text]

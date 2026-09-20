@@ -2136,3 +2136,96 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+## 轮次 28 — 2026-09-20 20:21（Asia/Shanghai）《2》小步重构：9 处逐字相同的 missing-file 报告守卫块下沉为 `_repo.report_missing_file`
+
+> 定时任务第 28 轮。分支 `refactor/shared-missing-file-report`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 延续轮次 25–27「先 AST/正则取证逐字重复、≥2 消费方才下沉、独有措辞不合并」的纪律，本轮把 required 循环里
+> 一个跨 9 个 guard、**逐字相同**的缺失文件报告块的两行报告语句收敛为共享 helper；检测（`is_file()`）与
+> 控制流（`continue`）仍留在调用方。属 plan §5.3 helper-boundary。行为不变：9 个脚本健康 stdout 逐字节 diff 空、
+> FAIL 路径有 monkeypatch 探针 + three_chain/unitree 删文件自测双重证明。
+
+### 取证与选题
+
+- re-ground：main 与 origin/main 同步于 `823a14d`（轮次 27 回填 #94），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；`gh pr list` 无本循环在途 PR。
+- 轮次 27 后函数级、入口（main）、bullet 渲染循环的逐字重复均已清零。本轮按日志候选检查 render() 内的
+  missing-file 守卫与尾部 return：尾部 `lines.append("") + return join(lines), N` 前置 prose/marker/return 码互异
+  （轮次 27 已判定不整块合并）；missing 守卫里则有一个**逐字相同的 4 行块**。
+- 用捕获缩进的严格正则（锚定 `if not path.is_file():` + 两条固定 f-string + `continue`，变量名统一
+  path/key/failures/lines）全仓命中 **9 处、缩进统一 8 空格（if）/12 空格（body）**：
+  cega L199、dod L180、dual_chain L218、risk_matrix L72、runtime_provenance L119、sink_layers L132、
+  three_chain L134、unitree L113、print_bench_gates L66。块体逐字为：
+  ```python
+          if not path.is_file():
+              failures.append(f"missing file `{key}`")
+              lines.append(f"- **FAIL missing:** `{key}`")
+              continue
+  ```
+- **明确排除、保持原样**的近邻形态：①cega L301 的 read-only runtime 循环，文案是
+  `missing read-only runtime` / `FAIL missing runtime`（独有措辞，不匹配、不下沉）；②print_bench_gates L42
+  existence-only 的两行 `if not path.is_file(): continue`（无 failures/lines 报告）；③dual_chain L303/L316 的
+  load.py/wrapper 交叉检查，key 是 `LOAD_PY_REL.as_posix()`/`WRAPPER_REL.as_posix()` 且后续不是同一报告块；
+  ④executor_map L115 在 `if path.is_file():` **正向**分支内；executor_map/source_map/frozen 无此 4 行块，本轮不动。
+
+### 改了什么（净 +6 行，+33/−27，10 个文件）
+
+- `scripts/_repo.py`：新增公共 `report_missing_file(failures, lines, key) -> None`——原地追加一条
+  `missing file `key`` failure 和一行 `- **FAIL missing:** `key`` bullet；docstring 明确「只共享逐字两行报告格式，
+  存在性检测 `if not path.is_file()` 与 `continue` 仍归调用方，helper 自身不做任何检测」；模块顶部 helper 清单加第六项。
+- 9 个脚本：import 行末尾追加 `report_missing_file`（保持既有名字顺序、最小 diff）；4 行守卫块收敛为 3 行——
+  `if not path.is_file():` / `report_missing_file(failures, lines, key)` / `continue`。
+- 替换后 gates 内不再有内联的 `failures.append(f"missing file `{key}`")` 逐字副本（残留 3 处均为上面排除的不同形态）；
+  FAIL/healthy 其余 prose、SUCCESS/PAUSED marker、required 元组、anchor/正则、return 码全部不动。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **健康 stdout 逐字节**：9 个受影响脚本重构前后各跑一次（均 exit 0），9 份 `diff` 全空（all_identical=1）；
+  健康路径 required 文件齐全、守卫不触发，输出自然不变。
+- **helper 等价探针**：对多个 key，`report_missing_file` 产出的 failures/lines 与原内联两行逐元素相等；
+  in-place 修改、返回 None（预置前缀列表验证追加位置正确）。
+- **FAIL 路径端到端双重证明**：
+  - three_chain 自测（断言 `FAIL missing`，L96）与 unitree 自测（N5 删除 swap doc 后断言 `("FAIL missing",)`，L172）
+    直接走本轮改动的守卫块，#18–#27 十个负向自测全部 exit 0；
+  - 对自身自测不删文件的 6 个改动 guard（risk_matrix/dod/sink_layers/runtime_provenance/cega/print_bench_gates），
+    monkeypatch `pathlib.Path.is_file` 恒为 False 后调 `render(root)`，全部 **exit 1 且输出含逐字的
+    `missing file ` 与 `- **FAIL missing:** ` 报告**（dual_chain 的同块为逐字机械替换、由 helper 等价探针 + #19 覆盖）。
+- 排除项未误伤：cega runtime 变体文案仍在（grep count 1）、print_bench existence-only 纯 continue 仍在。
+- `python3 -m compileall -q scripts` 通过；gate **13/13 all gates green**（frozen gate 仍 scanned 15，
+  report_missing_file 不含 `Path(...)`、未新增路径字面量源）；stdout 指纹 **15/15 stable**（9 个被改脚本都在
+  15 条命令内，健康输出逐字节无漂移、未动 fixtures）；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-b8R-2026-09-20T12:21:02`，UTC；约合 CST 20:21，Duration 2s）。
+  本轮不新增 eval 用例（纯报告语句收敛、无新行为；缺失文件负向输出仍由 three_chain/unitree 自测与探针覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未触碰 required 元组、marker 集合、
+  anchor 常量、其余 FAIL/healthy 措辞与 frozen 路径真源（本轮只把逐字两行报告换成等价 helper 调用，检测与 continue 留在原处）。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整：脚本命令名、argv、render() 签名、exit code、每一条打印文本全部不变
+  （健康路径指纹逐字节 + FAIL 路径探针/自测双重证明）；`report_missing_file` 在下划线 helper 模块内，不进 CI 命令枚举。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。9 份逐字两行缺失报告收敛为 1 个 helper（缺失文件的 failure 文案 + FAIL bullet 单一真源）：健康 stdout 9 份
+  逐字节不变，FAIL 路径由删文件自测 + monkeypatch 探针证明 exit 1 且报告逐字正确，gate/指纹/十自测/promptfoo 全绿。
+  检测与控制流刻意未下沉，guard 仍各自决定「什么算缺失、缺失后是否 continue」，helper 只统一报告格式。
+- 至此《2》A 面（自有 scripts/config/docs）的**函数级、入口、bullet 渲染循环、缺失文件报告**逐字重复均已收敛；
+  剩余同构片段都携带独有字面量（各 guard FAIL/healthy prose、`_fabricate_hits` 独有正则、cega runtime 变体、
+  dual_chain load.py/wrapper 交叉检查、prove_rmw/run_all_gates.main 形态差异），按既定纪律不强行合并。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 29 候选）
+
+1. **[《2》收尾确认]** 再做一次更宽的语句级（AST 连续语句片段、归一化空白但保留字面量）全仓重复扫描，确认除已下沉的
+   line_at / emit_render / append_bullets / report_missing_file 外确实没有新的**逐字**重复；若证不出，则《2》A 面
+   小步重构标记为「逐字重复已清零、进入按需维护」，不再为凑改动制造 PR，后续轮次以完整 gate+指纹+#18–#27+promptfoo
+   回归为主并在日志标注状态。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。

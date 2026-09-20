@@ -17,6 +17,9 @@ two small helpers:
   stdout and return the exit code unchanged, so every gate keeps a one-line ``main()``.
 * ``append_bullets(lines, items)`` — append each failure/warning string to a
   render buffer in place as a Markdown ``- `` bullet (rendering only).
+* ``report_missing_file(failures, lines, key)`` — record and render the uniform
+  "missing required file" failure (a failure entry plus a ``FAIL missing`` bullet);
+  the caller keeps the existence test and ``continue``.
 
 This module is the single home for these (modernization plan §5.3
 helper-boundary spec). It deliberately carries **no** business assertions:
@@ -87,3 +90,15 @@ def append_bullets(lines: list[str], items: list[str]) -> None:
     """
     for item in items:
         lines.append(f"- {item}")
+
+
+def report_missing_file(failures: list[str], lines: list[str], key: str) -> None:
+    """Record and render the uniform missing-required-file failure.
+
+    The caller keeps the existence test (``if not path.is_file()``) and its
+    ``continue``; this shares only the verbatim two-line report (a failure
+    entry plus the ``- **FAIL missing:**`` bullet) emitted by the gates. It
+    formats a shared report; it performs no detection of its own.
+    """
+    failures.append(f"missing file `{key}`")
+    lines.append(f"- **FAIL missing:** `{key}`")

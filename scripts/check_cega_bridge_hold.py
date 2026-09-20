@@ -26,7 +26,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import append_bullets, emit_render, line_at, repo_root, read_utf8
+from _repo import append_bullets, emit_render, line_at, repo_root, read_utf8, report_missing_file
 
 
 HOLD_REL = Path("docs/architecture/feishu-cega-bridge-hold.md")
@@ -197,8 +197,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
         path = root / rel
         key = rel.as_posix()
         if not path.is_file():
-            failures.append(f"missing file `{key}`")
-            lines.append(f"- **FAIL missing:** `{key}`")
+            report_missing_file(failures, lines, key)
             continue
         text = read_utf8(path)
         texts[rel] = text
