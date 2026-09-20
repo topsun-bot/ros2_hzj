@@ -1489,7 +1489,7 @@
 4. 若仍无授权且无新的不越界高价值项：做一次完整 gate+指纹+#18–#25+eval 回归并在日志标注「等待新指令」，不制造无意义提交。
 ## 轮次 20 — 2026-09-20 11:30（Asia/Shanghai）《5》深化：sink-layers guard 六层表格行首标签锚定负向自测沉淀为 eval 用例 #26
 
-> 定时任务第 20 轮。分支 `test/sink-layers-guard-selftest`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 20 轮。分支 `test/sink-layers-guard-selftest`，功能 PR #78（已 squash-merge，main HEAD `a6e29d3`）。
 > 主题：把 `scripts/check_sink_layers.py` 唯一的结构化解析器 `_LAYER_ROW_RE`（六层 sink 表格**行首粗体标签锚定**）
 > 的负向能力从一次性 /tmp 探针沉淀为 eval-only、纯标准库、tempdir-only 的仓内回归，即 Promptfoo 用例 **#26**。
 > 一次只做一个 guard，不与 three_chain 候选堆叠。
@@ -1546,6 +1546,7 @@
 - guard 负向自测：**#18–#26 九个全部 exit 0**（本轮新增 sink_layers: PASS，2 negative/2 healthy/1 mutation）。
 - Eval：**25 → 26 用例，26/26 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#26 PASS，Duration 5s，
   eval ID `eval-DVz-2026-09-20T03:29:39`，UTC；约合 CST 11:29）。
+- **合并后回归（main HEAD `a6e29d3`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#26 九个负向自测均 exit 0、promptfoo **26/26 (100%) / 0 failed / 0 errors**（eval ID `eval-25t-2026-09-20T03:36:54`，Duration 3s）。
 - `python3 -m py_compile evals/sink_layers_guard_selftest.py` 通过。
 - 可视化/产物检查：selftest stdout 实跑核对计数串与 marker；yaml/README 改动经 grep 复核四处登记一致。
 
