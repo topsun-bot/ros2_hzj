@@ -2049,7 +2049,7 @@
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 ## 轮次 27 — 2026-09-20 19:12（Asia/Shanghai）《2》小步重构：14 处逐字同构的 failure/warning bullet 渲染循环下沉为 `_repo.append_bullets`
 
-> 定时任务第 27 轮。分支 `refactor/shared-append-bullets`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 27 轮。分支 `refactor/shared-append-bullets`，功能 PR #93（已 squash-merge，main HEAD `30c2652`）。
 > 延续轮次 25/26 的全仓重复盘点（先 AST/哈希取证逐字重复、≥2 消费方才下沉、独有逻辑不合并），
 > 本轮把 render() 内部一个跨 12 个脚本、出现 14 次、循环体仅一行的纯渲染循环收敛为共享 helper。
 > 属 plan §5.3 helper-boundary。行为不变：12 个脚本健康 stdout 逐字节 diff 空、非空列表 bullet 渲染有等价探针 + 十个负向自测覆盖。
@@ -2101,6 +2101,7 @@
   15 条命令内，逐字节无漂移、未动 fixtures）；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-vlS-2026-09-20T11:12:02`，UTC；约合 CST 19:12，Duration 2s）。
   本轮不新增 eval 用例（纯渲染循环收敛、无新行为；负向 bullet 渲染仍由 #18–#27 覆盖）。
+- **合并后回归（main HEAD `30c2652`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-Jdu-2026-09-20T11:22:06`，Duration 2s）。
 
 ### Hold 合规
 
