@@ -220,18 +220,18 @@ def render(root: Path | None = None) -> tuple[str, int]:
             failures.append(f"missing file `{key}`")
             lines.append(f"- **FAIL missing:** `{key}`")
             continue
-        if rel in existence_only:
-            extra = f" ({hint})" if hint else ""
-            lines.append(f"- **ok file:** `{key}`{extra}")
-            continue
-        text = read_utf8(path)
-        texts[rel] = text
-        missing_markers = [m for m in markers if m not in text]
-        if missing_markers:
-            joined = ", ".join(missing_markers)
-            failures.append(f"`{key}` missing marker(s): {joined}")
-            lines.append(f"- **FAIL markers:** `{key}` (need {joined})")
-            continue
+        # XML / SCOREBOARD stay existence-only: their contents are never read
+        # here (the boundary job owns the content freeze), so they skip marker
+        # checks and fall through to the single ok-file render below.
+        if rel not in existence_only:
+            text = read_utf8(path)
+            texts[rel] = text
+            missing_markers = [m for m in markers if m not in text]
+            if missing_markers:
+                joined = ", ".join(missing_markers)
+                failures.append(f"`{key}` missing marker(s): {joined}")
+                lines.append(f"- **FAIL markers:** `{key}` (need {joined})")
+                continue
         extra = f" ({hint})" if hint else ""
         lines.append(f"- **ok file:** `{key}`{extra}")
 
