@@ -456,3 +456,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 1 non-flag, 1 healthy, 1 mutation'
+
+  # #31 fingerprint strict-layer self-test: case #17 only asserts the healthy
+  # "stdout fingerprint: stable" path, so it cannot prove the byte-for-byte
+  # checker actually fails when it must. Pins live!=fixture drift, a missing
+  # fixture, and a non-zero command as FAIL (rc 1), --update refusing a failing
+  # command without writing its fixture, the <REPO_ROOT> normalization that
+  # prevents false DRIFT, and a normalize stub that always returns the baseline
+  # hiding drift (mutation, then re-caught).
+  - description: 'fingerprint_guard_selftest.py: the strict stdout fingerprint checker must FAIL on live!=fixture drift, a missing fixture, and a non-zero command, must refuse --update for a failing command without writing a fixture, and must normalize the absolute repo root to <REPO_ROOT> so a clone path never drifts; a normalize stub that always returns the baseline hides drift, tempdir-only'
+    vars:
+      script: evals/fingerprint_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'fingerprint guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '4 negative, 1 non-flag, 1 healthy, 1 mutation'
