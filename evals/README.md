@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 22 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 23 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -21,6 +21,7 @@
 | `unitree_swap_guard_selftest.py` | Unitree Cyclone 交换裁决 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件复制进 `tempfile` 再逐个变异，断言裁决句翻转/引文篡改/vendor SHA 与 CMake `project()` 版本钉被改/文档删除必报、健康树不误报 |
 | `source_map_guard_selftest.py` | ros2-source-map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里造最小 map/vendor 树，断言 map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN 不 FAIL、健康树不误报 |
 | `executor_map_guard_selftest.py` | Executor/WaitSet map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：复制 11 个真实 allowlisted 符号文件 + 手写最小 map 进 `tempfile`，只覆盖 executor 独有分支——vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未被引用/必需文档缺失必报，`absent_keys` 与 `reject_bare_words` 两个独有解析参数生效、健康树不误报（共享的路径/符号循环由 #21 覆盖，不重复） |
+| `dod_evidence_guard_selftest.py` | 产品 DoD 诚实性 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD 仅占位），只覆盖其独有的反伪造逻辑——伪造的 `STATUS: PASS`/`DoD: met`/this-host measured-delta/“Humble 在此跑过”声明与虚构的 booked p99 分位必报；同行禁止句（do not write STATUS: PASS）与政策词“分位数”不得误报；STATUS 伪造正则被改宽即漏报 |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -33,13 +34,14 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（22 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（23 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
   交叉断言 guard 的负向自测用例（#19）、1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
-  （#20）、1 个 ros2-source-map guard 的负向自测用例（#21），以及 1 个 Executor/WaitSet map
-  guard 的负向自测用例（#22，均见下文专节）：
+  （#20）、1 个 ros2-source-map guard 的负向自测用例（#21）、1 个 Executor/WaitSet map
+  guard 的负向自测用例（#22），以及 1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例
+  （#23，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -65,6 +67,31 @@
 | 20 | `evals/unitree_swap_guard_selftest.py` | `unitree swap guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（裁决句翻转/引文篡改/vendor SHA·CMake 版本钉被改/文档删除必报、健康树不误报、CMake 正则被改宽即漏报） |
 | 21 | `evals/source_map_guard_selftest.py` | `source map guard selftest: PASS`、`4 negative, 1 warn-only, 2 healthy, 1 mutation`（map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN、健康树不误报、符号查找被改宽即漏报） |
 | 22 | `evals/executor_map_guard_selftest.py` | `executor map guard selftest: PASS`、`5 negative, 2 parse-guard, 2 healthy, 1 mutation`（vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未引用/必需文档缺失必报；`absent_keys` 与 `reject_bare_words` 两个 executor 独有解析参数生效、健康树不误报；vendored 检查被改宽即漏报） |
+| 23 | `evals/dod_evidence_guard_selftest.py` | `dod evidence guard selftest: PASS`、`5 negative, 2 non-flag, 2 healthy, 1 mutation`（伪造 STATUS: PASS/DoD: met/measured-delta/Humble-here 声明与虚构 booked p99 必报；同行禁止句与政策词“分位数”不误报；STATUS 伪造正则被改宽即漏报） |
+
+### 产品 DoD 诚实性 guard 反伪造负向自测（#23，eval-only）
+
+- #12 的正向运行与 #17 指纹只证明**当前健康文档渲染为绿**，证明不了 `check_dod_evidence.py`（wiki3 §6.3
+  产品 DoD 诚实性）独有的**反伪造检测器**仍然会触发。该 guard 保证证据文档保持 `DoD: unmet` /
+  `STATUS: blocked`、点名五项未达成产品项，且不得伪造正向的 `STATUS: PASS` / `DoD: met` /
+  this-host measured-delta / “Humble 在此跑过”，也不得虚构 booked 分位 token（p50/p99）。若有人把某个
+  伪造正则或“同行禁止句豁免”改宽，一份偷偷翻成 PASS 的文档会让 gate、#12、#17 指纹（比对的都是健康树
+  输出）继续全绿，诚实裁决却已悄悄反转。
+- **刻意只覆盖独有反伪造逻辑**：直白的 marker 缺失 / 文件缺失与 #20 N5 / #22 N2·N5 同形，不重复堆夹具。
+- DoD 文档带约 28 个连续 marker，手写最小健康文档易腐；故 `dod_evidence_guard_selftest.py` 把 guard 读取的
+  **7 个真实内容文件**复制进 `tempfile`（fastdds.xml / SCOREBOARD 在该脚本里只验存在，用空占位），再每次
+  只向 DoD 文档追加一行篡改，驱动可注入的 `render(root=...)`，**不改动仓库**、纯标准库：
+  - **5 个负向场景**：N1 独立行 `STATUS: PASS`、N2 `DoD: met`、N3 `this-host measured-delta: PASS`、
+    N4 `Humble runtime existed here`（均报 FAIL fabricate，分别覆盖 STATUS / DoD / measured-delta /
+    Humble 四个不同伪造正则）、N5 虚构 booked token `p99 = 12 ms`（报 FAIL percentiles）；
+  - **2 个防误报（双向契约）**：P1 同行含禁止词的 `do not write STATUS: PASS` 必须被豁免、仍 exit 0；
+    P2 政策词“分位数”不得触发分位正则、仍 exit 0（既防改宽漏报，也防改严误报）；
+  - **2 个健康对照**：真实仓 `render()` 与一份完整复制的临时树都必须 exit 0 且打印成功 marker
+    （证明复制夹具与真实树等价，负向场景不会因错误原因失败）；
+  - **1 个变异**：把 `_STATUS_FABRICATE_RE` monkeypatch 为“永不匹配”后 N1 必须**漏报**（exit 0、无
+    FAIL fabricate），恢复后必须重新抓到——证明 N1 确实依赖该伪造检测器。
+- 与 #17/#18/#19/#20/#21/#22 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI
+  structure 枚举、不需要 ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### Executor/WaitSet map 负向自测（#22，eval-only）
 
