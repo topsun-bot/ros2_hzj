@@ -36,7 +36,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-from _repo import append_bullets, emit_render, repo_root, read_utf8
+from _repo import append_bullets, append_failures_block, emit_render, repo_root, read_utf8
 
 SCRIPTS_REL = Path("scripts")
 HELPER_NAME = "_freeze_paths.py"
@@ -117,9 +117,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
     )
 
     if failures:
-        lines.append("FAIL:")
-        append_bullets(lines, failures)
-        lines.append("")
+        append_failures_block(lines, failures)
         lines.append(
             "A gate script re-hardcoded config/fastdds.xml or SCOREBOARD.md "
             "in a Path(...) constructor. Import the constant from "

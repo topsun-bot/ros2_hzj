@@ -20,6 +20,9 @@ two small helpers:
 * ``report_missing_file(failures, lines, key)`` — record and render the uniform
   "missing required file" failure (a failure entry plus a ``FAIL missing`` bullet);
   the caller keeps the existence test and ``continue``.
+* ``append_failures_block(lines, failures)`` — when failures exist, append the uniform
+  ``FAIL:`` summary block (heading, one bullet per failure, trailing blank line);
+  rendering only, the caller keeps the ``if failures:`` guard.
 
 This module is the single home for these (modernization plan §5.3
 helper-boundary spec). It deliberately carries **no** business assertions:
@@ -102,3 +105,15 @@ def report_missing_file(failures: list[str], lines: list[str], key: str) -> None
     """
     failures.append(f"missing file `{key}`")
     lines.append(f"- **FAIL missing:** `{key}`")
+
+
+def append_failures_block(lines: list[str], failures: list[str]) -> None:
+    """Append the uniform non-empty FAIL summary block (rendering only).
+
+    The caller keeps the ``if failures:`` guard; when failures exist this
+    appends the ``FAIL:`` heading, one bullet per failure and a trailing
+    blank line. Assumes ``failures`` is non-empty (the caller guards that).
+    """
+    lines.append("FAIL:")
+    append_bullets(lines, failures)
+    lines.append("")
