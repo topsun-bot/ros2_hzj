@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 23 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 24 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -22,6 +22,7 @@
 | `source_map_guard_selftest.py` | ros2-source-map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里造最小 map/vendor 树，断言 map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN 不 FAIL、健康树不误报 |
 | `executor_map_guard_selftest.py` | Executor/WaitSet map guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：复制 11 个真实 allowlisted 符号文件 + 手写最小 map 进 `tempfile`，只覆盖 executor 独有分支——vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未被引用/必需文档缺失必报，`absent_keys` 与 `reject_bare_words` 两个独有解析参数生效、健康树不误报（共享的路径/符号循环由 #21 覆盖，不重复） |
 | `dod_evidence_guard_selftest.py` | 产品 DoD 诚实性 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD 仅占位），只覆盖其独有的反伪造逻辑——伪造的 `STATUS: PASS`/`DoD: met`/this-host measured-delta/“Humble 在此跑过”声明与虚构的 booked p99 分位必报；同行禁止句（do not write STATUS: PASS）与政策词“分位数”不得误报；STATUS 伪造正则被改宽即漏报 |
+| `cega_bridge_hold_guard_selftest.py` | Cega / Bridge Hold guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 Hold 文档与 ADR 两个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD/9 个只读 runtime 路径仅占位），只覆盖其独有解析——ADR §13(4) 表格 cell 必须以 `**Hold**` 开头且不含 PASS/已接 Cega/integrate Cega（cell 翻 PASS、Hold cell 夹带裸 PASS、删行必报）、guard 内置内存行自检生效、首行 `Status:` 翻转与独立“已接 Cega”声明必报；同行禁止句在两份文档中均不得误报；“已接 Cega”正则被改宽即漏报（通用 STATUS:-PASS+禁止句机制与 #23 同形，不重复） |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -34,14 +35,14 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（23 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（24 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
   交叉断言 guard 的负向自测用例（#19）、1 个 Unitree Cyclone 交换裁决 guard 的负向自测用例
   （#20）、1 个 ros2-source-map guard 的负向自测用例（#21）、1 个 Executor/WaitSet map
-  guard 的负向自测用例（#22），以及 1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例
-  （#23，均见下文专节）：
+  guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23），
+  以及 1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -68,6 +69,38 @@
 | 21 | `evals/source_map_guard_selftest.py` | `source map guard selftest: PASS`、`4 negative, 1 warn-only, 2 healthy, 1 mutation`（map 缺失/空 map/引用路径缺失/allowlisted 符号消失必报、陈旧行号只 WARN、健康树不误报、符号查找被改宽即漏报） |
 | 22 | `evals/executor_map_guard_selftest.py` | `executor map guard selftest: PASS`、`5 negative, 2 parse-guard, 2 healthy, 1 mutation`（vendor 下出现 Humble rcl* 树/身份 marker 缺失/飞书 URL 缺失/allowlisted 文件未引用/必需文档缺失必报；`absent_keys` 与 `reject_bare_words` 两个 executor 独有解析参数生效、健康树不误报；vendored 检查被改宽即漏报） |
 | 23 | `evals/dod_evidence_guard_selftest.py` | `dod evidence guard selftest: PASS`、`5 negative, 2 non-flag, 2 healthy, 1 mutation`（伪造 STATUS: PASS/DoD: met/measured-delta/Humble-here 声明与虚构 booked p99 必报；同行禁止句与政策词“分位数”不误报；STATUS 伪造正则被改宽即漏报） |
+| 24 | `evals/cega_bridge_hold_guard_selftest.py` | `cega bridge hold guard selftest: PASS`、`5 negative, 2 non-flag, 1 builtin self-check, 2 healthy, 1 mutation`（ADR §13(4) cell 翻 PASS/Hold cell 夹带裸 PASS/删行、首行 Status 翻转、独立“已接 Cega”必报；内置行自检生效；同行禁止句在两文档中不误报；“已接 Cega”正则被改宽即漏报） |
+
+### Cega / Bridge Hold 负向自测（#24，eval-only）
+
+- #9 的正向运行与 #17 指纹只证明**当前健康文档渲染为绿**，证明不了 `check_cega_bridge_hold.py`（wiki3 §13(4)
+  Cega / Bridge 后置 Hold）独有的**表格 cell 解析与反伪造检测器**仍然会触发。该 guard 守护：本 cut 不集成
+  Cega、不重写 `dimos_bridge` 运行时，ADR §13(4) 行必须保持 `**Hold**`。若有人把 cell 解析或伪造正则改宽，
+  一份偷偷接入 Cega 的文档会让 gate、#9、#17 指纹（比对的都是健康树输出）继续全绿，最高优先级 Hold 却已被突破。
+- **刻意只覆盖独有解析**：通用的 `STATUS: PASS` + 同行禁止句豁免机制与 #23 同形（两个 guard 各有一份独立
+  正则），不重复堆夹具；#24 只测本 guard 独有的部分——
+  ① `_ADR_ROW_RE` / `_adr_row_ok` / `_CELL_POSITIVE_RE` 解析 ADR 表格里**单个 §13(4) cell**（cell 必须以
+  `**Hold**` 开头、且 cell 内任何位置都不得有 PASS/PROVEN/Active/已接 Cega/integrate Cega）；
+  ② guard 内置的 `_row_self_check`（在内存里把真实 ADR 的 Hold 改成 PASS、或在 Hold cell 后追加 PASS/已接
+  Cega，必须不再判 ok）——这是检测器自带的纵深防御，#24 把它沉淀为显式回归；
+  ③ 中文独有的伪造模式 `已接 Cega`（独立于 STATUS:/Cega-Bridge:PASS/integrate Cega）；
+  ④ `_first_status_line` 只检查 Hold 文档的**第一个** `Status:` 行。
+- Hold 文档与 ADR 带大量连续 marker，手写最小健康文档易腐；故 `cega_bridge_hold_guard_selftest.py` 把 guard
+  解析的 **2 个真实内容文件**复制进 `tempfile`（fastdds.xml / SCOREBOARD / 9 个只读 runtime 路径在该脚本里
+  只验存在，用空占位），再每次只变异一个文档，驱动可注入的 `render(root=...)`，**不改动仓库**、纯标准库：
+  - **5 个负向场景**：N1 ADR §13(4) cell `**Hold**`→`**PASS**`（报 FAIL ADR row）；N2 cell 保留 Hold 前缀但
+    末尾夹带一个不带 Cega 字样的裸 ` ... PASS`（报 FAIL ADR row 且**不报** FAIL fabricate，证明是 cell 级
+    检测器而非全文伪造扫描独立抓到）；N3 Hold 文档首个 `Status:` 行翻成 `**PASS**`（报 FAIL status）；
+    N4 Hold 文档追加独立行 `已接 Cega`（报 FAIL fabricate hold）；N5 删除 ADR §13(4) 整行（报 FAIL ADR row）；
+  - **2 个防误报（双向契约）**：P1 Hold 文档、P2 ADR 中 §13(4) cell **之外**的正文各追加一行同行禁止句
+    `we do not integrate Cega ...`，必须被禁止句豁免、仍 exit 0（cell 行不动，仍判 Hold）；
+  - **1 个内置自检断言**：真实 ADR 上 `_row_self_check` 返回空，且它构造的两种伪装（Hold→PASS、Hold…PASS/
+    已接 Cega）都被 `_adr_row_ok` 拒绝（证明 guard 自带的内存变异纵深防御持续有效）；
+  - **2 个健康对照**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印 `§13(4) Cega / Bridge: Hold`；
+  - **1 个变异**：把 `_CEGA_FABRICATE_RES` 中 `已接 Cega` 那条正则替换为“永不匹配”（try/finally 恢复）后
+    N4 必须**漏报**（exit 0、无 FAIL fabricate hold），恢复后必须重新抓到——证明 N4 确实依赖该中文伪造检测器。
+- 与 #17/#18–#23 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、
+  不需要 ci.yml 接线（不受推送 token 缺 `workflow` scope 阻塞）。
 
 ### 产品 DoD 诚实性 guard 反伪造负向自测（#23，eval-only）
 
