@@ -15,6 +15,8 @@ two small helpers:
   on the same line as its exemption sentence must not be reported).
 * ``emit_render(result)`` — write a gate's rendered ``(text, exit_code)`` pair to
   stdout and return the exit code unchanged, so every gate keeps a one-line ``main()``.
+* ``append_bullets(lines, items)`` — append each failure/warning string to a
+  render buffer in place as a Markdown ``- `` bullet (rendering only).
 
 This module is the single home for these (modernization plan §5.3
 helper-boundary spec). It deliberately carries **no** business assertions:
@@ -75,3 +77,13 @@ def emit_render(result: tuple[str, int]) -> int:
     text, exit_code = result
     sys.stdout.write(text)
     return exit_code
+
+
+def append_bullets(lines: list[str], items: list[str]) -> None:
+    """Append each item to ``lines`` in place as a Markdown ``- `` bullet.
+
+    Shared rendering for a gate's failure/warning lists; it carries no
+    assertions, so each caller keeps its own detection and ordering.
+    """
+    for item in items:
+        lines.append(f"- {item}")

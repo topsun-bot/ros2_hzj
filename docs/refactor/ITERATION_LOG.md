@@ -2047,3 +2047,91 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+## 轮次 27 — 2026-09-20 19:12（Asia/Shanghai）《2》小步重构：14 处逐字同构的 failure/warning bullet 渲染循环下沉为 `_repo.append_bullets`
+
+> 定时任务第 27 轮。分支 `refactor/shared-append-bullets`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 延续轮次 25/26 的全仓重复盘点（先 AST/哈希取证逐字重复、≥2 消费方才下沉、独有逻辑不合并），
+> 本轮把 render() 内部一个跨 12 个脚本、出现 14 次、循环体仅一行的纯渲染循环收敛为共享 helper。
+> 属 plan §5.3 helper-boundary。行为不变：12 个脚本健康 stdout 逐字节 diff 空、非空列表 bullet 渲染有等价探针 + 十个负向自测覆盖。
+
+### 取证与选题
+
+- re-ground：main 与 origin/main 同步于 `39f3295`（轮次 26 回填 #92），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；`gh pr list` 无本循环在途 PR（开放 PR 全是他人/机器人）。
+- 先用 AST 对所有非下划线脚本的**函数体**（去掉 def 签名行后）算 SHA-256：除轮次 26 已下沉、12 脚本共享的
+  `main()` 外，**没有任何跨脚本逐字相同的函数体**；同名函数 `_fabricate_hits`（3 个不同 body，正则独有）、
+  `render`（13 个全不同，业务核心）维持轮次 23/25 的「不收敛」判定。函数级逐字重复已清零。
+- 再逐字打印 12 个 guard 的 render() 收尾块：FAIL 汇总 + healthy 收尾**结构同构但措辞/marker 各异**
+  （每个 guard 的 FAIL/healthy prose 独有；SUCCESS_MARKER 粗体行有的有、有的无，dual_chain 还多一个
+  PAUSED_MARKER；executor/source/print_bench/risk 无粗体 marker 行），整块下沉需多参数且会抹平 guard 自述，
+  判定**不合并**（与轮次 23 对 cega phrase 块的结论一致）。
+- 在收尾块内锁定一个真正逐字、纯机械、零断言的片段——把失败/告警列表渲染成 Markdown bullet 的两行循环：
+  ```python
+          for item in failures:
+              lines.append(f"- {item}")
+  ```
+  严格正则（锚定 8 空格缩进、循环体仅紧跟一行 append）全仓命中 **14 处、跨 12 个脚本、循环变量统一为 `item`**：
+  **12 处 `for item in failures`**（11 个 check_* + print_bench_gates，每个 guard 一处）+
+  **2 处 `for item in warnings`**（check_executor_map、check_source_map 的「stale 行号仅告警」段）。
+  sink_layers 里 `", ".join(f"| **{name}** |" ...)` 等是表格行内 join、形态不同，不计入、不动。
+
+### 改了什么（净 −2 行，+38/−40，13 个文件）
+
+- `scripts/_repo.py`：新增公共 `append_bullets(lines: list[str], items: list[str]) -> None`——原地把每个
+  failure/warning 字符串以 Markdown `- ` bullet 追加进渲染缓冲；docstring 明确「只渲染、不含断言，检测与排序仍归调用方」，
+  模块顶部 helper 清单加第五项 bullet。无新依赖。
+- 12 个脚本：
+  - import 行统一为 `from _repo import append_bullets, emit_render[, line_at], repo_root, read_utf8`
+    （`append_bullets` 字母序置首；轮次 26 后 12 个脚本都已有 `_repo` import）；
+  - 14 处两行循环各自收敛为一行 `append_bullets(lines, failures)` / `append_bullets(lines, warnings)`
+    （8 空格缩进不变；executor_map、source_map 各 2 处，其余各 1 处）。
+- 替换后全仓 `for item in (failures|warnings)` 零残留；FAIL/healthy prose、SUCCESS/PAUSED marker、
+  return code、required 循环、anchor/正则全部不动。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **健康 stdout 逐字节**：12 个脚本重构前后各跑一次（均 exit 0），12 份 `diff` 全空（all_identical=1）；
+  健康路径 failures/warnings 为空，helper 对空列表是 no-op，输出自然不变。
+- **非空列表等价探针**：对 `[]`/单条/多条样本，新 helper 输出与原内联循环逐元素相等；
+  断言 in-place 修改且返回 None（`["header"] + ["x","y"] → ["header","- x","- y"]`）。
+- **负向渲染由自测覆盖**：#18–#27 十个 guard 负向自测在 tempdir 构造非空 failures（executor/source 还构造
+  warnings）并断言渲染出的 bullet 文本，本轮全部 exit 0，证明 FAIL/告警 bullet 行逐字不变。
+- `python3 -m compileall -q scripts` 通过；gate **13/13 all gates green**（frozen gate 仍 scanned 15，
+  append_bullets 不含 `Path(...)`、未新增路径字面量源）；stdout 指纹 **15/15 stable**（12 个被改脚本都在
+  15 条命令内，逐字节无漂移、未动 fixtures）；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-vlS-2026-09-20T11:12:02`，UTC；约合 CST 19:12，Duration 2s）。
+  本轮不新增 eval 用例（纯渲染循环收敛、无新行为；负向 bullet 渲染仍由 #18–#27 覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未触碰任何 required 循环、
+  marker 集合、anchor 常量、FAIL/healthy 措辞与 frozen 路径真源（本轮只把 bullet 渲染循环换成等价 helper 调用）。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整：脚本命令名、argv、render() 签名、exit code、每一条打印文本全部不变
+  （stdout 即公共契约，健康路径指纹逐字节 + 负向路径自测双重证明）；`append_bullets` 在下划线 helper 模块内，
+  不进 CI 命令枚举。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。14 份单行渲染循环收敛为 1 个 helper：健康 stdout 12 份逐字节不变，非空 failures/warnings 的 bullet
+  输出有等价探针 + #18–#27 负向自测证明，gate/指纹/promptfoo 全绿。改动消除了 14 处未来可能漂移的 bullet
+  格式副本（failure/warning 列表的 Markdown 渲染从此单一真源）。
+- 继续坚持取证纪律：函数级逐字重复已清零，本轮只动**逐字相同且纯渲染**的循环；render 收尾块虽同构但
+  prose/marker 互异，已明确不整块下沉；`_fabricate_hits` 三处正则独有、prove_rmw/run_all_gates.main 形态不同，均不合并。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 28 候选）
+
+1. **[《2》续做]** 函数级与入口/渲染循环级逐字重复均已收敛，继续在 render() 内部找下一类**逐字**片段：候选是
+   missing-file 的 `failures.append(...); continue` 守卫块、`lines.append("")` 空行 + `return "\n".join(lines), N`
+   尾部（现 27 处 return，但前置 prose/marker/return 码各异，须先逐字取证，独有措辞不强行合并）；
+   一次一项、行为不变、stdout 逐字节 diff 空、helper 单一真源。若证不出新的逐字重复，则《2》A 面小步重构
+   可视为进入收尾，转为按需维护。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。

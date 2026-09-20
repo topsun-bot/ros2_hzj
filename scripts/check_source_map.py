@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from _md_paths import check_cited_paths, parse_map, repo_root
-from _repo import emit_render
+from _repo import append_bullets, emit_render
 
 
 MAP_REL = Path("docs/architecture/ros2-source-map.md")
@@ -109,14 +109,12 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     if warnings:
         lines.append("Warnings (exit 0 unless a FAIL remains):")
-        for item in warnings:
-            lines.append(f"- {item}")
+        append_bullets(lines, warnings)
         lines.append("")
 
     if failures:
         lines.append("FAIL:")
-        for item in failures:
-            lines.append(f"- {item}")
+        append_bullets(lines, failures)
         lines.append("")
         lines.append(
             "File or allowlisted symbol is gone. Fix the map path "

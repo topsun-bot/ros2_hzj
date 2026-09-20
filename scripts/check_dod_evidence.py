@@ -27,7 +27,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import emit_render, line_at, repo_root, read_utf8
+from _repo import append_bullets, emit_render, line_at, repo_root, read_utf8
 
 
 DOD_REL = Path("docs/architecture/feishu-dod-evidence.md")
@@ -258,8 +258,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     if failures:
         lines.append("FAIL:")
-        for item in failures:
-            lines.append(f"- {item}")
+        append_bullets(lines, failures)
         lines.append("")
         lines.append(
             "Required DoD evidence file, DoD unmet marker, STATUS blocked "

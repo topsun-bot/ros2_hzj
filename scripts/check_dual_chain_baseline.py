@@ -38,7 +38,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import emit_render, repo_root, read_utf8
+from _repo import append_bullets, emit_render, repo_root, read_utf8
 
 
 BASELINE_REL = Path("docs/architecture/feishu-dual-chain-baseline.md")
@@ -446,8 +446,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     if failures:
         lines.append("FAIL:")
-        for item in failures:
-            lines.append(f"- {item}")
+        append_bullets(lines, failures)
         lines.append("")
         lines.append(
             "Required dual-chain baseline pointer, contract marker, "
