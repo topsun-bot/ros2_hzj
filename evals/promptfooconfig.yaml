@@ -421,3 +421,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
+
+  # #29 gate-runner registry consistency self-test: running run_all_gates
+  # green only proves the 13 *registered* scripts exist and print markers; it
+  # cannot detect an orphan gate (a new scripts/check_*.py, or one of the two
+  # fixed-name gates, left out of GATES -> the headline stays "13/13") nor pin
+  # the rule that excludes underscore helpers and run_all_gates.py itself. This
+  # case locks bidirectional disk<->GATES equality and the 13-gate count. The
+  # separate CI structure-job 12-vs-13 wiring gap is out of scope (ci.yml needs
+  # the workflow token scope) and is intentionally not asserted here.
+  - description: 'gate_registry_selftest.py: every gate-shape script under scripts/ is registered in run_all_gates.GATES and vice versa (no orphan/missing; underscore helpers and the runner excluded), tempdir-only'
+    vars:
+      script: evals/gate_registry_selftest.py
+    assert:
+      - type: contains
+        value: 'gate registry selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
