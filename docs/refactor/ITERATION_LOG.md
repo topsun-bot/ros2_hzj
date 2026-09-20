@@ -1964,3 +1964,85 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+## 轮次 26 — 2026-09-20 17:16（Asia/Shanghai）《2》小步重构：12 个脚本逐字相同的 `main()` 入口样板下沉为 `_repo.emit_render`
+
+> 定时任务第 26 轮。分支 `refactor/shared-emit-render-main`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 延续轮次 25 的全仓重复盘点，本轮用 AST + 逐字节哈希比对锁定一个有 **12 个消费方、逐字节相同**的入口样板，
+> 属 plan §5.3 helper-boundary。行为不变：12 个脚本 stdout 逐字节 diff 空、exit code（含非零）透传有探针证明。
+
+### 取证与选题
+
+- re-ground：main 与 origin/main 同步于 `1703398`（轮次 25 回填 #90），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；开放 PR 全是他人/机器人（claude/codex/cursor；#88 为 claude DRAFT，
+  解释了轮次 25 号段跳号），本循环无在途 PR。
+- 用 `ast` 抽取 `scripts/*.py` 全部 `main()` 并归一化分组，再对源码段与 `if __name__` 尾块分别算 SHA-256：
+  - **12 个脚本的 `main()` 与 `__main__` 尾块各自落在同一个哈希组（逐字节相同）**：
+    11 个 `check_*`（cega/dod/dual_chain/executor/frozen/risk/runtime/sink/source/three_chain/unitree）+
+    `print_bench_gates.py`。它们的入口都是
+    `text, code = render(); sys.stdout.write(text); return code`，尾块都是
+    `if __name__ == "__main__": raise SystemExit(main())`。
+  - `prove_rmw.py` 形态不同（`render()` 返回 str、恒 `return 0`），`run_all_gates.py` 是 runner（自带表格汇总），
+    二者**不纳入**，不强行统一。
+- 逐脚本确认 `sys` 在这 12 个文件里只出现两次：`import sys` 与 main 内唯一的 `sys.stdout.write(text)`；
+  10 个已 `from _repo import ...`，`check_executor_map.py` / `check_source_map.py` 只经 `_md_paths` 间接使用、
+  本文件无 `_repo` import。消费方 12 个、纯机械样板、零业务断言，远超「≥2 消费方才下沉」的门槛。
+
+### 改了什么（净 −22 行，+36/−58，13 个文件）
+
+- `scripts/_repo.py`：新增公共 `emit_render(result: tuple[str, int]) -> int`——写出 render 结果的 text、原样返回
+  exit code（docstring 给出一行用法 `return emit_render(render())`）；模块 docstring helper 清单加第四项。
+  该模块本就 `import sys`，未新增依赖。
+- 12 个脚本统一：
+  - `main()` 四行体 → 一行 `return emit_render(render())`（def 行与 `__main__` 尾块保持不动）；
+  - 删除因此变为未使用的 `import sys`（每个文件 sys 仅剩入口用途，已逐一核验）；
+  - import 接入：已有 `_repo` import 的 10 个在名单按字母序加 `emit_render`（置首）；
+    executor/source 两个在 `from _md_paths import ...` 之后新增 `from _repo import emit_render`
+    （本地 helper 组按 `_md_paths` < `_repo` 排序）。
+- 改动后每个文件恰好 1 处 `emit_render(render())`、无 `import sys`、无残留 `sys.stdout.write(text)`。
+- `prove_rmw.py`、`run_all_gates.py`、三个下划线 helper（`_repo/_md_paths/_freeze_paths`）不动。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **stdout 逐字节**：12 个脚本重构前后各跑一次（均 exit 0；行数 13/16/20/21/23/28/30/31/35/38/73/77），
+  12 份 `diff` 全空（all_identical=1）。
+- **exit code 透传探针**：直接断言 `emit_render(("MARKER\\n", 7))` 返回 7 且 stdout 恰为 `MARKER\\n`；
+  monkeypatch 一个 guard 的 `render` 返回 `("boom\\n", 3)`，调 `main()` 得返回码 3、stdout 恰为 `boom\\n`
+  （证明 FAIL 路径的非零码不会被入口吞掉）；健康 guard `main()` 返回 0。
+- `python3 -m compileall -q scripts config/env dimos_bridge/dual_chain_env.py` 通过；
+  gate **13/13 all gates green**（frozen gate 仍报 scanned 15，未新增第二个 `Path(...)` 源）；
+  stdout 指纹 **15/15 stable**（12 个被改脚本都在 15 条命令内，逐字节无漂移、未动 fixtures）；
+  #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-Y2d-2026-09-20T09:15:54`，UTC；约合 CST 17:15，Duration 2s）。
+  本轮不新增 eval 用例（纯入口样板收敛、无新行为；各 guard 的负向能力仍由 #18–#27 覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未触碰任何 required 循环、
+  marker 集合、anchor 常量与 frozen 路径真源（本轮只收敛入口写法）。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整：脚本命令名、argv、render() 签名、exit code、关键打印短语全部不变
+  （stdout 即公共契约，指纹逐字节证明）；`emit_render` 在下划线 helper 模块内，不进 CI 命令枚举。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。入口样板从 12 份收敛为 1 个 helper：stdout 12 份逐字节不变，非零 exit code 透传有探针证明，
+  依赖各脚本 render() 的 gate/selftest/promptfoo 全绿。改动消除了 12 份未来可能漂移的入口副本（单一真源），
+  且让每个 guard 的 main 成为一眼可读的一行。
+- 与轮次 25 一样坚持「先 AST/哈希取证逐字重复、≥2 消费方才下沉、独有逻辑不合并」：本轮明确不动
+  形态不同的 `prove_rmw.main` / `run_all_gates.main`，也不碰各 guard 独有、措辞互异的 FAIL 汇总渲染块。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 27 候选）
+
+1. **[《2》续做]** 继续全仓取证下一类真实重复：候选是各 guard 末尾「FAIL 汇总 + ok/SUCCESS 收尾」渲染块、
+   以及 `_has_*` / 行解析小工具是否在 ≥2 个脚本**逐字**同构（须先 AST/哈希 + 逐字比对；轮次 23 已判 cega 的
+   phrase 检查块形态各异、`_fabricate_hits` 三处正则独有，均不合并——除非出现新的逐字证据）；
+   一次一项、行为不变、stdout 逐字节 diff 空、helper 单一真源。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。

@@ -10,10 +10,9 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-import sys
 
 from _freeze_paths import SCOREBOARD_REL
-from _repo import repo_root, read_utf8
+from _repo import emit_render, repo_root, read_utf8
 
 
 BENCH_README_REL = Path("docs/artifacts/bench/README.md")
@@ -128,9 +127,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
 
 def main() -> int:
-    text, code = render()
-    sys.stdout.write(text)
-    return code
+    return emit_render(render())
 
 
 if __name__ == "__main__":
