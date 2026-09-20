@@ -439,3 +439,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
+
+  # #30 gate-runner execution-semantics self-test: #29 pins the registry
+  # (disk<->GATES equality) but never executes a gate, so it cannot protect the
+  # run_one/main verdict logic -- a gate that exits 0 without printing its
+  # healthy marker must still FAIL (zero-but-missing-marker), a non-zero exit or
+  # a missing script (127) must FAIL, and a marker on stderr must still count
+  # (stdout+stderr combined). A run_one stub that always claims the marker is
+  # present must hide a hollowed-out exit-0 gate (mutation, then re-caught).
+  - description: 'gate_execution_selftest.py: run_all_gates passes a temp gate only when it exits 0 AND prints its marker over stdout/stderr combined; exit-0-without-marker, non-zero exit, and a missing script (127) each FAIL the run; a marker-blind run_one leaks the no-marker gate, tempdir-only'
+    vars:
+      script: evals/gate_execution_selftest.py
+    assert:
+      - type: contains
+        value: 'gate runner execution selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 1 non-flag, 1 healthy, 1 mutation'
