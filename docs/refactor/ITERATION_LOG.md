@@ -2490,7 +2490,7 @@
 
 ---
 
-## 轮次 32 — 2026-09-21 00:19（Asia/Shanghai）— eval #29：gate-runner 注册表双向一致性自测（功能 PR TBD）
+## 轮次 32 — 2026-09-21 00:19（Asia/Shanghai）— eval #29：gate-runner 注册表双向一致性自测（功能 PR #103，squash main `1be8c35`）
 
 ### 背景与取证（runner 注册面，而非 guard 解析器面）
 
@@ -2531,6 +2531,14 @@
 - 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 28/28 → **29/29**（净增 1 条对 runner 注册完整性的真实断言，非放水）；
   eval-only 自测脚本由 11 个增至 **12 个**（11 个 guard 负向自测 + 1 个 runner 注册一致性自测）。
 
+### 合并后回归（main `1be8c35`，PR #103 squash-merge 后）
+
+- 回 main `git pull --ff-only` 至 `1be8c35`（mergeCommit `1be8c35dafbdac760572f71515005ae95afb4fbf`，远端分支已删），工作区仅余受保护旧草稿 untracked。
+- gate **13/13 all gates green**；stdout 指纹 **15/15 stable**；#18–#29 **12 个** eval-only 自测全 exit 0；
+  promptfoo **29/29 passed (100%) / 0 failed / 0 errors**（合并后 eval ID `eval-5Tz-2026-09-20T16:24:49`，UTC，约合 CST 00:24，热缓存 Duration 3s）。
+- required checks（structure/contracts/boundary）+ CodeQL（actions/javascript-typescript/python + 聚合）+ Cursor Approval 全 pass，reviewDecision APPROVED、MERGEABLE 后 squash-merge；
+  Cursor Security Reviewer 仍 IN_PROGRESS（非 required，历轮一致），mergeStateStatus UNSTABLE 仅因此项。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md`；未碰 `.github/workflows/ci.yml`（workflow scope 仍缺，接线保持阻塞）；
@@ -2550,7 +2558,7 @@
 
 ### 下一步（轮次 33 候选）
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. ~~本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ **已完成**：功能 PR #103 squash-merge main `1be8c35`，合并后回归见上（本 docs-only 回填 PR 即此步）。
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #29）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#29 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
