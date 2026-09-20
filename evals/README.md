@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 33 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 34 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -31,6 +31,7 @@
 | `gate_execution_selftest.py` | gate-runner **执行判定语义负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线；对象是 runner 的 `run_one`/`main` 而非注册表）：在 `tempfile` 放假 gate 并把 `run_all_gates.REPO_ROOT`/`GATES` 指过去（`finally` 恢复），钉「exit 0 且在 stdout/stderr 合并输出里打印健康 marker 才算过」——exit 0 但不打印 marker 必计 `zero-but-missing-marker` 并 FAIL、非零退出（即便打印 marker）必 FAIL、GATES 指向缺失脚本必返回 `127`/`missing:` 并 FAIL；marker 只打到 stderr 且 exit 0 仍算过（钉 combined 语义、防误报）；把 `run_one` 换成「恒报 marker 存在」的桩则空壳 exit-0 gate 必漏报（恢复后抓回）。补齐 #29 只钉注册表、不执行 gate 的盲区 |
 | `fingerprint_guard_selftest.py` | stdout 指纹严格层（#17 `fingerprint_check.py`）的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 把 `fingerprint_check` 的 ROOT/FIX_DIR/COMMANDS 指到假命令（`finally` 恢复），钉逐字节比对真会 fail——live 输出与 fixture 不符必 `FAIL stdout drift`+DRIFT、健康命令缺 fixture 必 `FAIL missing fixture`、命令非零退出必 `FAIL command exit N`、`--update` 遇失败命令必在 stderr 拒绝且不写 fixture；命令 stdout 内嵌绝对仓库路径时 `normalize` 必归一化为 `<REPO_ROOT>`（可移植、防假 DRIFT 误报）；把 `normalize` 换成恒返回 fixture 内容的桩则 drift 漏报为绿（恢复后抓回）。补齐 #17 只断言健康 stable 的盲区 |
 | `dual_chain_env_load_selftest.py` | 双链环境**真源** `config/env/load.py` 的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线；区别于 #19 测 guard 检测假夹具）：钉 `describe` 返回精确 Chain A/B 契约值（fastrtps/42/fastdds.xml 绝对路径、cyclone/0）、未知 chain 抛 `ValueError`、未知 CLI 子命令 argparse exit 2、Chain B `apply` 必 `unset CYCLONEDDS_URI`（预置外部 URI 必须被删除）、`export_shell` 单引号转义可被 POSIX shell 原样 round-trip、import 不改 `os.environ`（import 纯净）；`apply` 只 update 不 pop 的盲桩会让 CYCLONEDDS_URI 泄漏（恢复后抓回）。进程内 apply 快照/恢复、CLI 与 import 纯净走隔离子进程 |
+| `dual_chain_env_wrapper_selftest.py` | DimOS 薄包装 `dimos_bridge/dual_chain_env.py`（importlib 再导出 load.py）的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线）：#32 钉 load.py 本体、#19 钉读 shell 的 guard，本项钉中间薄包装层——CHAIN_A/CHAIN_B 必须是真源**同一对象**（重导出而非复制常量，防漂移）、chain_a_env/chain_b_env 委托 describe 且返回 fresh dict（调用方改不到常量）、`_ENV_PY` 解析到 config/env/load.py、`__all__` 恰 6 项；import 包装不得改 os.environ；apply_chain_b 必须转发 unset 删除预置 CYCLONEDDS_URI、apply_chain_a 设置 Chain A 三元组；真源 load.py 缺失时包装形态 import 必失败；盲委托（apply 不传 unset）泄漏 URI 而真实包装删除（mutation）。进程内 apply 用 env 快照恢复，纯净/缺源走隔离子进程，tempdir only |
 | `local_script_provider_selftest.py` | promptfoo **local-script provider 自身**（`localScriptProvider.mjs`）的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线）：provider 是 #12–#32 全部用例的执行器，非零退出必须转成 promptfoo `error`（负向 eval「exit1→case fail」的根基）。python 主体在 tempdir 写 Node harness、经 file:// URL import 真实 .mjs provider 并跑临时 python 夹具：钉 id=`local-script`、空/纯空白 prompt→empty error、exit1→`exited with code 1` 且 output 含 stdout+stderr、缺失脚本（python3 exit2）→`exited with code 2`、成功 output 仅 stdout（stderr 不得污染 contains/指纹）、argv 空白拆分 + cwd=repoRoot；盲 provider（catch 不返回 error）吞掉非零退出会漏报、真实 provider 报 error（mutation 可区分）。不在树内建 fixture、不编辑仓库 |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
@@ -44,7 +45,7 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（33 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（34 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
@@ -53,7 +54,7 @@
   guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
   1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24）、1 个 runtime-provenance
   guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25），以及 1 个 sink-layers
-  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate），以及 1 个双链环境真源 load.py 自身的契约/负向自测（describe 精确契约 / 未知 chain ValueError / 未知子命令 exit 2 / Chain B apply 必 unset CYCLONEDDS_URI / shell 转义 round-trip / import 纯净 / apply 不 pop 泄漏变异）用例（#32，对象是 env 真源而非 #19 的 guard），以及 1 个 local-script provider 自身的契约/负向自测（空/空白 prompt error、exit1 透传 error+stdout/stderr、缺失脚本 code2、成功 output 仅 stdout、argv 拆分/cwd、盲 provider 吞非零退出变异）用例（#33，对象是 promptfoo 执行器 .mjs 本身，python 经 tempdir Node harness 桥接，均见下文专节）：
+  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate），以及 1 个双链环境真源 load.py 自身的契约/负向自测（describe 精确契约 / 未知 chain ValueError / 未知子命令 exit 2 / Chain B apply 必 unset CYCLONEDDS_URI / shell 转义 round-trip / import 纯净 / apply 不 pop 泄漏变异）用例（#32，对象是 env 真源而非 #19 的 guard），以及 1 个 local-script provider 自身的契约/负向自测（空/空白 prompt error、exit1 透传 error+stdout/stderr、缺失脚本 code2、成功 output 仅 stdout、argv 拆分/cwd、盲 provider 吞非零退出变异）用例（#33，对象是 promptfoo 执行器 .mjs 本身，python 经 tempdir Node harness 桥接），以及 1 个 DimOS 薄包装 dual_chain_env.py 再导出/委托的契约负向自测（同一对象重导出不复制、describe fresh dict、import 纯净、apply_chain_b 转发 unset 删 CYCLONEDDS_URI、缺源必失败、盲委托漏 unset 变异）用例（#34，对象是 load.py 真源与 DimOS 之间的薄包装，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -90,6 +91,18 @@
 | 31 | `evals/fingerprint_guard_selftest.py` | `fingerprint guard selftest: PASS`、`4 negative, 1 non-flag, 1 healthy, 1 mutation`（live≠fixture 必 DRIFT、缺 fixture 必 FAIL、命令非零必 FAIL、`--update` 遇失败命令必拒且不写 fixture；绝对路径归一化 `<REPO_ROOT>` 防误报；normalize 恒返回 baseline 即漏报 drift） |
 | 32 | `evals/dual_chain_env_load_selftest.py` | `dual-chain env load selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（未知 chain 必 ValueError、未知子命令必 exit 2、Chain B apply 必删 CYCLONEDDS_URI；shell 转义 round-trip 与 import 纯净防误报；apply 不 pop 盲桩泄漏 URI、恢复抓回） |
 | 33 | `evals/local_script_provider_selftest.py` | `local-script provider selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（空 prompt 必 error、exit1 必透传 error 且含 stdout/stderr、缺失脚本必 code 2；纯空白不绕过、成功 output 不含 stderr 防误报；盲 provider 吞非零退出漏报、真实 provider 报 error） |
+| 34 | `evals/dual_chain_env_wrapper_selftest.py` | `dual-chain env wrapper selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（import 不改 env、apply_chain_b 必删预置 CYCLONEDDS_URI、缺 load.py 必 import 失败；apply_chain_a 置 Chain A、describe 返回 fresh dict 防污染；CHAIN_A/B 与真源同对象、`_ENV_PY`/`__all__` 契约；盲委托漏 unset 泄漏、真实包装删除） |
+
+### 双链环境薄包装 dual_chain_env.py 契约/负向自测（#34，eval-only）
+
+- `dimos_bridge/dual_chain_env.py` 是 DimOS 侧读取双链环境契约的**薄包装**：docstring 声明 `config/env/load.py` 是唯一可执行真源，本模块只用 importlib 重新导出、不得复制常量；模块级再导出 `CHAIN_A/CHAIN_B`，提供 `chain_a_env()/chain_b_env()`（委托 `describe`）与 `apply_chain_a()/apply_chain_b()`（委托 `apply`，其中 Chain B 必须传 `unset=CHAIN_B_UNSET`）。#32 钉了 load.py 本体、#19 钉了读 shell 脚本的 guard，但中间这层薄包装此前零断言：复制常量会与真源漂移、`apply_chain_b` 漏传 unset 会让外部 `CYCLONEDDS_URI` 污染 Chain B、import 包装可能误写 `os.environ`、真源缺失可能被静默吞掉。
+- `dual_chain_env_wrapper_selftest.py`（对象是**薄包装层**，中缀 `dual_chain_env_wrapper` 区别于 #19 的 `dual_chain_env_guard` 与 #32 的 `dual_chain_env_load`；纯标准库，进程内 `apply_*` 用 env 快照始终恢复，import 纯净/缺源失败走隔离子进程，坏包装夹具写 tempdir、不在树内建文件）：
+  - **1 个健康对照**：`CHAIN_A/CHAIN_B` 与包装内部已加载真源 `_env.CHAIN_A/B` 是**同一对象**（`is`，重导出而非复制）；`chain_a_env()/chain_b_env()` 等于真源常量（describe 委托）；`_ENV_PY` 解析到仓库 `config/env/load.py` 且存在；`__all__` 恰为 6 个导出名；
+  - **3 个负向**：N1 隔离子进程 import 包装前后 `RMW_IMPLEMENTATION/ROS_DOMAIN_ID/FASTRTPS_DEFAULT_PROFILES_FILE/CYCLONEDDS_URI` 必须无变化（模块级纯净、不得 apply）；N2 预置 `CYCLONEDDS_URI` 后 `apply_chain_b()` 必删除它（unset 必须转发），且置 RMW=Cyclone、DOMAIN=0；N3 与包装同构但 `load.py` 指向不存在文件的 tempdir 模块，import 必须非零失败（`FileNotFoundError`/No such file），不得静默成功；
+  - **2 个 non-flag**：`apply_chain_a()` 置 Chain A 三元组（rmw_fastrtps_cpp / 42 / fastdds.xml）；`chain_a_env()` 每次返回 fresh dict、既非常量本体也非同一对象（调用方 mutate 污染不到模块常量），但值等于常量；
+  - **1 个变异**：盲委托 `load.apply(CHAIN_B)` 不传 unset 时预置 `CYCLONEDDS_URI` **泄漏**（sanity），而真实 `apply_chain_b()` 删除——证明本测试能抓住「薄包装漏传 unset」退化。
+- **范围边界**：只钉薄包装的再导出同一性、委托接线与纯净/失败语义，不重复 #32 对 load.py 自身（describe/apply/export/CLI/import）的断言，也不重复 #19 对 shell 字面 export 的 guard；不修改包装行为（行为不变）。
+- 与 #18–#33 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、不需要 ci.yml 接线。
 
 ### local-script provider 契约/负向自测（#33，eval-only）
 

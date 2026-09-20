@@ -509,3 +509,22 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #34 dual-chain env thin wrapper self-test: dimos_bridge/dual_chain_env.py
+  # only re-exports config/env/load.py via importlib. Pins CHAIN_A/CHAIN_B being
+  # the SAME objects as the loaded source (re-export not copy), describe
+  # delegation + fresh dicts, _ENV_PY path + __all__, import purity (no
+  # os.environ change), apply_chain_b forwarding unset so a preset
+  # CYCLONEDDS_URI is removed, apply_chain_a setting the Chain A triple, a
+  # wrapper-shaped module with missing load.py failing to import, and a blind
+  # delegation that forgets unset leaking the URI (mutation). In-process apply
+  # uses an env snapshot; purity/missing-source run in subprocesses; tempdir only.
+  - description: 'dual_chain_env_wrapper_selftest.py: the thin wrapper must re-export the same CHAIN_A/CHAIN_B objects (not copy), delegate chain_a_env/chain_b_env to describe with fresh dicts, resolve _ENV_PY to config/env/load.py, export exactly six names, leave os.environ unchanged on import, have apply_chain_b remove a preset CYCLONEDDS_URI and apply_chain_a set the Chain A triple, fail to import when load.py is missing, and differ from a blind delegation that forgets unset'
+    vars:
+      script: evals/dual_chain_env_wrapper_selftest.py
+    assert:
+      - type: contains
+        value: 'dual-chain env wrapper selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'

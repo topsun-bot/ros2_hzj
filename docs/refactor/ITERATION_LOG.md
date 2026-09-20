@@ -2778,3 +2778,52 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#33 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
+---
+
+## 轮次 37 — 2026-09-21 05:16（Asia/Shanghai）— eval #34：双链环境薄包装 dual_chain_env.py 再导出/委托契约负向自测（功能 PR TBD）
+
+### 背景与取证（先探针、后写脚本）
+
+- re-ground：`main`=`4cd1781`=origin/main（轮次36 回填 #115 后），工作区干净，仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked（未碰）；本循环无在途 PR。
+- 按轮次36「下一步」第 2 条取证 **`dimos_bridge/dual_chain_env.py`（DimOS 侧薄包装，48 行）**。它 docstring 声明 `config/env/load.py` 是唯一可执行真源、只做 importlib 重新导出、不得复制常量；模块级再导出 `CHAIN_A/CHAIN_B`，`chain_a_env()/chain_b_env()` 委托 `describe`，`apply_chain_a()/apply_chain_b()` 委托 `apply`（Chain B 传 `unset=CHAIN_B_UNSET`）。#32 钉了 load.py 本体、#19 钉了读 shell 字面 export 的 guard，但**中间这层薄包装零断言**：复制常量会与真源漂移、`apply_chain_b` 漏传 unset 会让外部 `CYCLONEDDS_URI` 污染 Chain B、import 包装可能误写 `os.environ`、真源缺失可能被静默吞掉。
+- `/tmp/probe_wrapper.py`、`/tmp/probe_wrapper2.py` 逐字取证（关键修正：外部用第二个 spec 另载 load 时 `w.CHAIN_A is load.CHAIN_A` 为 False 是两份模块实例所致，同一性必须比对包装内部 `w._env.CHAIN_A`）：①`w.CHAIN_A is w._env.CHAIN_A`、`w.CHAIN_B is w._env.CHAIN_B` 均 **True**（重导出同一对象、非复制）；②`chain_a_env()==_env.CHAIN_A` 为 True，但 `describe` 每次返回 **fresh dict**（既非常量本体、两次调用也不同对象）；③`__all__` 恰为 6 名；④`_ENV_PY` 解析到仓库 `config/env/load.py` 且存在；⑤预置 `CYCLONEDDS_URI` 后 `apply_chain_b()` 删除它并置 RMW=Cyclone/DOMAIN=0；盲委托 `load.apply(CHAIN_B)` 不传 unset 则 URI **泄漏**（mutation 成立）；⑥`apply_chain_a()` 置 fastrtps/42/fastdds.xml；⑦隔离子进程 import 包装不改四个 env 键（纯净）；⑧与包装同构但 load.py 指向不存在文件的 tempdir 模块 import rc1、抛 `FileNotFoundError`（spec 非 None，在 exec_module 阶段失败，非静默）。
+
+### 改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml）
+
+- 新增 `evals/dual_chain_env_wrapper_selftest.py`（**eval #34**，对象是**薄包装层**，中缀 `dual_chain_env_wrapper` 区别于 #19 `dual_chain_env_guard` 与 #32 `dual_chain_env_load`；纯标准库；进程内 `apply_*` 用 `_EnvSnapshot` 始终恢复，import 纯净/缺源失败走隔离子进程，坏包装夹具写 tempdir、不在树内建文件）。场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - N1 隔离子进程 import 包装前后 `RMW_IMPLEMENTATION/ROS_DOMAIN_ID/FASTRTPS_DEFAULT_PROFILES_FILE/CYCLONEDDS_URI` 无变化（模块级纯净）；N2 预置 `CYCLONEDDS_URI` 后 `apply_chain_b()` 必删除（unset 必须转发）且置 Cyclone/0；N3 load.py 缺失的同构包装 import 必非零失败（FileNotFoundError），不得静默；
+  - non-flag1 `apply_chain_a()` 置 Chain A 三元组；non-flag2 `chain_a_env()` 返回 fresh dict（非常量本体、两次不同对象）但值等于常量，调用方 mutate 污染不到源；
+  - healthy：`CHAIN_A/B is _env.CHAIN_A/B`（同一对象、非复制）、`chain_*_env()` 委托值一致、`_ENV_PY` 指向仓库 load.py 且存在、`__all__` 恰 6 名；
+  - mutation：盲委托 `apply(CHAIN_B)` 不传 unset 泄漏预置 URI（sanity），真实 `apply_chain_b()` 删除（对照）。
+- `evals/promptfooconfig.yaml`：33→**34**，末尾追加 #34 块（2 条 contains：`dual-chain env wrapper selftest: PASS` + 计数串）。
+- `evals/README.md`：六处登记（配置表/seed 叙述 34、文件表新增包装自测行、枚举句追加 #34、明细表 `| 34 |`、倒序新增 #34 专节置于 #33 专节之前），471→484 行。
+
+### 合并前回归（分支，2026-09-21 05:15 CST）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py`：通过；
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（未改任何被指纹命令的 stdout；未改包装/load.py 行为）；
+- eval-only 自测：**17 个全 PASS**（fail=0，新增 `dual_chain_env_wrapper_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串）；
+- promptfoo：**34/34 passed (100%)、0 failed、0 errors**（合并前 eval `eval-nA9-2026-09-20T21:15:32`，Duration 23s）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` 的 DDS 行为与 vendor 源码（本项**只读 import 薄包装做断言、未改其一行**）；未集成 Cega、未重写 Bridge runtime；未改 shell 包装 `chain_a.sh`/`chain_b.sh`；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
+- 负向自测一律 tempdir 同构坏包装 / 隔离子进程 / env 快照，不在原地改任何文件；不新增依赖。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md`（untracked）未删除/覆盖/提交。
+
+### 剩余风险与缺口
+
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`，未伪造。
+- 第 13 闸与全部 eval-only 自测（含 #34）仍未接 CI structure 枚举（active 账号缺 `workflow` scope）。
+- 薄包装 `spec is None → ImportError` 分支在正常文件系统下不可达（spec_from_file_location 对存在/不存在路径都返回非 None），#34 以「缺源 exec 必失败（FileNotFoundError）」钉住可观测防线，未强行构造 None。
+- 《6》CVE 修复三项仍待用户明确批准、拆独立 PR；4 份飞书文档仍 3380004 无权限。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 34/34），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. env 链路三层（shell guard #19、真源 load.py #32、薄包装 #34）已闭环；再取证是否还有未钉的真实独有判定面（如 docs 契约链接同构检查、或其余 A 面脚本的负向分支），**先 /tmp 探针确认真实未覆盖再新增，不为凑数**。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #34，纯 python）接进 CI。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#34 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
