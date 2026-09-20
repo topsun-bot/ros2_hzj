@@ -34,6 +34,7 @@ python3 config/env/load.py print-b
 ## Docs
 
 - [docs/architecture/ci-cd-gates.md](docs/architecture/ci-cd-gates.md) — CI jobs, Hold boundary, `allow-hold-bypass`
+- [.github/workflows/claude-code-review.yml](.github/workflows/claude-code-review.yml) — advisory Claude PR review (not a required check; see ci-cd-gates §1.1)
 - [docs/architecture/feishu-middleware-adr.md](docs/architecture/feishu-middleware-adr.md) — Feishu middleware ADR
 - [docs/architecture/latency-attribution.md](docs/architecture/latency-attribution.md) — wiki3 §12 / §13.3 stage method (no SCOREBOARD number edits)
 - [docs/architecture/feishu-risk-matrix.md](docs/architecture/feishu-risk-matrix.md) — wiki3 §9.4 layer checklist (no risk scores)
