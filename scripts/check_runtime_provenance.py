@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-from _repo import emit_render, repo_root, read_utf8
+from _repo import append_bullets, emit_render, repo_root, read_utf8
 
 
 PROVENANCE_REL = Path("docs/architecture/feishu-runtime-provenance.md")
@@ -178,8 +178,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     if failures:
         lines.append("FAIL:")
-        for item in failures:
-            lines.append(f"- {item}")
+        append_bullets(lines, failures)
         lines.append("")
         lines.append(
             "Required provenance file, Humble underlay pin, rolling/master "

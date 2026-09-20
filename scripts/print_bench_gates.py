@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 
 from _freeze_paths import SCOREBOARD_REL
-from _repo import emit_render, repo_root, read_utf8
+from _repo import append_bullets, emit_render, repo_root, read_utf8
 
 
 BENCH_README_REL = Path("docs/artifacts/bench/README.md")
@@ -108,8 +108,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
     if failures:
         lines.append("FAIL:")
-        for item in failures:
-            lines.append(f"- {item}")
+        append_bullets(lines, failures)
         lines.append("")
         lines.append(
             "Required bench pointer or STATUS marker is gone. Restore the file "
