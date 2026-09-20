@@ -1671,7 +1671,7 @@
    不制造无意义提交。
 ## 轮次 22 — 2026-09-20 13:18（Asia/Shanghai）《2》小步重构：收敛 dual-chain guard 内 shell↔load.py 键值比对的重复列表推导
 
-> 定时任务第 22 轮。分支 `refactor/dual-chain-shell-crosscheck-helper`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 22 轮。分支 `refactor/dual-chain-shell-crosscheck-helper`，功能 PR #82（已 squash-merge，main HEAD `a06f5df`）。
 > 轮次 21 已宣告 guard 负向自测（#18–#27）收尾，本轮按既定方向回到《2》现代化重构计划，做一项**行为不变、纯提取**的
 > 「抽辅助函数」小步（plan §3 Step 3 精神），由 #17 stdout 指纹逐字节护航。一次只改一个脚本。
 
@@ -1713,6 +1713,7 @@
   #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-1qp-2026-09-20T05:17:54`，UTC；约合 CST 13:17，Duration 5s）。本轮不新增 eval 用例（纯内部重构、
   无新行为；负向能力已由 #19 覆盖）。
+- **合并后回归（main HEAD `a06f5df`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-2xn-2026-09-20T05:23:05`，Duration 4s）。
 
 ### Hold 合规
 
