@@ -1580,7 +1580,7 @@
    不制造无意义提交。
 ## 轮次 21 — 2026-09-20 12:15（Asia/Shanghai）《5》深化：three-chain 复现 guard 独有伪造正则负向自测沉淀为 eval 用例 #27
 
-> 定时任务第 21 轮。分支 `test/three-chain-repro-guard-selftest`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 21 轮。分支 `test/three-chain-repro-guard-selftest`，功能 PR #80（已 squash-merge，main HEAD `490b6a5`）。
 > 主题：把 `scripts/check_three_chain_repro.py`（wiki3 §13(2)，map≠reproduce / STATUS: blocked 诚实性）独有的两条
 > `_FABRICATE_RES` 伪造正则的负向能力，从一次性 /tmp 探针沉淀为 eval-only、纯标准库、tempdir-only 的仓内回归，即
 > Promptfoo 用例 **#27**。一次只做一个 guard。
@@ -1637,6 +1637,7 @@
 - guard 负向自测：**#18–#27 十个全部 exit 0**（本轮新增 three_chain: PASS，2 negative/1 non-flag/2 healthy/1 mutation）。
 - Eval：**26 → 27 用例，27/27 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#27 PASS，Duration 2s，
   eval ID `eval-XS7-2026-09-20T04:15:04`，UTC；约合 CST 12:15）。
+- **合并后回归（main HEAD `490b6a5`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-e1Z-2026-09-20T04:21:10`，Duration 3s）。
 - `python3 -W error::SyntaxWarning -m py_compile evals/three_chain_repro_guard_selftest.py` 干净通过。
 
 ### Hold 合规
