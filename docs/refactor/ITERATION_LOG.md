@@ -11,7 +11,7 @@
 | 指标 | 命令 | 含义 |
 | --- | --- | --- |
 | Gate 通过率 | `python3 scripts/run_all_gates.py` | 13 个 check/prove 脚本 exit 0 且打印 healthy 标记的比例 |
-| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 26 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测；#22 为 Executor/WaitSet map guard 独有分支的负向自测；#23 为产品 DoD 诚实性 guard 反伪造逻辑的负向自测；#24 为 Cega / Bridge Hold guard 独有 ADR 表格 cell 解析/内置行自检/中文“已接 Cega”伪造/首行 Status 的负向自测；#25 为 runtime-provenance guard 独有 Dockerfile Humble 钉版三分支/VERSIONS 树名与 40 位 SHA 同行约束的负向自测；#26 为 sink-layers guard 独有六层表格行首粗体标签锚定（防裸词 rcl 误匹配 app 行 rclpy、防满屏 DDS 散文救回缺失行）的负向自测） |
+| Eval 通过率 | `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`（仓库根执行） | 27 个 DDS 行为断言用例（custom provider 跑 gate 脚本 / `load.py print-a|b` + stdout contains 断言；#17 为全量 stdout 指纹回归；#18 为 frozen-path guard 的负向自测；#19 为双链 env 交叉断言 guard 的负向自测；#20 为 Unitree Cyclone 交换裁决 guard 的负向自测；#21 为 ros2-source-map guard 的负向自测；#22 为 Executor/WaitSet map guard 独有分支的负向自测；#23 为产品 DoD 诚实性 guard 反伪造逻辑的负向自测；#24 为 Cega / Bridge Hold guard 独有 ADR 表格 cell 解析/内置行自检/中文“已接 Cega”伪造/首行 Status 的负向自测；#25 为 runtime-provenance guard 独有 Dockerfile Humble 钉版三分支/VERSIONS 树名与 40 位 SHA 同行约束的负向自测；#26 为 sink-layers guard 独有六层表格行首粗体标签锚定（防裸词 rcl 误匹配 app 行 rclpy、防满屏 DDS 散文救回缺失行）的负向自测；#27 为 three-chain 复现 guard 独有 `map = reproduce` 等号矛盾句 / `three-chain repro: PROVEN` 伪造正则（phrase/status 存在性检查抓不到的追加矛盾句，含同行禁止句豁免）的负向自测） |
 
 - Gate / Eval 衡量的是**仓库一致性与 Hold 合规性**，不是端到端 DDS 延迟（本机无 Humble runtime，
   端到端 pub/sub、p99、跨机 UDP 为 `STATUS: blocked`，见 `docs/testing/2026-09-mac-hil.md`）。
@@ -1577,4 +1577,94 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做一次完整 gate+指纹+#18–#26+promptfoo 回归并在日志标注「等待新指令」，
+   不制造无意义提交。
+## 轮次 21 — 2026-09-20 12:15（Asia/Shanghai）《5》深化：three-chain 复现 guard 独有伪造正则负向自测沉淀为 eval 用例 #27
+
+> 定时任务第 21 轮。分支 `test/three-chain-repro-guard-selftest`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 主题：把 `scripts/check_three_chain_repro.py`（wiki3 §13(2)，map≠reproduce / STATUS: blocked 诚实性）独有的两条
+> `_FABRICATE_RES` 伪造正则的负向能力，从一次性 /tmp 探针沉淀为 eval-only、纯标准库、tempdir-only 的仓内回归，即
+> Promptfoo 用例 **#27**。一次只做一个 guard。
+
+### 为什么是这一项（先 Read 全文取证，再决定做不做）
+
+- re-ground：main 与 origin/main 同步于 `4bcaaba`（轮次 20 回填 #79），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；`gh pr list` 确认本循环无在途 PR（开放的 #65/#61/#56/#46/#45/#44/
+  #43/#42/#41/#32/#31/#30 全是他人 claude/codex/cursor 机器人 PR，未触碰）。
+- 轮次 20 日志「下一步」对 three_chain 候选设了硬门槛：**须先 Read 全文证实确有独立、可 tempdir 构造、与 #23/#24
+  不重复的盲区，否则停止堆 guard selftest**。本轮先完整 Read `check_three_chain_repro.py`（232 行）再判定：
+  - **`_has_three_chains` 的 OR/AND 共现不立项**：`publish AND History AND (wait→callback OR (WaitSet AND callback))`
+    是直白 token 共现，guard 在收尾段自述边界就是 “Filesystem + honesty markers only”，从不声称做语义成链验证；
+    “WaitSet/callback 在无关位置共现也判第三链存在”是 marker-only 的**设计边界而非 bug**，当前 guard 对这种文本本就
+    exit 0，构造不出「当前会 FAIL」的负向；要收紧它属于行为增强（《2》重构，需独立论证），不是 eval-only 负向沉淀。
+  - **`_FABRICATE_RES` 第三条 `\bmap\s*=\s*reproduce\b` 与第一条 `(three-chain repro|三条链复现):(PASS|PROVEN|OK)`
+    确有独立增量**：健康文档必须连续含 `map ≠ reproduce`（≠，U+2260）与 `STATUS: blocked`，phrase/status 是
+    **存在性**检查。若有人在文档末尾**额外追加**一句 ASCII `map = reproduce`（矛盾等号）或 `three-chain repro: PROVEN`
+    而保留所有健康 marker，phrase/status/chains/markers 检查全部通过，**只有这两条 fabricate 正则能抓到**。被守护文档、
+    正则、伪造串都与 #23（DoD）、#24（Cega）不同——机制同族（fabricate 正则 + 同行禁止句豁免），但守护对象独立，
+    符合 #20/#22/#25/#26 一贯的「同构机制、不同 guard/不同正则分别立项」标准。
+  - 不重复边界：六个 required 文件的 marker substring 检查（正向同形）、`_has_three_chains`（marker-only 边界）、
+    `_STATUS_FABRICATE_RE` 的 STATUS: PASS 同族正则（#23/#24 已钉）均不重复堆夹具。
+
+### 改了什么（行为不变，eval-only，新增负向覆盖）
+
+- 新增 `evals/three_chain_repro_guard_selftest.py`（纯标准库、tempdir-only、非 gate）：把 guard 读取的 **6 个真实文件**
+  （repro/source-map/executor/ADR 四个内容文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进临时树，每次只向 repro 文档
+  **末尾追加一句**（不删任何 marker），驱动可注入的 `render(root=...)`：
+  - **2 个负向场景**：N1 追加裸 `map = reproduce`（ASCII `=`；`map ≠ reproduce` 仍在故 phrase 检查通过，只有正则
+    `\bmap\s*=\s*reproduce\b` 抓到矛盾）；N2 追加 `three-chain repro: PROVEN`（命中第一条；相邻 `reproduce:` 正则刻意
+    不匹配短词 `repro`）。两者都必须 exit 1、打印 `FAIL fabricate` 并点名伪造串，且**不得连带** FAIL missing/markers/
+    phrase/status/chains（证明健康 marker 全存活、只触发诚实性检查）。
+  - **1 个 non-flag（豁免契约）**：同行禁止句「不要把 map = reproduce 写进结论」必须被 `_PROHIBITION_RE`+`_line_at`
+    豁免、整树 exit 0 且无 FAIL fabricate（防未来把豁免改严、误杀合法「不要写」指令；钉本 guard 自己的中英禁止词表）。
+  - **2 个健康对照**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印 `three-chain repro: blocked (map only)`。
+  - **1 个变异**：把 `\bmap\s*=\s*reproduce\b` 替换为永不匹配的 `(?!)`（try/finally 恢复整个 `_FABRICATE_RES` 元组）
+    后 N1 必须**漏报**（exit 0、无 FAIL fabricate），恢复后必须重新抓到。
+  - 成功 marker：`three-chain repro guard selftest: PASS`，计数串 `2 negative, 1 non-flag, 2 healthy, 1 mutation`。
+- 动手前先写 `/tmp/probe_three_chain.py` 逐字取真实行为：REAL/COPY exit 0；N1/N2 exit 1 且 FAIL fabricate 点名、
+  五类 FAIL 均不连带；禁止句 exit 0 豁免；neuter 第三条正则后 N1 exit 0 干净漏报、恢复后 exit 1 重抓。探针全过才写
+  正式脚本。正式脚本模块 docstring 含正则反斜杠，已用 raw docstring（`r"""`）消除 `SyntaxWarning`，
+  `python3 -W error::SyntaxWarning -m py_compile` 干净。
+- `evals/promptfooconfig.yaml`：新增用例 **#27**（断言 `three-chain repro guard selftest: PASS` + 计数短语
+  `2 negative, 1 non-flag, 2 healthy, 1 mutation`，弱化/删负向用例即红）。
+- `evals/README.md`：文件表 yaml 用例数 26→27、新增 three_chain selftest 文件行、seed 段计数与列举加 #27、用例表加
+  #27 行、新增「three-chain 复现 guard 独有伪造正则负向自测（#27）」专节（含为何 `_has_three_chains` 不立项的说明）。
+- `docs/refactor/ITERATION_LOG.md`：评分口径行 26→27 并加 #27 描述 + 本小节。
+
+### 分数前后对比 / 产物检查（本机 vanilla box，无 ROS）
+
+- Gate：**13/13 all gates green**（未改任何 gate/helper，行为不变）。
+- stdout 指纹：**15/15 stable**（gate/load.py stdout 零变化，未动 fixtures、无需 `--update`）。
+- guard 负向自测：**#18–#27 十个全部 exit 0**（本轮新增 three_chain: PASS，2 negative/1 non-flag/2 healthy/1 mutation）。
+- Eval：**26 → 27 用例，27/27 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#27 PASS，Duration 2s，
+  eval ID `eval-XS7-2026-09-20T04:15:04`，UTC；约合 CST 12:15）。
+- `python3 -W error::SyntaxWarning -m py_compile evals/three_chain_repro_guard_selftest.py` 干净通过。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字（selftest 仅把两者**只读复制**进 tempdir）。
+- 未启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、
+  未重写 Bridge runtime。双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整（eval-only 测试 + 文档）；promptfoo 仅 npx 缓存运行、未写入运行时依赖。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 测试/文档 only，不改生产或 gate 代码，风险低。selftest 复制真实文件、锚点 fail-loud：若 repro 等六个被复制文件的
+  路径或健康 marker 文本**合法演进**，该 PR 须同步更新锚点（与 #20/#22–#26 同一 fail-loud 契约）。
+- guard 负向 selftest 序列（#18–#27）已覆盖全部 13 个 gate 中带独有解析器的 guard；剩余 gate 的检查多为直白 marker
+  substring（正向同形），继续堆同形负向夹具边际价值已很低，下一轮起原则上**停止新增 guard selftest**，除非又证出
+  某个未覆盖的独有解析器。
+- 真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`（本机无 Humble runtime；本轮只钉诚实性文档，
+  不代表复现已运行），不伪造任何通过。
+
+### 下一步（轮次 22 候选）
+
+1. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`：之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，优先把纯 python、无需 npx 联网的
+   `fingerprint_check.py` 与 #18–#27 各 selftest **先于整套 promptfoo** 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+2. **[guard selftest 收尾]** #18–#27 已覆盖各独有解析器；除非再证出未覆盖的独有解析器，否则不再新增同形负向夹具，
+   转向《2》计划里不依赖授权的小步重构（简化控制流/抽辅助函数/替换陈旧模式，行为不变、stdout 指纹护航）。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做一次完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，
    不制造无意义提交。
