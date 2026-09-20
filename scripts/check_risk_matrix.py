@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from _freeze_paths import FASTDDS_XML_REL as XML_REL, SCOREBOARD_REL
-from _repo import append_bullets, emit_render, repo_root, read_utf8, report_missing_file
+from _repo import append_bullets, append_failures_block, emit_render, repo_root, read_utf8, report_missing_file
 
 
 MATRIX_REL = Path("docs/architecture/feishu-risk-matrix.md")
@@ -115,9 +115,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
     )
 
     if failures:
-        lines.append("FAIL:")
-        append_bullets(lines, failures)
-        lines.append("")
+        append_failures_block(lines, failures)
         lines.append(
             "Required risk-matrix doc or Hold marker is gone. Restore the "
             "file (docs-only) or the §9.4 / Hold marker. Exit 1."

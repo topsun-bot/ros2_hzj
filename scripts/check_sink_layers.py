@@ -24,7 +24,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import append_bullets, emit_render, repo_root, read_utf8, report_missing_file
+from _repo import append_bullets, append_failures_block, emit_render, repo_root, read_utf8, report_missing_file
 
 
 SINK_REL = Path("docs/architecture/feishu-sink-layers.md")
@@ -212,9 +212,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
     )
 
     if failures:
-        lines.append("FAIL:")
-        append_bullets(lines, failures)
-        lines.append("")
+        append_failures_block(lines, failures)
         lines.append(
             "Required sink-layer doc, layer/Hold marker, no-XML/SCOREBOARD "
             "marker, or Agnocast/zenoh Hold is gone. Restore the docs "

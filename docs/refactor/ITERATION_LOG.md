@@ -2231,3 +2231,101 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+## 轮次 29 — 2026-09-20 21:16（Asia/Shanghai）《2》收尾确认扫描 + 12 处逐字 FAIL 汇总段下沉为 `_repo.append_failures_block`
+
+> 定时任务第 29 轮。分支 `refactor/shared-failures-block`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 本轮先执行轮次 28 计划的《2》收尾确认：对全部非下划线脚本做 AST 连续语句 n-gram（长度 2–3，含 if/for 块内一层）
+> **严格逐字**重复扫描（`ast.unparse` 后仅折叠空白、**保留字符串字面量与变量名**，即只认逐字、不认形态同构），
+> 再对命中片段按 `_repo` 的 rendering-only 边界逐项处置。最终只下沉一个纯渲染、12 处逐字的 FAIL 汇总段；
+> 其余同构片段因含业务判定、属惯用法或与独有 prose 交织，按纪律保留。行为不变：12 个脚本健康 stdout 逐字节 diff 空。
+
+### 收尾扫描结论（严格逐字档，跨 ≥2 文件且有信息量的片段）
+
+- **本轮下沉（纯渲染、12 处逐字）**：每个 guard 收尾的 FAIL 汇总段
+  ```python
+      if failures:
+          lines.append("FAIL:")
+          append_bullets(lines, failures)
+          lines.append("")
+  ```
+  在 11 个 check_* + print_bench_gates 共 **12 个文件、每文件恰好 1 处**逐字相同（4 空格 `if failures:`、8 空格 body，
+  双引号 `"FAIL:"`/`""`）。块体三行只做渲染（标题 + 每条 failure 一个 bullet + 尾空行），无 guard 独有措辞、无判定。
+- **判定保留、不下沉（记录理由，避免后续重复劳动）**：
+  - **required-marker 断言块**（`missing_markers = [m for m in markers if m not in text]` + `FAIL markers` + `continue`，
+    以及 `ok file` 渲染，6 文件逐字）：这是 guard 的**核心业务判定**（决定缺哪些 marker、是否 FAIL），不是纯渲染；
+    且 dod/dual_chain 已在轮次 23/24 因 existence_only 反转而分化、executor/source 走 `_md_paths.check_cited_paths`
+    不同路径，只有 6 个同形。把它下沉会让 `_repo` 承载 marker 断言、越过既定 rendering-only 边界；若未来要做，
+    必须是带 docs/spec 与一致性检查的**独立机制 PR**，不属小步渲染收敛，本轮不动。
+  - **`path = root / rel` / `key = rel.as_posix()`**（10 文件）、**`text = read_utf8(path)` / `texts[rel] = text`**
+    （4 文件）：required 循环里的局部数据流与语言惯用法，各一行、无语义封装价值，下沉反而增加间接层，保留。
+  - **尾部 `lines.append("") + return "\n".join(lines), 0/1`**：与各 guard 独有的 healthy prose / SUCCESS·PAUSED
+    marker 交织，且 early `return ..., 1` 数量不一（executor/source 各 3 个 return），轮次 27 已判定不整块合并，维持。
+  - **executor_map/source_map 的 warnings 段**（`Warnings (exit 0 unless a FAIL remains):` + bullets + 空行）：
+    标题措辞为这两个 guard 独有，逐字仅 2 处且含专属说明，保留（本轮 grep 确认两处均未被误伤）。
+  - **`_fabricate_hits` 里 cega/three_chain 的 prohibition-skip 两行**：走各自私有的 `_PROHIBITION_RE`/`_STATUS_FABRICATE_RE`，
+    正则集合独有、被 #24/#27 mutation 锚定，前轮已判定不收敛。
+- 结论：经本轮扫描，**rendering/机制级的跨文件逐字重复已基本清零**；剩余同构要么是业务判定（marker 块）、
+  要么是惯用法/独有措辞，符合「逐字且纯机制才下沉、独有判定不合并」的既定纪律。
+
+### 改了什么（净 −9 行，+39/−48，13 个文件）
+
+- `scripts/_repo.py`：新增公共 `append_failures_block(lines, failures) -> None`——调用方保留 `if failures:` 守卫，
+  非空时追加 `FAIL:` 标题、对每条 failure 调 `append_bullets`、再补一个尾空行；内部复用 `append_bullets`；
+  docstring 明确「rendering only、假设 failures 非空（由调用方守卫）、不做判定」；helper 清单加第七项。
+- 12 个脚本：import 在 `append_bullets` 后按字母序加 `append_failures_block`；4 行 FAIL 汇总段收敛为 2 行
+  （`if failures:` / `append_failures_block(lines, failures)`）。替换后 gates 内不再有内联 `lines.append("FAIL:")`；
+  各 guard 的 healthy prose、SUCCESS/PAUSED marker、required 循环、early return、warnings 段全部不动。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **健康 stdout 逐字节**：12 个脚本重构前后各跑一次（均 exit 0），12/12 `diff` 空（健康路径 failures 为空、
+  `if failures:` 不进入，输出天然不变）。
+- **helper 等价探针**：对 1 条/2 条/3 条 failures，`append_failures_block` 产出的行序列与原内联三行逐元素相等
+  （`["FAIL:","- p","- q",""]` 精确断言），in-place、返回 None。
+- **非空 failures 路径端到端**：#18–#27 十个负向自测全部 exit 0，其中 frozen Case A（bad file→exit 1、引用 bad_gate 行）、
+  executor 五个负向场景（exit 1、断言 `FAIL vendored`）、source（exit 1、断言 `FAIL: map missing` 等）均走非空
+  failures 的 FAIL 汇总段（即本轮 helper 渲染路径）。另用 monkeypatch 对走 required 循环的 risk_matrix 验证全缺失时
+  exit 1 且末尾 `FAIL:\n- ` 汇总块由 helper 正确渲染。
+  - 说明：初次用 `is_file` 恒 False 注入 frozen/executor 时探针未得到 exit 1——这是**探针注入方式不当**
+    （frozen/executor 是扫描型 guard，文件全缺失并不触发它们的 failure 条件，属既有行为），非本轮改动缺陷；
+    这两个 guard 的非空 failures 路径以上述 #18/#21/#22 自测为准（全过）。
+- warnings 独有段经 grep 确认 executor/source 各保留 1 处、未被替换。
+- `python3 -m compileall -q scripts` 通过；gate **13/13 all gates green**（frozen 仍 scanned 15，helper 无 `Path(...)`、
+  未新增路径字面量源）；stdout 指纹 **15/15 stable**（12 个被改脚本都在 15 条命令内、健康输出逐字节无漂移、未动 fixtures）；
+  promptfoo **27/27 passed (100%) / 0 failed / 0 errors**（eval ID `eval-Dh9-2026-09-20T13:16:22`，UTC；约合 CST 21:16，
+  Duration 2s）。本轮不新增 eval 用例（纯渲染块收敛、无新行为；非空 FAIL 渲染由 #18–#27 覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未碰 required 元组、marker 集合、
+  anchor 常量、SUCCESS/PAUSED marker、warnings 措辞与 frozen 路径真源（本轮只把逐字 FAIL 汇总三行换成等价 helper 调用，
+  `if failures:` 条件留在原处）。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整：命令名、argv、render() 签名、exit code、每一条打印文本全部不变
+  （健康路径指纹逐字节 + 非空 failures 自测/探针证明）；helper 在下划线模块内，不进 CI 命令枚举。
+  required-marker 断言块刻意**未**下沉（守 rendering-only 边界）。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。12 份逐字 FAIL 汇总三行收敛为 1 个纯渲染 helper（`FAIL:` 标题/bullet/尾空行单一真源）：健康 stdout 12 份
+  逐字节不变，非空 failures 路径由 #18/#21/#22 等负向自测与探针证明 exit 1 且汇总块正确，gate/指纹/十自测/promptfoo 全绿。
+  判定条件 `if failures:` 刻意留在各 guard，helper 不决定成败、只统一渲染。
+- 《2》A 面（自有 scripts/config/docs）的函数级、入口、bullet 循环、缺失文件报告、FAIL 汇总段等**纯机制/纯渲染逐字重复
+  均已收敛**；唯一较大的剩余同构是 required-marker 断言块，但属业务判定，按边界不在小步重构内合并。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 30 候选）
+
+1. **[《2》A 面收尾]** 本轮严格逐字扫描已覆盖函数体与一层嵌套的连续语句；下一轮可补一次「跨函数单行 + 表达式级」扫描做
+   最终确认，若 rendering/机制级逐字重复确认为 0，则在重构计划与日志中把《2》阶段 1（死代码/简化/抽 helper/替换陈旧模式
+   的 A 面部分）标记为「逐字重复清零、进入按需维护」，此后不为凑改动制造 PR，每轮以完整 gate+指纹+#18–#27+promptfoo
+   回归为主并在日志标注状态；required-marker 断言块若要收敛，单独立项（带 docs/spec、独立 PR），不混入小步循环。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。

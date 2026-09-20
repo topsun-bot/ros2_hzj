@@ -17,7 +17,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from _md_paths import check_cited_paths, parse_map, read_utf8, repo_root
-from _repo import append_bullets, emit_render
+from _repo import append_bullets, append_failures_block, emit_render
 
 
 MAP_REL = Path("docs/architecture/feishu-executor-waitset.md")
@@ -193,9 +193,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
     )
 
     if failures:
-        lines.append("FAIL:")
-        append_bullets(lines, failures)
-        lines.append("")
+        append_failures_block(lines, failures)
         lines.append(
             "File, marker, Feishu URL, or allowlisted symbol is gone — or a "
             "Humble rcl* tree appeared under vendor/. Fix the map (docs-only) "
