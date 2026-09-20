@@ -401,3 +401,23 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
+
+  # #28 bench-gates guard negative self-test: the positive bench-gates case
+  # (#3) and #17 fingerprint only prove the healthy tree renders green; they
+  # cannot prove print_bench_gates.py's two unique checks fire — the cross-host
+  # placeholder directory must exist while UDP is blocked (delete it ->
+  # FAIL missing) and _cross_host_hits must find an honest STATUS: blocked via
+  # _STATUS_BLOCKED_RE in at least one of five candidates (reword all ->
+  # FAIL cross-host; a bare STATUS token must not count). A single BLOCKED.txt
+  # hit is sufficient (any-hit); widening the regex to bare STATUS silences N2.
+  # The plain required-file/marker substring loop is the same shape covered by
+  # #23 and others and is not duplicated here.
+  - description: 'bench_gates_guard_selftest.py: the cross-host directory-existence and STATUS-blocked regex checks actually fire on tampering (negative regression, tempdir-only)'
+    vars:
+      script: evals/bench_gates_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'bench gates guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
