@@ -40,6 +40,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`（评论经 Claude GitHub App OIDC 身份发出，不用 job 的 `GITHUB_TOKEN`）。
 - 前置：仓库 secret **`ANTHROPIC_API_KEY`**，且仓库已安装 Claude GitHub App。缺任一项该 job 会红，但它**不是** required status check，不影响合入。
 - **不要**把 `claude-code-review` 设为 required check（§5 仍只要求 `structure` / `contracts` / `boundary`）。它是第二双眼睛，不替代人类批准 merge，也不替代 Hold 边界守卫。
+- 信任边界：`pull_request` 跑的是 PR 分支上的这份 YAML。本仓同仓 PR 只能由有 write 权限的协作者开，他们本来就能在任意分支的任意 workflow 里拿到仓库 secret，本 job 不额外扩大这个面；fork PR 拿不到 secret，已跳过。缓解在仓库设置层而不在本文件：`ANTHROPIC_API_KEY` 用专用、限额的 Console workspace key；`.github/workflows/` 的改动走 CODEOWNERS / required review；不要在这个 job 里加 shell step 或放宽 `--allowedTools`。
 
 ---
 
