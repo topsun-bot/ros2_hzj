@@ -39,6 +39,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - 动作：[`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action) 读 `AGENTS.md` + PR diff，每次运行用 `gh pr comment` 发**一条**评审评论（action 自身不发评论，避免双发）。只评论：不 push、不贴标签、不 approve、不 merge。
 - 评审重点：§2 Hold 边界回潮（XML / SCOREBOARD / `agnocast`·`zenoh` 路径 / `dimos_bridge`·`vendor` / Cega）、`scripts/`·`evals/`·`config/env/`·CI yaml 的正确性、**编造证据**（未测的时延、`PASS` / `PROVEN`、SHA）、失效相对链接、新 gate 缺 `evals/*_selftest.py`。
 - 权限：`contents: read` + `pull-requests: write` + `issues: write` + `id-token: write`（仅该 job；工作流顶层 `permissions: {}`）。
+- 工具：只读文件工具（`Read` / `Glob` / `Grep` / `LS`）+ `gh pr diff|view|checks`、`gh issue view`、`gh search` + 唯一写操作 `gh pr comment`；`Edit` / `Write` / `WebFetch` / `WebSearch` 显式 disallow，checkout 不会被改动。
 - 前置：仓库 Actions secret **`ANTHROPIC_API_KEY`**（或改用 `CLAUDE_CODE_OAUTH_TOKEN` + `claude_code_oauth_token:`）。没配 secret 时该 job 失败但**不影响合入**——见下。
 
 **不是 required status check。** 合入闸门仍只有 `structure` / `contracts` / `boundary`（§5）。Claude 的评论是给人看的第二双眼睛，不替代 `boundary` 的机械拦截，也不算 Hold bypass 的批准。

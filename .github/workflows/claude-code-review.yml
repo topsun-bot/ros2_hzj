@@ -54,7 +54,8 @@ jobs:
             contract (Chain A `rmw_fastrtps_cpp` domain 42 + `config/fastdds.xml`;
             Chain B Cyclone domain 0; no custom RMW; LCM out of scope).
 
-            Review the diff (`gh pr diff`) and report on:
+            Review the diff (`gh pr diff`), reading any unchanged files you need from
+            the checkout (Read / Glob / Grep), and report on:
             - Hold-boundary regressions (see `docs/architecture/ci-cd-gates.md` §2):
               edits to `config/fastdds.xml` or `docs/artifacts/bench/SCOREBOARD.md`,
               any path containing `agnocast` / `zenoh`, changes to `dimos_bridge`
@@ -76,6 +77,10 @@ jobs:
 
             Post the review as exactly one comment with `gh pr comment` using your
             Bash tool. Do not push commits, apply labels, approve, or merge.
+          # Read-only repo inspection (AGENTS.md, gate registry, link targets) plus
+          # the gh read commands and the single gh pr comment. Editing tools are
+          # disallowed explicitly so the review can never change the checkout.
           claude_args: >-
             --model claude-opus-5
-            --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh search:*)"
+            --allowedTools "Read,Glob,Grep,LS,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh search:*)"
+            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit,WebFetch,WebSearch"
