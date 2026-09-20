@@ -8,8 +8,17 @@ name: claude-code-review
 #
 # Setup (one-time, repo Settings -> Secrets and variables -> Actions):
 #   ANTHROPIC_API_KEY  — Anthropic API key. (Alternative: CLAUDE_CODE_OAUTH_TOKEN
-#   with `claude_code_oauth_token:` below.) The job is skipped on fork PRs,
-#   where secrets are unavailable.
+#   with `claude_code_oauth_token:` below.) Use a dedicated key with a spend
+#   limit set in the Anthropic Console. The job is skipped on fork PRs, where
+#   secrets are unavailable.
+#
+# Trust boundary: the trigger is `pull_request`, deliberately not
+# `pull_request_target`. Only same-repo branches reach the secret, and pushing a
+# same-repo branch already requires write access, so this workflow grants no
+# capability a collaborator lacks. `pull_request_target` would run trusted
+# workflow code against untrusted fork PRs with secrets, which is the worse
+# pattern for this repo. Actions are pinned to full commit SHAs; bump them
+# deliberately (Dependabot / renovate or a reviewed PR), never by moving a tag.
 
 on:
   pull_request:
@@ -36,13 +45,13 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
