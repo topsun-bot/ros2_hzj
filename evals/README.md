@@ -13,7 +13,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 32 个 seed 用例 |
+| `promptfooconfig.yaml` | 评估配置：1 个 custom provider + 33 个 seed 用例 |
 | `localScriptProvider.mjs` | custom provider（`local-script`）：`python3 <prompt>`（prompt 可带空格分隔的 CLI 参数），返回 stdout；非 0 退出即 `error` |
 | `fingerprint_check.py` | stdout 指纹回归（eval-only，**不是** CI gate、不进 `run_all_gates`、无需 ci.yml 接线）：重跑 13 gate + `load.py print-a\|b`，把归一化后的完整 stdout 与 `fixtures/` 逐字节比对 |
 | `frozen_guard_selftest.py` | frozen-path guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 里构造夹具，断言 guard 对每种违禁 `Path(...)` 形态必报、对允许提及不误报、豁免真源、`render()` 退出码正确 |
@@ -31,6 +31,7 @@
 | `gate_execution_selftest.py` | gate-runner **执行判定语义负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线；对象是 runner 的 `run_one`/`main` 而非注册表）：在 `tempfile` 放假 gate 并把 `run_all_gates.REPO_ROOT`/`GATES` 指过去（`finally` 恢复），钉「exit 0 且在 stdout/stderr 合并输出里打印健康 marker 才算过」——exit 0 但不打印 marker 必计 `zero-but-missing-marker` 并 FAIL、非零退出（即便打印 marker）必 FAIL、GATES 指向缺失脚本必返回 `127`/`missing:` 并 FAIL；marker 只打到 stderr 且 exit 0 仍算过（钉 combined 语义、防误报）；把 `run_one` 换成「恒报 marker 存在」的桩则空壳 exit-0 gate 必漏报（恢复后抓回）。补齐 #29 只钉注册表、不执行 gate 的盲区 |
 | `fingerprint_guard_selftest.py` | stdout 指纹严格层（#17 `fingerprint_check.py`）的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：在 `tempfile` 把 `fingerprint_check` 的 ROOT/FIX_DIR/COMMANDS 指到假命令（`finally` 恢复），钉逐字节比对真会 fail——live 输出与 fixture 不符必 `FAIL stdout drift`+DRIFT、健康命令缺 fixture 必 `FAIL missing fixture`、命令非零退出必 `FAIL command exit N`、`--update` 遇失败命令必在 stderr 拒绝且不写 fixture；命令 stdout 内嵌绝对仓库路径时 `normalize` 必归一化为 `<REPO_ROOT>`（可移植、防假 DRIFT 误报）；把 `normalize` 换成恒返回 fixture 内容的桩则 drift 漏报为绿（恢复后抓回）。补齐 #17 只断言健康 stable 的盲区 |
 | `dual_chain_env_load_selftest.py` | 双链环境**真源** `config/env/load.py` 的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线；区别于 #19 测 guard 检测假夹具）：钉 `describe` 返回精确 Chain A/B 契约值（fastrtps/42/fastdds.xml 绝对路径、cyclone/0）、未知 chain 抛 `ValueError`、未知 CLI 子命令 argparse exit 2、Chain B `apply` 必 `unset CYCLONEDDS_URI`（预置外部 URI 必须被删除）、`export_shell` 单引号转义可被 POSIX shell 原样 round-trip、import 不改 `os.environ`（import 纯净）；`apply` 只 update 不 pop 的盲桩会让 CYCLONEDDS_URI 泄漏（恢复后抓回）。进程内 apply 快照/恢复、CLI 与 import 纯净走隔离子进程 |
+| `local_script_provider_selftest.py` | promptfoo **local-script provider 自身**（`localScriptProvider.mjs`）的契约/负向自测（eval-only，不是 CI gate、无需 ci.yml 接线）：provider 是 #12–#32 全部用例的执行器，非零退出必须转成 promptfoo `error`（负向 eval「exit1→case fail」的根基）。python 主体在 tempdir 写 Node harness、经 file:// URL import 真实 .mjs provider 并跑临时 python 夹具：钉 id=`local-script`、空/纯空白 prompt→empty error、exit1→`exited with code 1` 且 output 含 stdout+stderr、缺失脚本（python3 exit2）→`exited with code 2`、成功 output 仅 stdout（stderr 不得污染 contains/指纹）、argv 空白拆分 + cwd=repoRoot；盲 provider（catch 不返回 error）吞掉非零退出会漏报、真实 provider 报 error（mutation 可区分）。不在树内建 fixture、不编辑仓库 |
 | `fixtures/*.txt` | 15 份已评审的归一化 stdout 基线（13 gate + print-a/print-b）；有意改动输出后用 `--update` 重生成并随 PR 提交 |
 | `results/baseline_raw.txt` | 基线运行的原始终端输出 |
 | `results/BASELINE.md` | 基线数字摘要 |
@@ -43,7 +44,7 @@
   provider 把 prompt 按空白拆成 argv，用 `execFileSync('python3', argv, { cwd: repoRoot })`
   执行，返回 `{ output: stdout }`；若脚本非 0 退出，返回 `{ output: stdout+stderr, error: ... }`，
   promptfoo 即把该 case 判为失败。
-- **seed 用例**（32 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
+- **seed 用例**（33 个）：13 个 gate 健康标记（其中 12 个额外断言实质 DDS/Hold/诚实性契约短语）、
   1 个 env 单一真源交叉检查（含双链真值 42/0 与 `CYCLONEDDS_URI` unset）、1 个冻结路径字面量
   防回潮、2 个直接跑 `load.py print-a/print-b` 锁定双链可执行真源的用例、1 个全量 stdout
   指纹回归用例（#17，见下节）、1 个 frozen-path guard 的负向自测用例（#18）、1 个双链 env
@@ -52,7 +53,7 @@
   guard 的负向自测用例（#22）、1 个产品 DoD 诚实性 guard 反伪造逻辑的负向自测用例（#23）、
   1 个 Cega / Bridge Hold guard 独有解析的负向自测用例（#24）、1 个 runtime-provenance
   guard 的 Humble 钉版与 VERSIONS 同行 SHA 解析器负向自测用例（#25），以及 1 个 sink-layers
-  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate），以及 1 个双链环境真源 load.py 自身的契约/负向自测（describe 精确契约 / 未知 chain ValueError / 未知子命令 exit 2 / Chain B apply 必 unset CYCLONEDDS_URI / shell 转义 round-trip / import 纯净 / apply 不 pop 泄漏变异）用例（#32，对象是 env 真源而非 #19 的 guard，均见下文专节）：
+  guard 的六层表格行首标签锚定解析器负向自测用例（#26），以及 1 个 three-chain 复现 guard 独有的 `map = reproduce` / `three-chain repro: PROVEN` 伪造正则负向自测用例（#27），以及 1 个 bench-gates guard 的跨机占位目录存在性与 `STATUS: blocked` 正则扫描负向自测用例（#28），以及 1 个 gate-runner 注册表（磁盘 gate ↔ run_all_gates.GATES）双向一致性自测用例（#29），以及 1 个 gate-runner 执行判定语义（exit 0 且打印 marker 才算过；exit0 缺 marker / 非零退出 / 脚本缺失 127 必 FAIL；stderr marker 合并判定）负向自测用例（#30，与 #29 同属 runner 而非 guard），以及 1 个 stdout 指纹严格层 #17 自身的负向自测（live≠fixture drift / 缺 fixture / 命令非零 / `--update` 拒绝失败命令必 FAIL、绝对路径归一化 `<REPO_ROOT>` 防误报、normalize 盲桩漏报 drift）用例（#31，对象是 fingerprint_check 工具而非 gate），以及 1 个双链环境真源 load.py 自身的契约/负向自测（describe 精确契约 / 未知 chain ValueError / 未知子命令 exit 2 / Chain B apply 必 unset CYCLONEDDS_URI / shell 转义 round-trip / import 纯净 / apply 不 pop 泄漏变异）用例（#32，对象是 env 真源而非 #19 的 guard），以及 1 个 local-script provider 自身的契约/负向自测（空/空白 prompt error、exit1 透传 error+stdout/stderr、缺失脚本 code2、成功 output 仅 stdout、argv 拆分/cwd、盲 provider 吞非零退出变异）用例（#33，对象是 promptfoo 执行器 .mjs 本身，python 经 tempdir Node harness 桥接，均见下文专节）：
 
   | # | 脚本 | 断言 stdout 必含的关键串 |
   |---|---|---|
@@ -88,6 +89,18 @@
 | 30 | `evals/gate_execution_selftest.py` | `gate runner execution selftest: PASS`、`3 negative, 1 non-flag, 1 healthy, 1 mutation`（exit0 缺 marker 必 FAIL zero-but-missing-marker、非零退出必 FAIL、缺失脚本必 127/FAIL；marker 仅在 stderr 且 exit0 仍过；run_one 恒报 marker 存在即漏报空壳 exit-0 gate） |
 | 31 | `evals/fingerprint_guard_selftest.py` | `fingerprint guard selftest: PASS`、`4 negative, 1 non-flag, 1 healthy, 1 mutation`（live≠fixture 必 DRIFT、缺 fixture 必 FAIL、命令非零必 FAIL、`--update` 遇失败命令必拒且不写 fixture；绝对路径归一化 `<REPO_ROOT>` 防误报；normalize 恒返回 baseline 即漏报 drift） |
 | 32 | `evals/dual_chain_env_load_selftest.py` | `dual-chain env load selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（未知 chain 必 ValueError、未知子命令必 exit 2、Chain B apply 必删 CYCLONEDDS_URI；shell 转义 round-trip 与 import 纯净防误报；apply 不 pop 盲桩泄漏 URI、恢复抓回） |
+| 33 | `evals/local_script_provider_selftest.py` | `local-script provider selftest: PASS`、`3 negative, 2 non-flag, 1 healthy, 1 mutation`（空 prompt 必 error、exit1 必透传 error 且含 stdout/stderr、缺失脚本必 code 2；纯空白不绕过、成功 output 不含 stderr 防误报；盲 provider 吞非零退出漏报、真实 provider 报 error） |
+
+### local-script provider 契约/负向自测（#33，eval-only）
+
+- `evals/localScriptProvider.mjs` 是 promptfoo 的 custom provider（id `local-script`），也是 **#12–#32 全部用例的执行器**：把 prompt 按空白拆成 argv 用 `python3` 跑、cwd=repoRoot，exit 0 返回 stdout 作为 `output`，**exit 非 0 必须设置 `error`**，promptfoo 才会把该 case 判失败。#18–#32 的负向自测脚本内部 exit 1 能否真的在 promptfoo 里标红，完全依赖这条「非零→error」透传；但此前 provider 自身零断言。
+- `local_script_provider_selftest.py`（对象是 **provider .mjs 执行器本身**；provider 硬编码 python3、无法被 python3 provider 直接执行，故 python 主体在 tempdir 写一个 Node harness，经 `file://` URL import 真实 provider、再跑 tempdir 内一次性 python 夹具，结果以 JSON 回传断言；不在树内建 fixture、不编辑仓库；需要 `node`——promptfoo 本身也依赖 node）：
+  - **3 个负向**：N1 空 prompt 必返回 error（`empty prompt ...`）且 output 为空串；N2 夹具 exit 1 必返回 error 含 `exited with code 1`，且 output 同时含 stdout（`OUT-LEAD`）与 stderr（`ERR-DETAIL`）；N3 缺失脚本（python3 自身 exit 2）必返回 error 含 `exited with code 2`，不得静默成功；
+  - **2 个 non-flag**：纯空白 prompt（`'   \t '`）经 trim/split/filter 后同样命中 empty error（不得靠空白绕过）；exit 0 但往 stderr 写内容的脚本必须**无 error** 且 output 只含 stdout（`CLEAN-OUT`）、**不含** stderr（`NOISE-STDERR`），防止 stderr 污染 contains 断言与 stdout 指纹；
+  - **1 个健康对照**：`id()=='local-script'`，且 `config/env/load.py print-a`（带参数）exit 0、无 error、stdout 含 Chain A 契约（证明 argv 空白拆分传参与 cwd=repoRoot）；
+  - **1 个变异**：内联定义一个 catch 里不返回 error 的「盲 provider」，其对 exit 1 夹具**漏报**（hasError=false，sanity 自检），而真实 provider 对同一夹具报 error——证明本测试能区分「吞掉非零退出」的退化。
+- **范围边界**：只钉 provider 的 prompt→argv→exit 裁决与 output/error 通道，不重复各 selftest 对 guard/runner/工具自身判定逻辑的断言；不修改 provider 行为（行为不变）。
+- 与 #18–#32 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、不需要 ci.yml 接线。
 
 ### 双链环境真源 load.py 契约/负向自测（#32，eval-only）
 

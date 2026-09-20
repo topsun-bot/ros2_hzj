@@ -490,3 +490,22 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #33 local-script provider self-test: every eval case (#12-#32) depends on
+  # the Node provider turning a non-zero exit into a promptfoo `error`. Pins
+  # empty/whitespace prompt -> empty-prompt error, exit 1 -> "exited with code
+  # 1" carrying stdout+stderr, missing script (python3 exit 2) -> "exited with
+  # code 2", success output = stdout only (no stderr leak into contains/
+  # fingerprint input), argv whitespace split + cwd=repoRoot, and a blind
+  # provider that swallows non-zero exits (mutation, distinguished from the
+  # real one). A python harness shells out to a tempdir Node harness that
+  # imports the real .mjs provider; no in-tree fixtures, repo untouched.
+  - description: 'local_script_provider_selftest.py: the local-script promptfoo provider must id as local-script, error on an empty or whitespace-only prompt, propagate exit 1 as an error with stdout+stderr and a missing script as code 2, return stdout-only output on success, and split argv with cwd=repoRoot; a blind provider that swallows non-zero exits must be distinguishable, tempdir node harness only'
+    vars:
+      script: evals/local_script_provider_selftest.py
+    assert:
+      - type: contains
+        value: 'local-script provider selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
