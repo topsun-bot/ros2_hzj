@@ -2234,7 +2234,7 @@
 
 ## 轮次 29 — 2026-09-20 21:16（Asia/Shanghai）《2》收尾确认扫描 + 12 处逐字 FAIL 汇总段下沉为 `_repo.append_failures_block`
 
-> 定时任务第 29 轮。分支 `refactor/shared-failures-block`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 29 轮。分支 `refactor/shared-failures-block`，功能 PR **#98**（squash-merge，main `49efee2`，分支功能 commit `53c9695`）；PR 号与合并后回归由 docs-only 回填 PR 补登。
 > 本轮先执行轮次 28 计划的《2》收尾确认：对全部非下划线脚本做 AST 连续语句 n-gram（长度 2–3，含 if/for 块内一层）
 > **严格逐字**重复扫描（`ast.unparse` 后仅折叠空白、**保留字符串字面量与变量名**，即只认逐字、不认形态同构），
 > 再对命中片段按 `_repo` 的 rendering-only 边界逐项处置。最终只下沉一个纯渲染、12 处逐字的 FAIL 汇总段；
@@ -2307,6 +2307,12 @@
   （健康路径指纹逐字节 + 非空 failures 自测/探针证明）；helper 在下划线模块内，不进 CI 命令枚举。
   required-marker 断言块刻意**未**下沉（守 rendering-only 边界）。
 - 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 合并后回归（main `49efee2`，PR #98 squash-merge 后）
+
+- required checks structure/contracts/boundary 全 pass，CodeQL（python/actions/javascript-typescript + aggregate）全 pass，Cursor Approval APPROVED、mergeStateStatus CLEAN；squash-merge 后远端分支已删。
+- 回 main 重跑：gate **13/13 all gates green**、stdout 指纹 **15/15 stable**、#18–#27 十自测全 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（合并后 eval ID `eval-wht-2026-09-20T13:37:58`，UTC，约合 CST 21:37，Duration 2s）。
+- 网络备注：push 阶段 GitHub 曾连续 6 次探测返回 000、第 7 次恢复后 push 成功并经 ls-remote 确认；merge 与合并后 pull 一次成功，未重复合并。
 
 ### 剩余风险
 
