@@ -5,6 +5,8 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。
 
+第二个工作流 [`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml) 让 Claude 作为 PR 代码评审（advisory，**不是** required check），见 [§5.1](#51-claude-code-reviewadvisory)。
+
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
 ---
@@ -80,6 +82,16 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - 不要只保护其中一个 job。
 - Agent 可以做到 **merge / production 闸门之前**（开 PR、推提交、等 CI、修红）。
 - **人类批准 merge**。本仓不自动合入。
+
+### 5.1 Claude code review（advisory）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。PR `opened` / `synchronize` / `ready_for_review` / `reopened` 时，用 [anthropics/claude-code-action](https://github.com/anthropics/claude-code-action) 跑官方 `code-review` plugin skill（`--comment`），把发现写成 PR inline comment；没有发现时只留一条 summary comment。
+
+- **advisory only**：不设为 required status check；`structure` / `contracts` / `boundary` 仍是唯一必绿闸门。评审意见不替代人类批准 merge。
+- **Hold 提示**：`claude_args` 里 `--append-system-prompt` 让评审先读 [AGENTS.md](../../AGENTS.md)，并把碰冻结路径（`config/fastdds.xml`、`SCOREBOARD.md`）、`agnocast` / `zenoh` 路径、`dimos_bridge` / `vendor/` 改动、编造分位数 / PASS / PROVEN 视为 Important。这是对 `boundary` 闸的补充，不是替代。
+- **一次性配置（repo admin）**：安装 [Claude GitHub App](https://github.com/apps/claude)；在仓库 secrets 加 `ANTHROPIC_API_KEY`（或 `CLAUDE_CODE_OAUTH_TOKEN`，并把工作流里的 `anthropic_api_key` 行换成 `claude_code_oauth_token`）。secret 缺失时该 job 失败，但不影响 `ci.yml` 三个 job。
+- **不跑的情况**：draft PR（`if: draft == false`，skill 本身也跳过 draft）；fork PR（GitHub 不给 fork 运行 secrets）；已经有 Claude comment 的 PR（skill 自行跳过）。
+- 参考：[Claude Code GitHub Actions](https://code.claude.com/docs/en/github-actions)。托管版 [Code Review](https://code.claude.com/docs/en/code-review)（无需 workflow 文件，Team / Enterprise 订阅）是另一条路，本仓先走 workflow 文件以便 diff 可见。
 
 ---
 
