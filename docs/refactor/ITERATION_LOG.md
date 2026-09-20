@@ -2335,3 +2335,72 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+## 轮次 30 — 2026-09-20 22:18（Asia/Shanghai）《2》A 面收尾：最终逐字重复扫描确认清零 + 计划状态标记「按需维护」（纯文档轮）
+
+> 定时任务第 30 轮。分支 `docs/refactor-a-side-complete`，单个 docs-only PR（无代码功能 PR，故无回填 PR）。
+> 本轮**不改任何代码**：执行轮次 29「下一步」第 1 条——补一次跨函数单行 + 表达式（调用头）级的最终确认扫描，
+> 据此在重构计划中把《2》阶段 1 / Step 1–4 的 A 面部分正式标记为「逐字重复清零、进入按需维护」，并做一次完整回归。
+> 目的是给《2》A 面一个有证据的收尾结论，而不是为消除重复制造新改动。
+
+### 最终确认扫描（在轮次 29 的连续语句 n-gram 之外，补单行 / 调用头档）
+
+- 方法：对全部非下划线脚本，AST 提取每个函数体（含 if/for/while 的 body/orelse/finalbody 一层嵌套）的
+  **每一条语句**与其中的**调用头（callee）**，`ast.unparse` 后仅折叠空白、**保留字符串字面量与变量名**（严格逐字档），
+  统计跨文件出现。
+- 结论：跨 ≥3 文件的逐字单行语句 21 类、跨 ≥4 文件的逐字调用头 21 类，逐条判定后**没有新的可下沉机制**，全部落入四类：
+  1. **已下沉 helper 的调用点**（逐字是预期结果，不是重复问题）：`append_failures_block(lines, failures)`（12 闸）、
+     `return emit_render(render())`（12 脚本）、`if not path.is_file(): report_missing_file(...) continue`（9 闸）。
+  2. **单行语言惯用法 / 局部数据流**：`lines.append("")`（13）、`failures: list[str] = []`（12）、
+     `path = root / rel`（10）、`key = rel.as_posix()`（10）、`text = read_utf8(path)`（6）、`texts[rel] = text`（4）、
+     `hits: list[str] = []`（4）等——封装成 helper 只会增加间接层，不下沉。
+  3. **业务判定（守 rendering-only 边界，不收敛）**：required-marker 断言块
+     （`missing_markers = [m for m in markers if m not in text]` + `FAIL markers` + `continue`，7 闸）与
+     `ok file` 渲染（9 闸，含 hint）；dod/dual_chain 已因 existence_only 分化、executor/source 走 `_md_paths`。
+     若未来要统一，必须是带 docs/spec 与一致性检查的**独立机制 PR**，不混入小步渲染收敛。
+  4. **render 自然终点 / 独有措辞**：尾部 `return "\n".join(lines), 0/1`（12，与各闸独有 prose/SUCCESS·PAUSED marker 交织、
+     early return 数量不一，executor/source 各 3 个 return）；executor/source 独有 warnings 标题；
+     `_fabricate_hits` 的私有正则（被 #24/#27 mutation 自测锚定）。
+- 与轮次 29 结论一致并补强：**函数级、入口、bullet 循环、缺失文件报告、FAIL 汇总段等纯机制/纯渲染的跨文件逐字重复，
+  至此全部清零**；A 面无新的高置信度小步重构项。
+
+### 文档改动（仅 2 个 md，0 代码）
+
+- `docs/refactor/02-modernization-plan.md`：在 §3 Step 4 之后新增「Step 1–4 进展状态（A 面，持续更新）」小节，
+  逐项登记 Step 1–4 的落地 PR（死代码 #49；冻结路径/第 13 闸 #52；`_md_paths` #50、env 交叉 #51、`_repo` #53 与
+  轮次 22/25–29 的 #82/#89/#91/#93/#95/#98；existence_only 反转 #84/#86）、`_repo` 现有 7 个公共函数清单、
+  逐字重复最终扫描的四类「不收敛」判定与理由，并明确 A 面 Step 1–4 **进入按需维护**、B/C 面维持 Hold、
+  ci.yml 接线仍待 `workflow` scope。
+- `docs/refactor/ITERATION_LOG.md`：本小节。
+- 不改任何脚本/配置/eval/fixture；不新增 eval 用例（无行为变化）。
+
+### 完整回归（main `784b15f`，纯文档改动前后代码树一致）
+
+- gate **13/13 all gates green**；stdout 指纹 **15/15 stable**；#18–#27 十个负向自测全 exit 0；
+  promptfoo **27/27 passed (100%) / 0 failed / 0 errors**（eval ID `eval-uTW-2026-09-20T14:17:26`，UTC，约合 CST 22:17，Duration 2s）。
+- 分数无变化（维持 gate 13/13、指纹 15/15、eval 27/27 双百）——本轮是状态收尾而非功能/断言变更。
+
+### Hold 合规
+
+- 纯文档轮：未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字（计划 §1.3 行数表虽已过时，
+  但非本轮主题，未顺手改动以免堆叠无关变更）；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；
+  未集成 Cega、未重写 Bridge runtime；双链契约不动；无框架/依赖/API/架构变更。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险与状态
+
+- 《2》A 面（自有 scripts/config/docs）的机械性现代化已收尾，进入按需维护；继续强行抽 helper 的边际收益为负
+  （会把业务判定或单行惯用法塞进共享模块、模糊 rendering-only 边界）。
+- 仍 blocked / 待拍板（均不得自行突破）：① ci.yml 接线需本机 `gh auth refresh -h github.com -s workflow`
+  （active `yixinzhangagent` 缺 workflow scope；优先把纯 python 的 fingerprint + #18–#27 selftest 纳入 CI，先于整套 promptfoo）；
+  ② CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR；
+  ③ 4 份飞书文档 3380004 无权限；④ 无 Humble Linux 主机，真·双链 pub/sub、p99、跨机 UDP、三链实际复现恒 `STATUS: blocked`，不伪造。
+
+### 下一步（轮次 31 候选）
+
+1. 若 `workflow` scope 已授权：用 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 开**独立 PR** 把第 13 闸与
+   eval-only 自测接进 CI（先纯 python 项），随后做计划 §5.3 规则 2 的机器化一致性检查。
+2. 若用户批准 CVE 修复三项：按 external Cyclone / requirements 锁 / rosdistro key 钉 SHA 拆 3 个独立 PR（不与重构混合）。
+3. 若评估侧出现新的真实 DDS 行为薄弱断言：按《5》纪律在 `evals/` 增补对应负向用例（eval-only、纯标准库、tempdir-only）。
+4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate+指纹+#18–#27+promptfoo 回归，在日志标注「等待新指令」，
+   **不再为凑改动制造提交**。
