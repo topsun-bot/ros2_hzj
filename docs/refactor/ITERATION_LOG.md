@@ -2892,3 +2892,55 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#35 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
+---
+
+## 轮次 39 — 2026-09-21 07:38（Asia/Shanghai）— eval #36：docs/refactor 与 evals 文档相对链接完整性自测（功能 PR TBD）
+
+### 背景与取证（先探针、后写脚本）
+
+- re-ground：`main`=`2aa0f43`=origin/main（轮次38 回填 #119 后），工作区干净，仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked（未碰）；本循环无在途 PR。
+- runner 双面（#29/#30）、eval 注册面（#35）、11 guard（#18–#28）、指纹严格层（#31）、env 三层（#19/#32/#34）、provider（#33）已闭环。本轮按「下一步」取证 **docs 契约链接同构面**：CI `contracts` job 只对固定白名单做 `test -f`（**不解析** markdown 链接，且白名单不含 `docs/refactor/**` 与 `evals/**`）；`scripts/_md_paths.py` 的 `parse_map` 虽解析引用，但只服务 `check_source_map.py` / `check_executor_map.py` 两份特定架构图，且把反引号 `` `path` `` 也当引用（配符号 allowlist），与「纯 markdown 链接存在性」是不同职责。
+- 探针逐字取证（python，先剥围栏代码块再剥行内代码）：扫描 `docs/refactor/**/*.md`（01、02、ITERATION_LOG）+ `evals/**/*.md`（README、results/BASELINE）共 **5 个** md；inline/图片链接 **165 个，全部为相对链接**（`../../scripts/...`、`../architecture/...`、同目录 `ITERATION_LOG.md`/`02-modernization-plan.md`，无 http/锚点/mailto），目标（文件或目录）**零断链、零越界**。
+- 探针第一次未剥行内代码时出现 1 个误报 `[^"']+`——来自轮次38 日志行内代码里写的 marker 正则片段，证明正式自测必须先剥围栏与行内代码（GitHub 渲染时代码内 `](...)` 不是链接）；加行内代码剥离后误报清零。
+- 真实缺口：本循环每轮产出/维护的这批文档约 165 个相对链接，其目标是否仍存在**此前零机器检查**；重命名/移动文件而不更新链接会静默腐烂文档。
+
+### 改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml / 0 tempdir）
+
+- 新增 `evals/doc_link_selftest.py`（**eval #36**，对象是**文档链接同构面**，中缀 `doc_link`；纯标准库，读**真实仓库**做健康对照，负向用**内存注入链接**、不写 tempdir、不改仓库）。核心 `find_broken(entries, root, exists)` 为纯函数：先 `strip_code`（剥 ```` ``` ```` 围栏与 `` `...` `` 行内代码），再匹配 inline/图片链接；external（http/https/mailto/`#锚点`/`<...>`/web 根绝对路径）跳过；相对路径相对当前 md 目录 resolve，越出仓库根报 `escapes repo root`、目标（文件或目录，允许末尾 `/`）不存在报 `missing target`。场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - healthy：真实仓库 5 个 md、≥100 个相对链接（实测 165）、零断链；设文件数/链接数下限，防 glob 失效导致空扫恒真；
+  - N1 注入缺失同级文件链接必报 missing；N2 注入 `../../../../` 越界链接必报 escape；N3 注入缺失目录（末尾 `/`）链接必报 missing；
+  - non-flag1 external/锚点/mailto 一律不检查；non-flag2 围栏代码块与行内代码中的伪 `](x.md)` 链接不被扫描；
+  - mutation：用 exists 包装把一个真实存在的目标强制判失，必被报 missing，证明检查非恒真。
+- `evals/promptfooconfig.yaml`：35→**36**，末尾追加 #36 块（2 条 contains：`doc link selftest: PASS` + 计数串）。
+- `evals/README.md`：六处登记（配置表/seed 叙述 36、文件表新增链接自测行、枚举句追加 #36、明细表 `| 36 |`、倒序新增 #36 专节置于 #35 专节之前），498→511 行。
+- 自举联动：新脚本匹配 `evals/*_selftest.py`，落地未登记 yaml 时会被 #35 eval 注册面自测报为 orphan；登记 yaml 后 #35 与 #36 同时 PASS（注册面自测再次发挥防漏登作用）。
+
+### 合并前回归（分支，2026-09-21 07:37 CST）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py`：通过；
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（未改任何被指纹命令的 stdout）；
+- eval-only 自测：**19 个全 PASS**（fail=0，新增 `doc_link_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串；#35 自举 orphan 已随登记消除）；
+- promptfoo：**36/36 passed (100%)、0 failed、0 errors**（合并前 eval `eval-hvz-2026-09-20T23:37:54`，Duration 7s，热缓存）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
+- 负向一律内存注入链接（不写 tempdir、不在原地改任何文档）；不新增依赖（仅一个新 .py）；`evals/results/BASELINE.md` 历史快照只读扫描、未改。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md`（untracked）未删除/覆盖/提交。
+
+### 剩余风险与缺口
+
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`，未伪造。
+- 第 13 闸与全部 eval-only 自测（含 #36）仍未接 CI structure 枚举（active 账号缺 `workflow` scope）。#36 自身 eval-only、不进 GATES、无需 ci.yml 接线。
+- #36 只钉 `docs/refactor/**` 与 `evals/**`（本循环产出面）；`docs/architecture/**` 等已由 source_map/executor_map 与 CI `test -f` 白名单覆盖，未重复钉；裸 URL（ITERATION_LOG 里大量 PR https 链接非 markdown 链接形式）不在解析范围。
+- 《6》CVE 修复三项仍待用户明确批准、拆独立 PR；4 份飞书文档仍 3380004 无权限。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 36/36），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. runner 双面、eval 注册面、文档链接面、11 guard、指纹严格层、env 三层、provider 均已闭环；继续取证是否还有未钉的真实独有判定面（如其余 A 面脚本边界、config/ 下文档链接），**先 /tmp 探针确认真实未覆盖再新增，不为凑数**。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35/#36，纯 python）接进 CI。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#36 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+

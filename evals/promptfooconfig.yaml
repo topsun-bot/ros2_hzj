@@ -546,3 +546,19 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #36 markdown relative-link integrity for the docs this loop writes. The CI
+  # contracts job only `test -f`s a fixed allowlist (no link parsing, and it
+  # excludes docs/refactor/** and evals/**); source_map/executor_map parse
+  # citations only for two architecture maps. This scans docs/refactor/**.md
+  # and evals/**.md, strips fenced/inline code, and requires every relative
+  # [text](target) link to stay inside the repo and resolve on disk.
+  - description: 'doc_link_selftest.py: relative markdown links in docs/refactor/** and evals/** must resolve on disk and stay inside the repo (code spans stripped, external/anchor/mailto skipped); missing sibling file, parent-directory escape and missing directory must be detected, and a real target forced missing must be caught'
+    vars:
+      script: evals/doc_link_selftest.py
+    assert:
+      - type: contains
+        value: 'doc link selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
