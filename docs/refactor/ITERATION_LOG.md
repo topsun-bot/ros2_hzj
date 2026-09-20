@@ -1669,3 +1669,74 @@
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做一次完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，
    不制造无意义提交。
+## 轮次 22 — 2026-09-20 13:18（Asia/Shanghai）《2》小步重构：收敛 dual-chain guard 内 shell↔load.py 键值比对的重复列表推导
+
+> 定时任务第 22 轮。分支 `refactor/dual-chain-shell-crosscheck-helper`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 轮次 21 已宣告 guard 负向自测（#18–#27）收尾，本轮按既定方向回到《2》现代化重构计划，做一项**行为不变、纯提取**的
+> 「抽辅助函数」小步（plan §3 Step 3 精神），由 #17 stdout 指纹逐字节护航。一次只改一个脚本。
+
+### 选题前的盘点（确认 Step 1–4 已落地，避免为改而改）
+
+- re-ground：main 与 origin/main 同步于 `1ea19e5`（轮次 21 回填 #81），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；本循环无在途 PR（开放 PR 全是他人 claude/codex/cursor 机器人项，未触碰）。
+- 逐项核对 plan §3：Step 1 死代码（迭代 1 删 `legacy_compare`）、Step 2 冻结路径样板（`_freeze_paths.py` + 9 个脚本 import +
+  第 13 闸 `check_frozen_path_literals`，残留命中均为消息文本/`_SINK_MARKERS` 标记串/guard 自身，非 `Path(...)` 定义，不可动）、
+  Step 3 `_md_paths.py` 收敛（`check_source_map`/`check_executor_map` 由 320/407 行降到 143/225 行）、Step 4 双链真源
+  （`load.py` 唯一可执行真源 + `dual_chain_env.py` docstring 已写明真源指针 + 迭代 3 的四类 env 交叉检查）均已落地。
+- 全脚本扫描确认：无直接 `open()`/`read_text()` 残留（统一走 `_repo.read_utf8`）；importlib 模块加载样板仅
+  `check_dual_chain_baseline.py` 一处（`dimos_bridge/dual_chain_env.py` 那份在 B 面薄包装里，跨面不引 scripts helper），
+  单一使用点抽 helper 属过度抽象，**不做**。
+- 真实剩余重复：最大的 A 面脚本 `check_dual_chain_baseline.py`（470 行，迭代 3 扩充）里，chain_a / chain_b 两段
+  「shell `export` 字面量 vs `load.py` chain dict」交叉检查各有一段**同构的 4 行列表推导**，f-string 完全相同、仅
+  `sh_a/chain_a` 与 `sh_b/chain_b` 变量不同。这是本轮收敛对象。
+
+### 改了什么（纯提取，+21/−10，只动 `scripts/check_dual_chain_baseline.py`）
+
+- 新增模块级常量 `_SHELL_CROSS_KEYS = ("RMW_IMPLEMENTATION", "ROS_DOMAIN_ID")` 与辅助函数
+  `_shell_key_drifts(shell_exports, chain, keys=_SHELL_CROSS_KEYS)`：逐键比较字面 shell 值与 `load.py` chain dict，
+  返回与原内联推导**逐字相同**的漂移描述串 `f"{key}: shell={...!r} load.py={...!r}"`。
+- chain_a / chain_b 两段各把 4 行内联列表推导替换为一次 `_shell_key_drifts(...)` 调用；两条 FAIL/ok 渲染分支、
+  failures 收集、exit code 全部不动。
+- **刻意保留**：chain_a 独有的 `FASTRTPS_DEFAULT_PROFILES_FILE` 路径解析比较（含 `${_ROS2_HZJ_ROOT}` 替换）留在原处，
+  不进共享 helper（它是路径语义、chain_b 没有）；`_EXPECTED_CHAIN_A/B` 仍在 guard 内**独立硬编码**期望值
+  （guard 不能 import `load.py` 的值来检查 `load.py`，否则变成自证）；不碰任何 Hold 面文件。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **stdout 逐字节**：重构前后各跑一次 `check_dual_chain_baseline.py`（均 exit 0、38 行），`diff` 为空
+  （STDOUT BYTE-IDENTICAL）。
+- **helper 等价性探针**（临时脚本，不入仓）：健康（shell==chain）返回 `[]`；单键漂移返回串与原内联推导逐字一致；
+  shell 缺键（`None` vs 值）同样判漂移；默认键恰为两个契约键。
+- **端到端负向回归**：#19 `evals/dual_chain_env_guard_selftest.py` 全过（**6 negative / 2 healthy / 1 mutation**），
+  其中 shell/load.py cross-check drift 负向场景仍被抓到——证明提取没有把交叉检查改宽。
+- Gate：**13/13 all gates green**；stdout 指纹：**15/15 stable**（被重构脚本在 15 条命令内，逐字节无漂移、未动 fixtures）；
+  #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-1qp-2026-09-20T05:17:54`，UTC；约合 CST 13:17，Duration 5s）。本轮不新增 eval 用例（纯内部重构、
+  无新行为；负向能力已由 #19 覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码（含 `dual_chain_env.py` 薄包装，本轮只动 scripts/）；
+  未集成 Cega、未重写 Bridge runtime。双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整（命令名、argv、exit code、关键打印短语全部不变；公共契约稳定）。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。纯脚本内提取，stdout/exit code 逐字节不变，且有 #19 负向自测与 #17 指纹双保险。helper 仅本脚本使用，
+  未跨文件导出（不下沉到 `_repo.py`，因为目前只有一个消费方；未来第二个 gate 需要同类 shell 比对时再下沉，避免过早抽象）。
+- A 面 Step 1–4 的低垂重构果已基本摘完；后续同类脚本内小重复应继续「先证重复、再提取、指纹护航」，不为凑改动制造提交。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 23 候选）
+
+1. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`：之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，优先把纯 python、无需 npx 联网的
+   `fingerprint_check.py` 与 #18–#27 各 selftest **先于整套 promptfoo** 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+2. **[《2》续做]** 继续在 A 面脚本里找「有证据的」控制流简化/陈旧模式替换（候选：`check_cega_bridge_hold.py` 363 行、
+   `check_dod_evidence.py` 300 行内的局部重复），严守一次一项、行为不变、stdout 逐字节 diff 为空；无真实增量则不提交。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做一次完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，
+   不制造无意义提交。
