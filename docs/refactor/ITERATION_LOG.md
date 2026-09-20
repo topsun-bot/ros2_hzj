@@ -2139,7 +2139,7 @@
 
 ## 轮次 28 — 2026-09-20 20:21（Asia/Shanghai）《2》小步重构：9 处逐字相同的 missing-file 报告守卫块下沉为 `_repo.report_missing_file`
 
-> 定时任务第 28 轮。分支 `refactor/shared-missing-file-report`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 28 轮。分支 `refactor/shared-missing-file-report`，功能 PR #95（已 squash-merge，main HEAD `c75cc10`）。
 > 延续轮次 25–27「先 AST/正则取证逐字重复、≥2 消费方才下沉、独有措辞不合并」的纪律，本轮把 required 循环里
 > 一个跨 9 个 guard、**逐字相同**的缺失文件报告块的两行报告语句收敛为共享 helper；检测（`is_file()`）与
 > 控制流（`continue`）仍留在调用方。属 plan §5.3 helper-boundary。行为不变：9 个脚本健康 stdout 逐字节 diff 空、
@@ -2196,6 +2196,8 @@
   15 条命令内，健康输出逐字节无漂移、未动 fixtures）；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-b8R-2026-09-20T12:21:02`，UTC；约合 CST 20:21，Duration 2s）。
   本轮不新增 eval 用例（纯报告语句收敛、无新行为；缺失文件负向输出仍由 three_chain/unitree 自测与探针覆盖）。
+- **合并后回归（main HEAD `c75cc10`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-IXV-2026-09-20T12:32:19`，Duration 2s）。
+  （合并时 `gh pr merge` 的 API 调用已成功、PR 状态 MERGED，但紧随其后的本地 `git pull` 一度撞 GitHub 443 中断；经网络重试后查询确认 mergeCommit `c75cc10`、再 ff-only 拉取，未重复合并。）
 
 ### Hold 合规
 
