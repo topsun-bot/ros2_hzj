@@ -528,3 +528,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #35 eval-suite registry self-test: symmetric to #29 (which pins the gate
+  # runner registry vs scripts/), this pins the PROMPTFOO registry: disk
+  # evals/*_selftest.py <-> yaml script refs (orphan/missing both ways), every
+  # yaml script path existing on disk, one script per case, the fixed strict
+  # layer fingerprint_check.py staying registered, every evals self-test (and
+  # fingerprint_check) having its SUCCESS/STABLE marker asserted as a yaml value,
+  # and the two README headline seed counts equalling the yaml case count.
+  # Reads the real repo; negatives inject in-memory mutations (no temp files).
+  - description: 'eval_registry_selftest.py: the Promptfoo registry must be self-consistent -- every on-disk evals/*_selftest.py registered in yaml and vice versa (no orphan, no missing), every yaml script path existing, one script per case, fingerprint_check.py registered, every evals self-test/fingerprint_check PASS marker asserted in yaml, and the README seed counts equal the yaml case count; orphan, missing-path, count-drift and a dropped marker assertion must all be detected'
+    vars:
+      script: evals/eval_registry_selftest.py
+    assert:
+      - type: contains
+        value: 'eval registry selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'

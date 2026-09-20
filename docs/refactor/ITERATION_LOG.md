@@ -2836,3 +2836,54 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#34 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
+---
+
+## 轮次 38 — 2026-09-21 06:19（Asia/Shanghai）— eval #35：Promptfoo eval 套件自身注册面一致性自测（功能 PR TBD）
+
+### 背景与取证（先探针、后写脚本）
+
+- re-ground：`main`=`9a81899`=origin/main（轮次37 回填 #117 后），工作区干净，仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked（未碰）；本循环无在途 PR。
+- env 链路三层（shell guard #19、真源 load.py #32、薄包装 #34）已闭环。本轮按「下一步」取证是否还有真实未覆盖的独有判定面，发现与 #29 **对称的 eval 侧注册面缺口**：#29（`gate_registry_selftest.py`）钉的是 gate runner 注册面（磁盘 gate 脚本 ↔ `run_all_gates.GATES` 双向），其 scope note 明确只对 `scripts/`、**不覆盖 eval 侧**；而 Promptfoo 套件自身的三方注册关系——磁盘 `evals/*_selftest.py`、yaml `script:` 引用、README 标题用例数——此前零机器断言。
+- 探针逐字取证（python 精确建模，BSD sed 不认 `\s` 的坑已在 python 通道规避）：①磁盘 **17** 个 `*_selftest.py`（#34 后）；yaml `script:` 共 **34** 行 == `- description:` **34** 个 case（一 case 一 script），其中 evals/ 引用 18（17 selftest + 固定 `evals/fingerprint_check.py`）、scripts/ 14（check_dual_chain_baseline 出现 2 次，对应两个 case）、config/env load.py print-a/print-b 2；②磁盘 selftest ↔ yaml evals selftest 引用双向差集均为空（无 orphan / 无 missing）；③每个 yaml script 路径磁盘均存在；④每个 evals 自测 + fingerprint_check 的 SUCCESS/STABLE marker 都在 yaml 被 `value:` 断言（marker 提取正则 `(?:SUCCESS_MARKER|STABLE_MARKER)\s*=\s*["']([^"']+)["']`）；⑤README 两处标题计数（配置表 / seed 叙述）均为 34 == yaml case 数；⑥README 逐用例明细表早期行（#1–#16 gate/load 用例）列格式不统一（仅 16 行符合反引号路径列格式），编号连续性**刻意不钉**（脆弱，总量已由两处标题计数 + 磁盘↔yaml 双向覆盖）。
+- 漂移是静默且真实的：新增自测忘登记 yaml → promptfoo 永不运行它（**假绿**）；yaml 指向已删脚本只在运行时炸；登记脚本却不断言其 PASS marker → case 不证明成功路径（放水）；README 计数漂移无人拦。
+
+### 改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml / 0 tempdir）
+
+- 新增 `evals/eval_registry_selftest.py`（**eval #35**，对象是 **eval 套件注册面**，中缀 `eval_registry`；纯标准库，读**真实仓库**做健康对照，负向用**内存变异**注入、不写 tempdir、不改仓库）。核心 `evaluate(disk_selftest_names, yaml_text, readme_text, exists)` 为纯函数返回问题列表，场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - healthy：真实仓库零注册问题（磁盘 selftest 集合 == yaml evals selftest 引用集合双向；每个 yaml script 路径磁盘存在；case 数 == script 行数；fingerprint_check.py 在册；每个在册自测 + fingerprint_check 的 marker 都被 yaml `value:` 断言；README 两处标题计数 == yaml case 数）；
+  - N1 磁盘多注入 `zzz_orphan_selftest.py`（yaml 未引用）必报 orphan（marker 检查只对「磁盘∩yaml」交集，孤儿不读 marker）；N2 yaml 内存追加一个指向不存在脚本的 case（同时带 description 保持一 case 一 script 中性）必报 missing on disk；N3 README 标题计数动态改成 99 必报 count drift；
+  - non-flag1 固定严格层 `evals/fingerprint_check.py` 必须始终在册（#17 不能掉）；non-flag2 磁盘每个自测（≥17）与 fingerprint_check 的成功 marker 必须在 yaml 有断言；
+  - mutation：把 yaml 文本中 frozen 自测的 PASS marker 断言内存替换为错误串，必被检出「marker not asserted」，证明 marker 检查非恒真。
+- `evals/promptfooconfig.yaml`：34→**35**，末尾追加 #35 块（2 条 contains：`eval registry selftest: PASS` + 计数串）。
+- `evals/README.md`：六处登记（配置表/seed 叙述 35、文件表新增注册面自测行、枚举句追加 #35、明细表 `| 35 |`、倒序新增 #35 专节置于 #34 专节之前，并写明明细表编号连续性刻意不钉的范围边界），484→498 行。
+- 自举现象（符合预期）：脚本先于 yaml 登记落地时，healthy 对照立即把自身报为 orphan（`eval_registry_selftest.py` 未登记）——正是该测试要防的假绿；登记 yaml 后 healthy 转 PASS。
+
+### 合并前回归（分支，2026-09-21 06:18 CST）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py`：通过；
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（未改任何被指纹命令的 stdout）；
+- eval-only 自测：**18 个全 PASS**（fail=0，新增 `eval_registry_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串）；
+- promptfoo：**35/35 passed (100%)、0 failed、0 errors**（合并前 eval `eval-Dcn-2026-09-20T22:18:59`，Duration 21s）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
+- 负向一律内存变异（集合/文本注入），不写 tempdir、不在原地改任何文件；不新增依赖（仅一个新 .py）。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md`（untracked）未删除/覆盖/提交。
+
+### 剩余风险与缺口
+
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`，未伪造。
+- 第 13 闸与全部 eval-only 自测（含 #35）仍未接 CI structure 枚举（active 账号缺 `workflow` scope）。#35 自身也是 eval-only、不进 GATES、无需 ci.yml 接线。
+- README 逐用例明细表编号连续性刻意不钉（早期行格式不统一）；若未来希望机器钉明细表，需先把该表规整为单一稳定列格式（独立小 PR）。
+- 《6》CVE 修复三项仍待用户明确批准、拆独立 PR；4 份飞书文档仍 3380004 无权限。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 35/35），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. runner 双面（#29/#30）+ eval 注册面（#35）+ 11 guard（#18–#28）+ 指纹严格层（#31）+ env 三层（#19/#32/#34）+ provider（#33）已闭环；再取证是否还有未钉的真实独有判定面（如 docs 契约链接同构检查是否有漂移面、其余 A 面脚本边界），**先 /tmp 探针确认真实未覆盖再新增，不为凑数**。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35，纯 python）接进 CI。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#35 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
