@@ -2780,7 +2780,7 @@
 
 ---
 
-## 轮次 37 — 2026-09-21 05:16（Asia/Shanghai）— eval #34：双链环境薄包装 dual_chain_env.py 再导出/委托契约负向自测（功能 PR TBD）
+## 轮次 37 — 2026-09-21 05:16（Asia/Shanghai）— eval #34：双链环境薄包装 dual_chain_env.py 再导出/委托契约负向自测（功能 PR #116，squash-merge main `b18c789`）
 
 ### 背景与取证（先探针、后写脚本）
 
@@ -2806,6 +2806,15 @@
 - eval-only 自测：**17 个全 PASS**（fail=0，新增 `dual_chain_env_wrapper_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串）；
 - promptfoo：**34/34 passed (100%)、0 failed、0 errors**（合并前 eval `eval-nA9-2026-09-20T21:15:32`，Duration 23s）。
 
+### 合并后回归（main b18c789，2026-09-21 05:26 CST）
+
+功能 PR #116 squash-merge 到 main `b18c789`（mergeCommit `b18c78907476b8a04584638d0fb5d431b13b9f80`，mergedAt 2026-09-20T21:21:40Z；merge 命令首次撞 `expected flush after ref listing` 网断，API 确认 MERGED 未重复 merge，本地随后 ff）。回 main 全量回归：
+
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stdout fingerprint: stable**；
+- eval-only 自测：**17 个全 PASS**（fail=0）；
+- promptfoo：**34/34 passed (100%)、0 failed、0 errors**（合并后 eval `eval-M3V-2026-09-20T21:26:21`，Duration 26s）。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` 的 DDS 行为与 vendor 源码（本项**只读 import 薄包装做断言、未改其一行**）；未集成 Cega、未重写 Bridge runtime；未改 shell 包装 `chain_a.sh`/`chain_b.sh`；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
@@ -2821,7 +2830,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 34/34），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #116 已 squash-merge（main `b18c789`），合并后回归 34/34（合并后 eval `eval-M3V-2026-09-20T21:26:21`），本回填 PR 即补 PR 号 / main HEAD / eval ID。
 2. env 链路三层（shell guard #19、真源 load.py #32、薄包装 #34）已闭环；再取证是否还有未钉的真实独有判定面（如 docs 契约链接同构检查、或其余 A 面脚本的负向分支），**先 /tmp 探针确认真实未覆盖再新增，不为凑数**。
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #34，纯 python）接进 CI。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
