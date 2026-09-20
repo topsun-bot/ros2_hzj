@@ -16,7 +16,12 @@ concurrency:
 jobs:
   claude-review:
     name: claude-review
-    if: github.event.pull_request.draft == false
+    # Skip drafts, and skip fork PRs: GitHub withholds repository secrets
+    # (ANTHROPIC_API_KEY) from pull_request runs of forks, so the job
+    # could only fail there.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
