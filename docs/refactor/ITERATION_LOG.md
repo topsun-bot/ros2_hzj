@@ -1390,7 +1390,7 @@
 
 ## 轮次 19 — 2026-09-20 10:31（Asia/Shanghai）《5》深化：runtime-provenance guard 独有解析器负向自测沉淀为 eval 用例 #25
 
-> 定时任务第 19 轮。分支 `test/runtime-provenance-guard-selftest`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 19 轮。分支 `test/runtime-provenance-guard-selftest`，PR #76（已 squash-merge，main HEAD `ba33146`）。
 > 开工核对：main HEAD `3897cc8`（轮次 18 回填 PR #75 squash），工作区干净（仅受保护旧草稿 `docs/01-dds-request-flow.md`
 > untracked，未触碰）；`gh pr list` 中在途 PR（#65/#61/#56/#46/#45/#44/#43/#42/#41/#32/#31/#30）全是他人
 > claude/cursor/codex 机器人 PR，未触碰，本循环无在途 PR。`gh auth status` 复核：active 账号仍为 `yixinzhangagent`
@@ -1462,8 +1462,7 @@
 - #18 frozen、#19 env、#20 unitree、#21 source-map、#22 executor-map、#23 dod、#24 cega 负向自测：均仍 PASS（八个自测全绿）。
 - Eval：**24 → 25 用例，25/25 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#25 PASS，Duration 15s，
   eval ID `eval-ElJ-2026-09-20T02:29:10`）。
-- **合并后回归（main HEAD TBD）**：TBD——由 docs-only 回填 PR 补登 required checks（structure/contracts/boundary + CodeQL +
-  Cursor Approval）结果与 squash-merge 后回 main 的 gate/指纹/八个自测/promptfoo 25/25 实测。
+- **合并后回归（main HEAD `ba33146`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18/#19/#20/#21/#22/#23/#24/#25 八个负向自测均 exit 0、promptfoo **25/25 (100%) / 0 failed / 0 errors**（eval ID `eval-QoZ-2026-09-20T02:46:49`，Duration 3s）。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
