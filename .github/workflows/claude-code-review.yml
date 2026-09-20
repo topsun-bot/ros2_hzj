@@ -7,7 +7,10 @@ name: claude-code-review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
+    # converted_to_draft only re-enters the concurrency group so the in-flight
+    # review of a PR that just went back to draft is cancelled; the job itself
+    # is skipped by the draft check below.
+    types: [opened, synchronize, ready_for_review, reopened, converted_to_draft]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}

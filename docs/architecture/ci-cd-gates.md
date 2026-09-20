@@ -35,7 +35,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（`anthropics/claude-code-action@v1` + 官方 `code-review` 插件）。
 
-- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened`）。draft PR 跳过；**fork PR 跳过**（GitHub 不向 fork 的 `pull_request` run 下发 secret，跑了只会红）。同 PR 的进行中 run 会被取消；单次 run 上限 30 分钟。
+- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened` / `converted_to_draft`——最后一项只用来取消刚转回 draft 的 PR 上还在跑的评审）。draft PR 跳过；**fork PR 跳过**（GitHub 不向 fork 的 `pull_request` run 下发 secret，跑了只会红）。同 PR 的进行中 run 会被取消；单次 run 上限 30 分钟。
 - 产出：Claude 在 PR diff 上贴 inline 评审意见，无发现时贴一条汇总评论（只允许 `mcp__github_inline_comment__create_inline_comment` 工具）。**只评审，不推提交、不合入。**
 - 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`（评论经 Claude GitHub App OIDC 身份发出，不用 job 的 `GITHUB_TOKEN`）。
 - 前置：仓库 secret **`ANTHROPIC_API_KEY`**，且仓库已安装 Claude GitHub App。缺任一项该 job 会红，但它**不是** required status check，不影响合入。
