@@ -2689,3 +2689,37 @@
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #31）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进：再做一次取证扫描（localScriptProvider.mjs provider 自身、config/env 薄包装、docs 契约链接同构检查等是否还有未被任何断言钉住的独有判定/漂移面），确无新高价值项才做完整 gate + 指纹 + #18–#31 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+---
+
+## 轮次 35 — 2026-09-21 03:23（Asia/Shanghai）— eval #32：双链环境真源 load.py 契约/负向自测（功能 PR TBD）
+
+**re-ground**：main=`2d1d120`=origin/main（轮次34 回填 #109 已合），工作区仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked；本循环无在途 PR；active gh 账号 `yixinzhangagent` 仍仅 gist/read:org/repo（无 workflow）。GitHub 网络间歇 curl 000/HTTP2 framing 抖动，本地 main 已与 origin 一致，不阻塞本地开发与热缓存回归。
+
+**取证（先探针、后新增）**：按轮次34「下一步」第4条做取证扫描，读两个候选——
+- 候选 A `evals/localScriptProvider.mjs`（备查，本轮未选）：node ESM，硬编码 `execFileSync('python3', argv)`，独有分支（空 prompt→error、非零退出→error 透传）零断言，但无法用 python3 provider 直接跑 .mjs 自测，需 python subprocess 包 node 或 promptfoo expected-error 机制，集成别扭，留待后续轮次。
+- 候选 B `config/env/load.py`（**选定为 #32**）：双链 env 唯一真源。#19（`dual_chain_env_guard_selftest.py`）只钉 guard `check_dual_chain_env.py` 检测假 shell 夹具的能力，**从不钉 load.py 真源自身**；Mac HIL 里 print/import 纯净只是文档叙述、非可执行回归。`/tmp/probe_load.py` 逐字取全行为：`describe('a'/'b')` 返回精确契约 dict（A=rmw_fastrtps_cpp/42/fastdds.xml 绝对路径，B=rmw_cyclonedds_cpp/0）、未知 chain 抛 `ValueError: unknown chain: z`；`apply(CHAIN_B, unset=('CYCLONEDDS_URI',))` 写入 cyclone/0 并 **pop 掉预置 CYCLONEDDS_URI**、不带 FastDDS profiles；`export_shell` 单引号转义 `_sh_single("a'b")`=`'a'"'"'b'`；CLI print/export/apply 六子命令全 rc0、非法子命令 argparse **rc2**；全新解释器 import load 前后 `os.environ` 完全一致（PURE）。
+
+**改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml）**：新增 `evals/dual_chain_env_load_selftest.py`（**eval #32**，对象是 env 真源工具本身、区别于 #19 的 guard；纯标准库、不编辑仓库：进程内 `apply` 用 `_EnvSnapshot` 在退出时恢复 `os.environ` 与函数本身，CLI/import 纯净走隔离子进程），共 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+- N1 `describe('z')` 必抛 `ValueError: unknown chain: z`（未知链不得静默返回空/错配置）；N2 未知 CLI 子命令必 argparse **exit 2**；N3 Chain B `apply` 必须 **pop 预置的 CYCLONEDDS_URI**（跳过 unset 会让外部 Cyclone URI 污染 Chain B），且 B 不带 FastDDS profiles 文件；
+- non-flag1 `export_shell` 对 `a'b c` 必输出 `'a'"'"'b c'` 且 `/bin/sh -c` eval 回读原样 round-trip（防错误/不可解析 export）；non-flag2 全新解释器 `import load` 前后 env 完全一致（import 纯净、不得隐式 apply）；
+- healthy：`describe` 精确契约 dict（fastdds.xml 绝对路径且文件存在）+ 六子命令全 rc0 且含关键契约串；
+- mutation：把 `apply` 换成「只 `os.environ.update`、不做 unset pop」盲桩 → Chain B 下 CYCLONEDDS_URI 泄漏（断言观察到泄漏以自检），恢复真实 `apply` 后删除。
+- 登记：`promptfooconfig.yaml` 31→32（2 contains：PASS 短语 + 计数串）；`evals/README.md` 六处（配置表/seed 叙述/文件表/枚举句/明细表 `| 32 |`/倒序 #32 专节置于 #31 专节前），445→458 行。
+
+**合并前回归（main 2d1d120，2026-09-21 03:23 CST）**：`compileall`（evals/scripts/config/env/薄包装）通过；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；eval-only 自测 **15 个全 PASS**（14 个 #18–#31 + 新 `dual_chain_env_load`，fail=0）；promptfoo **32/32 passed (100%)、0 failed、0 errors**（合并前 eval `eval-we2-2026-09-20T19:23:08`，Duration 6s）。
+
+**Hold 合规**：未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；未改 `dimos_bridge` DDS 行为与 vendor 源码、未集成 Cega/重写 Bridge；未改 shell 包装 `chain_a.sh`/`chain_b.sh`（其字面 export 串仍由 #19 guard 锚定）；无框架迁移/依赖升级/API 变更/架构调整；CVE 审计保持只读；promptfoo 仅 npx 缓存运行、未写入运行时依赖；受保护旧草稿未跟踪未改。
+
+### 剩余风险与状态
+
+- 负向自测覆盖现状：11 个带独有解析器的 guard（#18–#28）+ runner 双面（#29/#30）+ 严格层指纹工具（#31）+ **双链 env 真源 load.py（#32）** 均已闭环「该 fail 时真会 fail / 该纯时不污染」；`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持无脚本的合理空缺。
+- 仍 blocked / 待拍板（均不得自行突破）：① ci.yml 接线需本机 `gh auth refresh -h github.com -s workflow`（active `yixinzhangagent` 缺 scope；离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`；授权后优先把纯 python 的 fingerprint + #18–#32 自测纳入 CI、先于整套 promptfoo，并把第 13 闸接进 structure 枚举）；② CVE 修复三项待用户明确批准、拆 3 个独立 PR；③ 4 份飞书文档 3380004 无权限；④ 无 Humble Linux 主机，真·双链 pub/sub、p99、跨机 UDP、三链实际复现恒 `STATUS: blocked`，不伪造。
+
+### 下一步（轮次 36 候选）
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 32/32），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 候选 A `localScriptProvider.mjs` provider 自身（空 prompt error、非零退出 error 透传——这是 #18–#32 全部负向 eval「exit1→case fail」的根基）：先探针取证并确认集成可行（python subprocess 调 `node -e`/临时 .mjs，或研究 promptfoo expected-error 用例写法），可行再做，不为凑数硬上。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #32）接进 CI（先纯 python 项）。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#32 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
