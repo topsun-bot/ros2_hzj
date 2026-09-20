@@ -1888,7 +1888,7 @@
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 ## 轮次 25 — 2026-09-20 16:32（Asia/Shanghai）《2》小步重构：三处逐字相同的 `_line_at` 下沉为共享 `_repo.line_at`
 
-> 定时任务第 25 轮。分支 `refactor/line-at-shared-helper`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 25 轮。分支 `refactor/line-at-shared-helper`，功能 PR #89（已 squash-merge，main HEAD `1ed6d78`；PR 号 #88 被他人/机器人占用，本循环功能 PR 实际为 #89）。
 > 本轮按轮次 24「下一步」做全仓重复取证，落到一个有 **3 个消费方、逐字相同**的纯工具下沉，
 > 属 plan §5.3 helper-boundary（迭代 5 建 `_repo.py`、迭代 9 `_md_paths` 复用 `read_utf8` 的延续）。
 > 行为不变：新旧实现对拍逐字等价、三个 guard 的 stdout 逐字节不变，#23/#24/#27 负向自测端到端兜底。
@@ -1933,6 +1933,7 @@
   未动 fixtures）；#18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-rOi-2026-09-20T08:32:05`，UTC；约合 CST 16:32，Duration 2s）。本轮不新增 eval 用例
   （纯工具搬家、无新行为；同行豁免负向能力已由 #23/#24/#27 覆盖）。
+- **合并后回归（main HEAD `1ed6d78`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-R2n-2026-09-20T08:38:47`，Duration 2s）。
 
 ### Hold 合规
 
