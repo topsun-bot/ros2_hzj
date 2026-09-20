@@ -12,9 +12,9 @@ Missing file or missing allowlisted symbol: FAIL (exit 1).
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 
 from _md_paths import check_cited_paths, parse_map, repo_root
+from _repo import emit_render
 
 
 MAP_REL = Path("docs/architecture/ros2-source-map.md")
@@ -134,9 +134,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
 
 def main() -> int:
-    text, code = render()
-    sys.stdout.write(text)
-    return code
+    return emit_render(render())
 
 
 if __name__ == "__main__":

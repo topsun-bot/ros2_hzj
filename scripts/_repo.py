@@ -13,6 +13,8 @@ two small helpers:
 * ``line_at(text, index)`` — return the full source line containing a
   character index, used by same-line prohibition checks (a flagged token
   on the same line as its exemption sentence must not be reported).
+* ``emit_render(result)`` — write a gate's rendered ``(text, exit_code)`` pair to
+  stdout and return the exit code unchanged, so every gate keeps a one-line ``main()``.
 
 This module is the single home for these (modernization plan §5.3
 helper-boundary spec). It deliberately carries **no** business assertions:
@@ -63,3 +65,13 @@ def line_at(text: str, index: int) -> str:
     if end < 0:
         end = len(text)
     return text[start:end]
+
+def emit_render(result: tuple[str, int]) -> int:
+    """Write a gate's rendered ``(text, exit_code)`` pair to stdout.
+
+    Returns the exit code unchanged so each gate's ``main()`` stays a
+    one-liner: ``return emit_render(render())``.
+    """
+    text, exit_code = result
+    sys.stdout.write(text)
+    return exit_code

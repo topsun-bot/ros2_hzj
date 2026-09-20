@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
-import sys
 
 from _freeze_paths import (
     FASTDDS_XML_REL as XML_REL,
@@ -24,7 +23,7 @@ from _freeze_paths import (
     SCOREBOARD_REL,
     XML_EXISTENCE_NOTE,
 )
-from _repo import repo_root, read_utf8
+from _repo import emit_render, repo_root, read_utf8
 
 
 SWAP_REL = Path("docs/architecture/unitree-sdk2-dds-swap.md")
@@ -203,9 +202,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
 
 def main() -> int:
-    text, code = render()
-    sys.stdout.write(text)
-    return code
+    return emit_render(render())
 
 
 if __name__ == "__main__":
