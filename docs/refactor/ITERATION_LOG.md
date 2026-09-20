@@ -1743,7 +1743,7 @@
    不制造无意义提交。
 ## 轮次 23 — 2026-09-20 14:10（Asia/Shanghai）《2》小步重构：dod guard 的 existence-only 循环反转为单一 ok 出口
 
-> 定时任务第 23 轮。分支 `refactor/dod-existence-only-single-exit`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 定时任务第 23 轮。分支 `refactor/dod-existence-only-single-exit`，功能 PR #84（已 squash-merge，main HEAD `97bac5f`）。
 > 延续轮次 22 回到《2》计划的节奏，本轮做一项**行为不变、纯控制流简化**（plan §3「简化控制流」），
 > 仍由 #17 stdout 指纹逐字节护航、#23 负向自测端到端兜底。一次只改一个脚本。
 
@@ -1782,6 +1782,7 @@
   #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
   （eval ID `eval-Wqs-2026-09-20T06:10:50`，UTC；约合 CST 14:10，Duration 3s）。本轮不新增 eval 用例（纯内部控制流简化、
   无新行为；负向能力已由 #23 覆盖）。
+- **合并后回归（main HEAD `97bac5f`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，过滤忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18–#27 十个负向自测均 exit 0、promptfoo **27/27 (100%) / 0 failed / 0 errors**（eval ID `eval-HLJ-2026-09-20T06:16:21`，Duration 2s）。
 
 ### Hold 合规
 
