@@ -1741,3 +1741,71 @@
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做一次完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，
    不制造无意义提交。
+## 轮次 23 — 2026-09-20 14:10（Asia/Shanghai）《2》小步重构：dod guard 的 existence-only 循环反转为单一 ok 出口
+
+> 定时任务第 23 轮。分支 `refactor/dod-existence-only-single-exit`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 延续轮次 22 回到《2》计划的节奏，本轮做一项**行为不变、纯控制流简化**（plan §3「简化控制流」），
+> 仍由 #17 stdout 指纹逐字节护航、#23 负向自测端到端兜底。一次只改一个脚本。
+
+### 选题取证（先证重复，再动手；不为改而改）
+
+- re-ground：main 与 origin/main 同步于 `4b59ee2`（轮次 22 回填 #83），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；本循环无在途 PR（开放 PR 全是他人机器人项，未触碰）。
+- 先查轮次 22「下一步」点名的两个较大 A 面脚本：
+  - `check_cega_bridge_hold.py`（363 行）hold 段有 5 个「短语存在性」检查块，但每块的 ok/FAIL label、failure 措辞、
+    单短语 / 双短语 AND / 四元组 joined 形态各不相同；抽 helper 需要 5–6 个参数，会把直白代码绕复杂，
+    且措辞被 #24 自测锚定。**判定收益边际、可读性下降，本轮不抽**（保留直白）。
+  - `check_dod_evidence.py`（300 行）的 required 循环里，existence-only 分支与普通分支各自重复了一遍
+    `extra = ...` + `lines.append(ok file)`（两处逐字相同）。grep 取证发现 **`check_dual_chain_baseline.py`
+    L216–236 有一段逐字同构的 existence_only 循环**（连 f-string 都一样）。
+- 按「一次一项、一个脚本」，本轮只简化 `check_dod_evidence.py` 这一处；`check_dual_chain_baseline.py` 的同构循环
+  用同一手法留给轮次 24（避免单 PR 跨两脚本、也与轮次 22 刚改的脚本错开）。
+
+### 改了什么（纯控制流简化，+12/−12，只动 `scripts/check_dod_evidence.py`）
+
+- 原结构：文件存在后先 `if rel in existence_only: 渲染 ok; continue`，否则 read + marker 检查，末尾再渲染一遍 ok
+  （ok 渲染重复两处）。
+- 新结构：反转为 `if rel not in existence_only:` 才 `read_utf8` + 收集进 `texts` + marker 检查（缺则 FAIL + continue），
+  之后**统一落到单一 ok-file 渲染出口**；并补 3 行注释说明 XML/SCOREBOARD 在本脚本里 existence-only、内容从不被读取
+  （content freeze 归 boundary job）。
+- FAIL missing / FAIL markers / ok file 三类输出行、failure 文案、`texts` 收集集合、exit code 全部不变。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **stdout 逐字节**：重构前后各跑一次 `check_dod_evidence.py`（均 exit 0、30 行），`diff` 为空（STDOUT BYTE-IDENTICAL）。
+- **existence-only 边界动态证明**：monkeypatch `read_utf8` 计数后调 `render()`，健康路径恰好 **7 次内容读取**
+  （9 个 required − 2 个 existence-only），读取集合为 7 个普通 md/脚本，**不含 `fastdds.xml` / `SCOREBOARD.md`**——
+  反转控制流没有让 frozen 文件被读取，「existence only; numbers not read」的自我声明边界保持。
+- **端到端负向回归**：#23 `evals/dod_evidence_guard_selftest.py` 全过（**5 negative / 2 non-flag / 2 healthy / 1 mutation**），
+  伪造 STATUS: PASS / DoD: met / measured-delta / Humble-here 与虚构 booked p99 仍被抓到、同行禁止句与「分位数」政策词保持 green。
+- Gate：**13/13 all gates green**；stdout 指纹：**15/15 stable**（被重构脚本在 15 条命令内，逐字节无漂移、未动 fixtures）；
+  #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-Wqs-2026-09-20T06:10:50`，UTC；约合 CST 14:10，Duration 3s）。本轮不新增 eval 用例（纯内部控制流简化、
+  无新行为；负向能力已由 #23 覆盖）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字，且本脚本对这两个文件仍**只验存在、不读内容**。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整（命令名、argv、exit code、关键打印短语全部不变；公共契约即 stdout，指纹逐字节证明）。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。单脚本控制流反转，stdout/exit code 逐字节不变；read_utf8 计数探针证明 frozen 文件读取边界未变，
+  #23 负向自测与 #17 指纹双保险。
+- `check_dual_chain_baseline.py` 仍有一处逐字同构的 existence_only 循环（轮次 24 用同一手法收敛）；两处收敛后该模式即清零。
+- cega hold 段短语块维持直白（不强行参数化）。真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`
+  （本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 24 候选）
+
+1. **[《2》续做·最直接]** 用本轮同一手法把 `check_dual_chain_baseline.py` L216–236 的逐字同构 existence_only 循环
+   反转为单一 ok 出口（同样要求 stdout 逐字节 diff 空、read_utf8 计数证明 XML/SCOREBOARD 不被读取、#19 负向自测全过）。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
