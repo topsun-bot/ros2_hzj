@@ -327,3 +327,22 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '5 negative, 2 non-flag, 2 healthy, 1 mutation'
+
+  # Negative self-test for the Cega / Bridge Hold guard (eval-only, not a
+  # CI gate). Covers its unique parsers, not the generic STATUS:-PASS mechanism
+  # already pinned by #23: the ADR §13(4) table cell must start with **Hold**
+  # and contain no PASS/已接 Cega/integrate Cega (a flipped cell, a Hold cell
+  # smuggling a bare PASS, or a deleted row must FAIL ADR row); the guard's
+  # own in-memory row self-check must reject both disguises; the Chinese-only
+  # 已接 Cega fabrication pattern and the first-Status:-line check must fire;
+  # a same-line prohibition stays exempt in either doc; and neutering the
+  # 已接 Cega regex demonstrably silences the check.
+  - description: 'cega_bridge_hold_guard_selftest.py: the Cega/Bridge Hold checks actually fire on tampering (negative regression, tempdir-only)'
+    vars:
+      script: evals/cega_bridge_hold_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'cega bridge hold guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '5 negative, 2 non-flag, 1 builtin self-check, 2 healthy, 1 mutation'
