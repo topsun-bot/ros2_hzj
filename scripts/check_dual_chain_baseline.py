@@ -172,6 +172,25 @@ def _shell_exports(text: str) -> dict[str, str]:
     return exports
 
 
+# Contract keys compared verbatim between the literal shell `export` copies
+# and load.py. FASTRTPS_DEFAULT_PROFILES_FILE is chain-A-only and compared as
+# a resolved path, so it stays out of this shared key tuple.
+_SHELL_CROSS_KEYS = ("RMW_IMPLEMENTATION", "ROS_DOMAIN_ID")
+
+
+def _shell_key_drifts(
+    shell_exports: dict[str, str],
+    chain: dict[str, str],
+    keys: tuple[str, ...] = _SHELL_CROSS_KEYS,
+) -> list[str]:
+    """Report contract keys whose literal shell value differs from load.py."""
+    return [
+        f"{key}: shell={shell_exports.get(key)!r} load.py={chain.get(key)!r}"
+        for key in keys
+        if shell_exports.get(key) != chain.get(key)
+    ]
+
+
 def render(root: Path | None = None) -> tuple[str, int]:
     root = (root or repo_root(BASELINE_REL, ADR_REL)).resolve()
     lines = [
@@ -355,11 +374,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
         if env_mod is not None and chain_a_text is not None:
             sh_a = _shell_exports(chain_a_text)
-            a_bad = [
-                f"{key}: shell={sh_a.get(key)!r} load.py={chain_a.get(key)!r}"
-                for key in ("RMW_IMPLEMENTATION", "ROS_DOMAIN_ID")
-                if sh_a.get(key) != chain_a.get(key)
-            ]
+            a_bad = _shell_key_drifts(sh_a, chain_a)
             sh_profiles = sh_a.get(
                 "FASTRTPS_DEFAULT_PROFILES_FILE", ""
             ).replace("${_ROS2_HZJ_ROOT}", str(root))
@@ -382,11 +397,7 @@ def render(root: Path | None = None) -> tuple[str, int]:
 
         if env_mod is not None and chain_b_text is not None:
             sh_b = _shell_exports(chain_b_text)
-            b_bad = [
-                f"{key}: shell={sh_b.get(key)!r} load.py={chain_b.get(key)!r}"
-                for key in ("RMW_IMPLEMENTATION", "ROS_DOMAIN_ID")
-                if sh_b.get(key) != chain_b.get(key)
-            ]
+            b_bad = _shell_key_drifts(sh_b, chain_b)
             if b_bad:
                 failures.append(
                     "chain_b.sh / load.py CHAIN_B drift: " + "; ".join(b_bad)
