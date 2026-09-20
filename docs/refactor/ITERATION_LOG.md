@@ -2725,3 +2725,54 @@
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #32）接进 CI（先纯 python 项）。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#32 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
+---
+
+## 轮次 36 — 2026-09-21 04:22（Asia/Shanghai）— eval #33：local-script provider 自身契约/负向自测（功能 PR TBD）
+
+### 背景与取证（先探针、后写脚本）
+
+- re-ground：`main`=`c85c35f`=origin/main（轮次35 回填 #112 后），工作区干净，仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked（未碰）；本循环无在途 PR；node **v22.23.2** 在 PATH（promptfoo 本身依赖 node）。
+- 按轮次35「下一步」第 2 条取证 **`evals/localScriptProvider.mjs`（promptfoo custom provider 自身）**。它是 #12–#32 全部用例的执行器：把 prompt 按空白拆成 argv 用 `python3` 跑（cwd=repoRoot、timeout 30s），exit 0 返回 stdout 作为 `output`，**exit 非 0 才设置 `error`**——#18–#32 负向自测脚本内部 exit 1 能否在 promptfoo 里真标红，完全依赖这条「非零→error」透传；但此前 provider 自身零可执行回归。若它被掏空（空 prompt 静默成功 / 非零退出被吞 / 缺失脚本当成功 / 成功路径 stderr 混入 output 污染 contains 与指纹），整套负向 eval 可能在仍显绿时失去判别力。
+- `/tmp/probe_provider.mjs`（node harness，经 `file://` import 真实 provider）逐字取全行为：①`id()='local-script'`；②空 prompt `''` → error `local-script: empty prompt (expected a script path, optionally with args)`、output 空串；③纯空白 `'   \t '`（trim→split→filter 后空）→ 同一 empty error；④`config/env/load.py print-a` exit 0 → 无 error、output 为 Chain A 三行 stdout（证明 argv 空白拆分传参与 cwd=repoRoot）；⑤临时 fail.py（stdout `OUT-LEAD`、stderr `ERR-DETAIL`、exit 1）→ error 含 `exited with code 1`、output=`OUT-LEAD`+空行+`ERR-DETAIL`（stdout 与 stderr 都透传）；⑥缺失脚本 → python3 自身 exit 2（`can't open file ... No such file`，非 node ENOENT）、error 含 `exited with code 2`；⑦exit 0 但写 stderr 的脚本 → 无 error、output **只含 stdout**（stderr 不入 output）；⑧内联「盲 provider」（catch 不返回 error）跑同一 fail.py → hasError=false（漏报），证明变异检查能区分「吞非零退出」。
+
+### 改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml）
+
+- 新增 `evals/local_script_provider_selftest.py`（**eval #33**，对象是 **provider .mjs 执行器本身**；provider 硬编码 python3、无法被 python3 provider 直接执行，故 python 主体在 tempdir 写一个 Node harness，经 `file://` URL import 真实 provider、再跑 tempdir 内一次性 python 夹具，结果以 `__JSON_BEGIN__/END__` 哨兵包裹的 JSON 回传断言；不在树内建 fixture、不编辑仓库；纯标准库；需要 `node`，缺失即 FAIL——promptfoo 本身也依赖 node）。场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - N1 空 prompt 必 error（`empty prompt`）且 output 为空串；N2 exit 1 必 error 含 `exited with code 1` 且 output 同时含 stdout（`OUT-LEAD`）与 stderr（`ERR-DETAIL`）；N3 缺失脚本（python3 exit 2）必 error 含 `exited with code 2`，不得静默成功；
+  - non-flag1 纯空白 prompt 同样命中 empty error（不得靠空白绕过）；non-flag2 exit 0 但写 stderr 必无 error、output 含 `CLEAN-OUT` 且**不含** `NOISE-STDERR`（成功路径 output 严格=stdout，防 stderr 污染 contains/指纹）；
+  - healthy：`id()=='local-script'` 且 `load.py print-a` exit 0、无 error、stdout 含 `RMW_IMPLEMENTATION=rmw_fastrtps_cpp` 与 `ROS_DOMAIN_ID=42`（argv 拆分 + cwd）；
+  - mutation：盲 provider（catch 不返回 error）对 exit 1 夹具漏报（hasError=false，sanity），真实 provider 对同一夹具报 error——证明本测试能抓住「吞非零退出」退化。
+- `evals/promptfooconfig.yaml`：32→**33**，末尾追加 #33 块（2 条 contains：`local-script provider selftest: PASS` + 计数串）。
+- `evals/README.md`：六处登记（配置表/seed 叙述 33、文件表新增 provider 自测行、枚举句追加 #33、明细表 `| 33 |`、倒序新增 #33 专节置于 #32 专节之前），458→471 行。
+
+### 合并前回归（分支，2026-09-21 04:21 CST）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py`：通过；
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（未改任何被指纹命令的 stdout）；
+- eval-only 自测：**16 个全 PASS**（fail=0，含新增 `local_script_provider_selftest.py`，本地见 7 个 `  ok ...` + PASS + 计数串）；
+- promptfoo：**33/33 passed (100%)、0 failed、0 errors**（合并前 eval `eval-wzt-2026-09-20T20:21:55`，Duration 14s）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装 `chain_a.sh`/`chain_b.sh`；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
+- 负向自测一律 tempdir 一次性 Node harness / python 夹具，不在原地改任何文件；node harness 是临时文件、不进仓库、不新增 node 依赖（仓库只新增一个 .py）；promptfoo 仍仅 npx 缓存运行、未写入运行时依赖。
+- 《6》CVE 审计保持只读，未安装/构建/执行被审计依赖。
+- 受保护旧草稿 `docs/01-dds-request-flow.md`（untracked）未删除/覆盖/提交。
+
+### 剩余风险与缺口
+
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`，未伪造。
+- 第 13 闸 `check_frozen_path_literals.py` 与全部 eval-only 自测（含 #33）仍未接 CI structure 枚举（active 账号缺 `workflow` scope，离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 待用）。
+- provider 的 30s timeout 分支未单独构造（需慢夹具，价值低、易拖慢 eval）；#33 已钉住空/空白/非零/缺失/成功 stdout-only/argv 拆分/盲变异等真实独有分支。
+- 《6》CVE 修复三项仍待用户明确批准、拆独立 PR；4 份飞书文档仍 3380004 无权限。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 33/33），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 取证薄包装 `dimos_bridge/dual_chain_env.py`（importlib 二次导出 load.py）与真源的一致性是否已有断言（#32 钉了 load.py 本体，薄包装的「声明唯一真源 + 再导出」面可能仍零断言）；先 /tmp 探针确认真实未覆盖的独有分支再决定是否新增，不为凑数。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #33）接进 CI（先纯 python 项；#33 依赖 node，CI 已有 node 但应排在纯 python 项之后）。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#33 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
