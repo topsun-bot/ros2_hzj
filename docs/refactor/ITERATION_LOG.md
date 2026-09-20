@@ -2487,3 +2487,70 @@
 2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #28）接进 CI（先纯 python 项）。
 3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#28 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
+
+---
+
+## 轮次 32 — 2026-09-21 00:19（Asia/Shanghai）— eval #29：gate-runner 注册表双向一致性自测（功能 PR TBD）
+
+### 背景与取证（runner 注册面，而非 guard 解析器面）
+
+- re-ground：本地 main=`84cd55c`（轮次 31 回填 PR #102），`gh pr list` 无本循环在途 PR；git smart-http 端点本轮有网络抖动
+  （前两次 curl 000 / fetch 超时，第 3 次探测 http=200 后 `git fetch` 成功），确认 origin/main 仍为 `84cd55c`、本地与之一致。
+- 凭证复查：active 账号仍为 `yixinzhangagent`（scopes gist/read:org/repo，**仍无 workflow**）；`zhangyinxina-ui` 有 workflow 但非 active、
+  不擅自切换——故最高优先的 ci.yml 接线**继续阻塞**，本轮不动 `.github/workflows/`。
+- 延续轮次 31「判定等待前先再取证」的纪律，本轮把取证面从「guard 独有解析器」扩到 **runner 注册面**，发现一个新类别缺口
+  （与 #18–#28 的 guard 负向自测不同类）：`scripts/run_all_gates.py` 跑绿只证明 **GATES 里已注册的 13 个脚本**存在、exit 0、打印 marker，
+  它发现不了**反向漂移——孤儿 gate**：磁盘新增一个 `scripts/check_*.py`（或两个固定名 gate 之一）却忘记加进 `GATES`，头条分数会永远停在
+  「13/13」，新 gate 从此不进《3》循环。这与第 13 闸 `check_frozen_path_literals.py` 落地后 CI `structure` 仍只枚举前 12 个 gate 是同一类漏注册。
+- 探针（不改动仓库）实测：以唯一发现规则（`scripts/check_*.py` 共 **11** 个 + 固定名 `prove_rmw.py`/`print_bench_gates.py`，
+  排除下划线 helper `_repo.py`/`_md_paths.py`/`_freeze_paths.py` 与 runner 自身 `run_all_gates.py`）扫描，磁盘集合与 `run_all_gates.GATES`
+  注册集合**双向相等、各 13 个**，missing/orphan 均为空——当前树健康，但没有任何自动化断言钉住它。
+- 去重取证：#19 `dual_chain_env_guard_selftest.py` 已用假夹具覆盖「guard 能否检测 load.py import 时写 os.environ」，真实 load.py 的
+  import 纯净性由 gate #10 跑绿隐含保证，不重复；现有 28 个 promptfoo 用例无任何 runner 注册/孤儿一致性检查（grep 命中的 run_all_gates
+  均为 README 说明文字）。
+
+### 改动（eval-only，3 个 evals 文件 + 本日志，0 生产代码）
+
+- 新增 `evals/gate_registry_selftest.py`（对象是 **runner**、不是某个 guard，故不叫 guard selftest）：内置唯一发现规则
+  `discover_gate_scripts()` 与双向比对 `registry_problems(disk, registered) -> (missing, orphan)`，注册集合直接 `import run_all_gates.GATES`
+  取 basename（单一真源）。断言 **2 negative / 1 non-flag / 2 healthy / 1 mutation**：
+  - **N1 orphan**：tempdir 的 `scripts/` 放 13 个注册 gate + 额外 `check_orphan_gate.py` → 必报 orphan 且不报 missing；
+  - **N2 missing**：tempdir 缺 `check_frozen_path_literals.py`（GATES 仍含）→ 必报 missing 且不报 orphan；
+  - **non-flag**：磁盘同时放 13 gate + 3 个下划线 helper + `run_all_gates.py` → 发现器必须只返回 13 个 gate、零问题（钉排除规则，防把 helper/runner 误判为孤儿）；
+  - **healthy**：真实仓发现集合 == 注册集合、gate 总数钉为 **13**、每个 marker 非空、两个固定名都已注册；tempdir 干净 13 gate 树零问题；
+  - **mutation**：把发现器换成「只返回注册表、不扫磁盘」的桩（try/finally 恢复）后 N1 孤儿必须**漏报**，恢复真实发现器后同一孤儿重新被抓到。
+- `evals/promptfooconfig.yaml`：末尾追加 #29 用例（含计数串断言），seed 用例 28→**29**。
+- `evals/README.md`：配置表 28→29、seed 计数叙述与枚举句补 #29、selftest 文件表加行、明细表加 `| 29 |`、新增「gate-runner 注册表双向
+  一致性自测（#29）」专节（倒序置于 #28 专节之前），并写明范围边界：CI structure 仍只枚举 12 个 gate 属 ci.yml 接线、待 workflow scope，本脚本不读 CI yaml、不替它断言。
+
+### 合并前回归（分支工作区，main `84cd55c` + 本轮 eval 改动）
+
+- `python3 -m compileall -q evals scripts` 通过；gate **13/13 all gates green**（新脚本不进 GATES、不被 CI structure 枚举、无需 ci.yml 接线）；
+  stdout 指纹 **15/15 stable**（新脚本不在 15 个被比对命令内，健康 stdout 零变化）；#18–#29 **12 个** eval-only 自测全 exit 0；
+  promptfoo **29/29 passed (100%) / 0 failed / 0 errors**（合并前 eval ID `eval-ykG-2026-09-20T16:18:30`，UTC，约合 CST 次日 00:18，Duration 4s）。
+- 分数变化：gate 13/13 与指纹 15/15 **不变**；promptfoo 28/28 → **29/29**（净增 1 条对 runner 注册完整性的真实断言，非放水）；
+  eval-only 自测脚本由 11 个增至 **12 个**（11 个 guard 负向自测 + 1 个 runner 注册一致性自测）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md`；未碰 `.github/workflows/ci.yml`（workflow scope 仍缺，接线保持阻塞）；
+  未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；双链契约不动；
+  无框架/依赖/API/架构变更（纯 eval-only 测试新增，生产脚本与 `run_all_gates.py` 零改动，仅只读 import 其 GATES）。
+- 《6》CVE 审计保持只读；promptfoo 仅以 `npx --yes promptfoo@0.123.1` 缓存运行、未写入运行时依赖；
+  受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险与状态
+
+- guard 负向覆盖（#18–#28，11 个带独有解析器/判定分支的 guard）+ runner 注册一致性（#29）均已闭环；`prove_rmw`（恒 exit 0）、
+  `check_risk_matrix`（直白 marker、order 块与 marker 元组重叠）维持无脚本的合理空缺。后续 eval 深化只在出现**新的真实行为/注册薄弱断言**时按《5》增补。
+- 仍 blocked / 待拍板（均不得自行突破）：① ci.yml 接线需本机 `gh auth refresh -h github.com -s workflow`（active `yixinzhangagent` 缺 scope；
+  离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`；授权后优先把纯 python 的 fingerprint + #18–#29 自测纳入 CI，先于整套 promptfoo，
+  并顺手把第 13 闸接进 structure 枚举），再做计划 §5.3 规则 2 机器化；② CVE 修复三项待用户明确批准、拆 3 个独立 PR；
+  ③ 4 份飞书文档 3380004 无权限；④ 无 Humble Linux 主机，真·双链 pub/sub、p99、跨机 UDP、三链实际复现恒 `STATUS: blocked`，不伪造。
+
+### 下一步（轮次 33 候选）
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归，开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #29）接进 CI（先纯 python 项）。
+3. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+4. 若以上均不可推进且无新高价值项：每轮做一次完整 gate + 指纹 + #18–#29 + promptfoo 回归，在日志标注「等待新指令」，不制造无意义提交。
