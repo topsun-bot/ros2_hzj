@@ -1198,7 +1198,7 @@
 
 ## 轮次 17 — 2026-09-20 08:10（Asia/Shanghai）《5》深化：产品 DoD 诚实性 guard 反伪造负向自测沉淀为 eval 用例 #23
 
-> 定时任务第 17 轮。分支 `test/dod-evidence-guard-selftest`，PR 编号以实际返回为准（合并后由 docs-only 回填 PR 补登）。
+> 定时任务第 17 轮。分支 `test/dod-evidence-guard-selftest`，PR #72（已 squash-merge，main HEAD `2c71b38`）。
 > 开工核对：轮次 16 功能 PR #70 与回填 PR #71 均已 squash-merge，main HEAD `25c24dc`；`gh pr list` 中在途 PR
 > （#65/#61/#56/#46/#45/#44/#43/#42/#41/#32/#31/#30）全是他人 claude/cursor/codex 机器人 PR，未触碰；本循环
 > 无在途 PR。`workflow` scope 仍未授予、CVE 修复仍待批准。本轮执行轮次 16「下一步候选 2」：在剩余七个未做负向
@@ -1259,7 +1259,7 @@
 - 指纹：**15/15 stable**（新自测不在 fingerprint 的 15 命令内，gate/load.py stdout 零变化，fixtures 不动、无需 --update）。
 - #18 frozen、#19 env、#20 unitree、#21 source-map、#22 executor-map 负向自测：均仍 PASS。
 - Eval：**22 → 23 用例，23/23 passed (100%) / 0 failed / 0 errors**（promptfoo 0.123.1，#23 PASS）。
-- 合并后回归结果由 docs-only 回填 PR 补登（同轮次 13–16 两段式惯例）。
+- **合并后回归（main HEAD `2c71b38`）**：required checks structure / contracts / boundary 全 pass、CodeQL（python/actions/javascript-typescript + 汇总）全 pass、Cursor Approval APPROVED（Cursor Security 非 required，pending 可忽略），squash-merge 后回 main 重跑——gate **13/13 all gates green**、指纹 **15/15 stable**、#18/#19/#20/#21/#22/#23 六个负向自测均 PASS、promptfoo **23/23 (100%) / 0 failed / 0 errors**。
 
 ### 剩余风险 / 薄弱环节
 1. 轮次 0 风险 1–4 不变（Unitree Cyclone CVE 待批准修复、无 Humble runtime、飞书 3380004、bench 依赖未锁）。
