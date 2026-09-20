@@ -1810,3 +1810,78 @@
 3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
 4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
 5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+## 轮次 24 — 2026-09-20 15:18（Asia/Shanghai）《2》小步重构：dual-chain guard 的 existence-only 循环反转为单一 ok 出口（该模式两处清零）
+
+> 定时任务第 24 轮。分支 `refactor/dual-chain-existence-only-single-exit`，功能 PR 号 TBD（docs-only 回填 PR 补登）。
+> 本轮直接执行轮次 23 日志「下一步」点名的最直接项：用**完全相同的手法**收敛 `check_dual_chain_baseline.py`
+> 里那段与 dod 逐字同构的 existence_only 循环。行为不变、纯控制流简化（plan §3「简化控制流」），
+> #17 stdout 指纹逐字节护航、#19 负向自测端到端兜底。一次只改一个脚本。
+
+### 选题与范围
+
+- re-ground：main 与 origin/main 同步于 `c8da188`（轮次 23 回填 #85），工作区仅 untracked 受保护旧草稿
+  `docs/01-dds-request-flow.md`（未 add/未改）；本循环无在途 PR（开放 PR 全是他人机器人项，未触碰）。
+- 轮次 23 已在 `check_dod_evidence.py` 把「existence-only 分支 + 普通分支各渲染一遍 ok file」反转为单一 ok 出口，
+  并 grep 取证 `check_dual_chain_baseline.py` L216–236 有逐字同构副本。本轮即收敛该副本，两处同构模式由此清零。
+- 与 dod 的一处差异（已核对、保持行为）：dual-chain 的 required 里 `CHAIN_A_REL` / `CHAIN_B_REL` 两个 shell 文件
+  markers 也是空元组，但它们**不是** existence-only——后续 shell↔load.py 交叉检查依赖 `texts[rel]`，必须读取。
+  反转后它们走 `if rel not in existence_only:` 的 True 分支，照常 `read_utf8` + 进 `texts`，marker 列表为空时落到统一 ok 出口，
+  与原逻辑一致。
+
+### 改了什么（纯控制流简化，+12/−12，只动 `scripts/check_dual_chain_baseline.py`）
+
+- 原结构：文件存在后先 `if rel in existence_only: 渲染 ok; continue`，否则 read + marker 检查，末尾再渲染一遍 ok（重复两处）。
+- 新结构：反转为 `if rel not in existence_only:` 才 `read_utf8` + 收集进 `texts` + marker 检查（缺则 FAIL + continue），
+  之后统一落到**单一 ok-file 渲染出口**；补 3 行注释说明 XML/SCOREBOARD 在本脚本 existence-only、内容从不被读取
+  （content freeze 归 boundary job）。
+- FAIL missing / FAIL markers / ok file 输出行、failure 文案、`texts` 收集集合（含 chain_a.sh / chain_b.sh）、
+  后续 shell 交叉检查与 exit code 全部不变。
+
+### 行为不变验证（本机 vanilla box，无 ROS）
+
+- **stdout 逐字节**：重构前后各跑一次 `check_dual_chain_baseline.py`（均 exit 0、38 行），`diff` 为空（STDOUT BYTE-IDENTICAL）。
+- **existence-only 边界动态证明**：monkeypatch `read_utf8` 记录路径后调 `render()`，健康路径恰好 **7 次内容读取**
+  （9 个 required − 2 个 existence-only），读取集合为 baseline/ADR/**chain_a.sh/chain_b.sh**/R0/source-map/unitree-swap，
+  **不含 `fastdds.xml` / `SCOREBOARD.md`**，且两个 shell 文件确实仍被读取（shell 交叉检查不断粮）。
+- **端到端负向回归**：#19 `evals/dual_chain_env_guard_selftest.py` 全过（**6 negative / 2 healthy / 1 mutation**），
+  含双链 domain drift、shell/load.py cross-check drift、wrapper re-export drift、import 期 os.environ 污染、
+  chain_b.sh CYCLONEDDS_URI 等负向场景。
+- Gate：**13/13 all gates green**；stdout 指纹：**15/15 stable**（被重构脚本在 15 条命令内，逐字节无漂移、未动 fixtures）；
+  #18–#27 十个负向自测全 exit 0；promptfoo **27/27 passed (100%) / 0 failed / 0 errors**
+  （eval ID `eval-Qy9-2026-09-20T07:17:53`，UTC；约合 CST 15:17，Duration 3s）。本轮不新增 eval 用例（纯内部控制流简化、
+  无新行为；负向能力已由 #19 覆盖）。
+
+### 模式清零说明
+
+- 「existence-only 不读取 + ok-file 渲染重复两处」这一模式在 `check_dod_evidence.py`（轮次 23）与
+  `check_dual_chain_baseline.py`（本轮）两处已全部收敛为单一 ok 出口。
+- `check_cega_bridge_hold.py` 的 required 循环形态不同：它对 XML/SCOREBOARD 也调用 `read_utf8`（markers 为空、不输出内容）。
+  把它统一成「不读取」会**改变**该脚本是否读 frozen 文件这一既有行为，超出「行为不变」范围，本轮不动、也不建议在无明确
+  收益时改动（cega hold 段 5 个短语检查块维持直白，不强行参数化，理由同轮次 23）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字，且本脚本对这两个文件仍只验存在、不读内容。
+- 未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime。
+  双链契约不动（A=rmw_fastrtps_cpp/42/config/fastdds.xml，B=Cyclone/0，无自定义 RMW）。
+- 无框架迁移/依赖升级/API 变更/架构调整（命令名、argv、exit code、关键打印短语全部不变；公共契约即 stdout，指纹逐字节证明）。
+- 《6》CVE 审计保持只读；promptfoo 仅 npx 缓存运行；受保护旧草稿 `docs/01-dds-request-flow.md` 全程 untracked、未 add/未改/未删。
+
+### 剩余风险
+
+- 极低。单脚本控制流反转，stdout/exit code 逐字节不变；read_utf8 计数探针证明 frozen 文件不被读取、两个 shell 文件仍被读取，
+  #19 负向自测与 #17 指纹双保险。
+- A 面「重复 ok 渲染 / 同构列表推导」类低垂果实已连续摘完（轮次 22 helper、轮次 23–24 existence-only 循环）。
+  后续应继续坚持「先 grep 取证重复、再小步提取、指纹 + 负向自测护航」，找不到真实增量就不提交。
+- 真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`（本机无 Humble runtime），不伪造任何通过。
+
+### 下一步（轮次 25 候选）
+
+1. **[《2》续做]** 重新全仓 grep 取证下一类真实重复/陈旧模式（候选方向：各 guard 末尾 FAIL/ok 汇总渲染、`_line_at` 等小工具
+   是否在多个脚本重复定义且值得下沉到 `_repo.py`——须有 ≥2 个消费方才下沉，避免过早抽象）；一次一项、行为不变、stdout 逐字节 diff 空。
+2. **[凭证·仍阻塞·最高优先]** 需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份
+   `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak` 补 ci.yml 独立 PR，先把纯 python 的 fingerprint + #18–#27
+   selftest 纳入 CI required checks，再做 §5.3 规则 2 机器化。
+3. **[需批准]** CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆独立 PR。
+4. **[需授权/环境]** 4 份飞书文档 3380004；提供 Humble Linux 主机解除端到端 pub/sub/p99/跨机 UDP/三链实际复现 blocked。
+5. 若上述均不可推进且无新高价值项，下一轮做完整 gate+指纹+#18–#27+promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
