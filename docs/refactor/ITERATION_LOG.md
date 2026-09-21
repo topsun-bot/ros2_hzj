@@ -3187,7 +3187,7 @@
 3. 共享底座 `_repo`(#37)/`_md_paths` 解析半(#38)/校验渲染半(#39) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针找到真实未覆盖的独有判定，不为凑数新写低价值自测。
 4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
 
-## 轮次 44 — 2026-09-21 13:17（Asia/Shanghai）— doc-link 自测扫描面扩到全部自有（A 面）文档（功能 PR TBD）
+## 轮次 44 — 2026-09-21 13:17（Asia/Shanghai）— doc-link 自测扫描面扩到全部自有（A 面）文档（功能 PR #134，main ca975b9）
 
 - **主题**：轮次43 收尾后按日志下一步候选，深化《5》评估套件的**真实覆盖广度**。#36 `evals/doc_link_selftest.py` 首版（轮次39）只扫本循环每轮产出的 `docs/refactor/**` 与 `evals/**`（5 个 md、165 个相对链接），而双链中间件的**权威文档**（`docs/architecture/` 各 feishu-* 图 / source-map、`docs/security/` CVE 审计、`docs/testing/` Mac HIL、`config/**`、`scripts/bench/README` 等）此前不在任何链接完整性检查内——CI contracts job 只对固定白名单 `test -f`、不解析链接。本轮把扫描面扩到全部自有 A 面文档，并明确只读/冻结树的排除边界。
 
@@ -3235,9 +3235,15 @@
 - 全新的**顶层 A 面 md 目录**若日后出现，需要在 SCAN_GLOBS 加一条；9 个钉选文档 + ≥30/≥900 下限能捕获主要缩面回退，但不会自动发现一个未登记的新目录（README 已说明枚举式 glob 的边界，属可接受）。
 - 真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`（无 Humble 主机），未伪造。
 
+### 合并后权威回归（main ca975b9，PR #134 squash-merge）
+
+- 功能 PR #134（分支 test/doc-link-widen-surface，commit 218672c，4 files +164/−21）required 三检 structure/contracts/boundary 全 pass、CodeQL pass、Cursor Approval APPROVED（1m9s）→ squash-merge，main `ca975b9c2ba449843421cf276f2e706068889983`，远端分支已删。
+- 回 main 同步后回归：gate **13/13** all gates green；stdout 指纹 **15/15 stable**；22 个 eval-only 自测 fail=0；promptfoo **39/39 passed (100%)、0 failed、0 errors**，合并后权威 eval `eval-1lR-2026-09-21T05:22:36`（Duration 4s）。
+- 合并前 eval `eval-uH8-2026-09-21T05:16:59`（4s/0 error，loadavg≈28）与合并后 eval 双样本均 0 error，轮次43 provider 预算硬化在高负载下继续有效。
+
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ 已完成：#134 merged→main ca975b9，合并后 39/39 eval-1lR-2026-09-21T05:22:36，本回填 PR 即收尾。回 main 跑合并后全套回归（应 39/39、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
 2. 继续在高负载窗口观察轮次43 provider 预算硬化后 fingerprint flaky 是否消除（本轮 loadavg≈28 下 4s/0 error 为首个正面样本，需更多样本）；若仍偶发再独立 PR 取证降并发。
 3. 共享底座 `_repo`(#37)/`_md_paths`(#38/#39)/文档链接面(#36 本轮扩面) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针证实真实未覆盖的独有判定，不为凑数新写低价值自测。
 4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`（离线备份在 `~/ros2_hzj_pending/`）；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
