@@ -32,12 +32,15 @@ jobs:
       # if a custom `github_token` input is supplied instead.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      # Both actions are pinned to full commit SHAs (supply-chain hardening:
+      # this job holds ANTHROPIC_API_KEY and PR write permissions). Bump the
+      # SHA and the trailing version comment together, deliberately.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 1
 
       - name: Claude code review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           use_sticky_comment: true

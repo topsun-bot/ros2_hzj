@@ -76,7 +76,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ## 4a. Claude 自动代码审查（advisory）
 
-工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。用 [`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action) 在每个非 draft、非机器人作者的 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上跑一次审查，把结论以 PR 评论 + 行内评论发回（单条 sticky 评论，后续 push 就地更新）。
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。用 [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action)（钉到完整 commit SHA，尾注 `# v1.0.231`；`actions/checkout` 同样钉 SHA。该 job 持有 `ANTHROPIC_API_KEY` 与 PR 写权限，不跑可移动的 `@v1` tag；升级时同时改 SHA 与尾注）在每个非 draft、非机器人作者的 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上跑一次审查，把结论以 PR 评论 + 行内评论发回（单条 sticky 评论，后续 push 就地更新）。
 
 - **只是建议，不是闸门**：不进 §5 的 required status checks；`structure` / `contracts` / `boundary` 仍是唯一的合并阻塞。审查不 approve、不 request changes、不 merge、不 push、不改文件（`--allowedTools` 只放行 `gh pr comment` / `gh pr diff` / `gh pr view` 与行内评论工具）。
 - **审什么**：gate 脚本 / eval 自测 / shell 包装 / CI YAML 的正确性；§2 Hold 边界（`fastdds.xml`、SCOREBOARD、Agnocast / zenoh 路径、`dimos_bridge` DDS 行为、vendor、Cega / Bridge）；诚实标记（不得发明分位数、`STATUS: PASS`、`DoD: met`、本机已复现）；文档与代码漂移（README / `evals/README.md` 表格、promptfoo 用例数、注册表、相对链接）。
