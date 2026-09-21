@@ -31,6 +31,16 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude 代码审查（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，用 `anthropics/claude-code-action@v1` 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`；draft 不跑）上让 Claude 做一次代码审查，与已接入的 Codex 审查并列。
+
+- **只评论，不合入**：发一条 sticky review comment（阻塞项优先，再 nit）；不 approve、不 merge、不贴标签、不推提交。人类批准 merge 的政策不变（§5）。
+- **不是 required status check**：merge 闸门仍只有 `ci.yml` 的 `structure` / `contracts` / `boundary`。Claude 审查红了不阻塞合入，绿了也不替代闸门。
+- **审查侧重**：改动正确性；Hold 边界（`fastdds.xml` / `SCOREBOARD.md` / agnocast·zenoh 路径 / `dimos_bridge` DDS 行为 / vendor / Cega）；诚实标记（`STATUS: blocked` / `DoD: unmet` 不得被写成 PASS / PROVEN / 分位数）；`scripts/` 与 `evals/` 只读契约；双链契约（A = `rmw_fastrtps_cpp` 域 42，B = `rmw_cyclonedds_cpp` 域 0）。
+- **前置**：仓库 secret `ANTHROPIC_API_KEY`（或改用 `CLAUDE_CODE_OAUTH_TOKEN`）。没配 secret 时该 job 失败，但不影响 `ci.yml`。
+- 权限：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`、`actions: read`；同 PR 进行中 run 会被取消。
+
 ---
 
 ## 2. Hold 政策

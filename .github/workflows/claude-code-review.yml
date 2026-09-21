@@ -1,0 +1,67 @@
+name: claude-code-review
+
+# Claude as an automated PR reviewer (alongside Codex). Review-only: it posts a
+# sticky review comment and never pushes, merges, or labels. Requires the
+# repository secret ANTHROPIC_API_KEY (or swap in CLAUDE_CODE_OAUTH_TOKEN).
+#
+# Not a required status check — the merge gates stay `ci.yml` (structure /
+# contracts / boundary). See docs/architecture/ci-cd-gates.md §1.1.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: review
+    # Draft PRs are reviewed once they are marked ready_for_review.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request as a code reviewer. Read AGENTS.md and
+            docs/architecture/ci-cd-gates.md first — they define this repo's
+            Hold boundary and honesty rules. Then read the PR diff.
+
+            Focus, in order:
+            1. Correctness bugs and behaviour regressions in the changed code.
+            2. Hold boundary: flag any edit to config/fastdds.xml or
+               docs/artifacts/bench/SCOREBOARD.md, any path containing
+               agnocast / zenoh, any change to dimos_bridge DDS behaviour or
+               vendor/ sources, and any Cega integration.
+            3. Honesty markers: docs must not claim PASS / PROVEN / measured
+               percentiles for work marked `STATUS: blocked` or `DoD: unmet`.
+            4. Gate scripts under scripts/ and selftests under evals/ must
+               stay read-only (no vendor compile, no os.environ writes on
+               import, no invented numbers).
+            5. Chain contracts: chain A = rmw_fastrtps_cpp, domain 42;
+               chain B = rmw_cyclonedds_cpp, domain 0.
+
+            Post one review comment. Lead with blocking findings (file:line,
+            why, suggested fix), then non-blocking nits. If there are no
+            findings, say so in one line. Do not restate the diff. Do not
+            approve, merge, label, or push.
+          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
