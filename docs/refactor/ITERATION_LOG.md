@@ -2894,7 +2894,7 @@
 
 ---
 
-## 轮次 39 — 2026-09-21 07:38（Asia/Shanghai）— eval #36：docs/refactor 与 evals 文档相对链接完整性自测（功能 PR TBD）
+## 轮次 39 — 2026-09-21 07:38（Asia/Shanghai）— eval #36：docs/refactor 与 evals 文档相对链接完整性自测（功能 PR #120，squash-merge main `e5146a5`）
 
 ### 背景与取证（先探针、后写脚本）
 
@@ -2923,6 +2923,11 @@
 - eval-only 自测：**19 个全 PASS**（fail=0，新增 `doc_link_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串；#35 自举 orphan 已随登记消除）；
 - promptfoo：**36/36 passed (100%)、0 failed、0 errors**（合并前 eval `eval-hvz-2026-09-20T23:37:54`，Duration 7s，热缓存）。
 
+### 合并后回归（main `e5146a5`，2026-09-21 07:52 CST）
+
+- 功能 PR **#120**（分支 `test/doc-link-selftest`，commit `ebe87a0`，4 files +289/−3）required checks（structure/contracts/boundary）+ CodeQL（actions/javascript-typescript/python + 聚合）全 pass、Cursor Approval **APPROVED**，squash-merge 至 main **`e5146a5`**（mergeCommit `e5146a5b66d3adbb79dcfe4fefba960d3a52b2b7`），远端分支已删。
+- 回 main 全套回归：gate **13/13**、指纹 **15/15 stable**、eval-only 自测 **19 个全 PASS**（fail=0）、promptfoo **36/36 passed (100%)、0 failed、0 errors**（合并后 eval `eval-D4v-2026-09-20T23:52:44`，Duration 7s）。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记）。
@@ -2938,7 +2943,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 36/36），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 36/36），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ **[x] 已完成：功能 PR #120 → main `e5146a5`；合并后回归 36/36（eval `eval-D4v-2026-09-20T23:52:44`），本回填 PR 即补登。**
 2. runner 双面、eval 注册面、文档链接面、11 guard、指纹严格层、env 三层、provider 均已闭环；继续取证是否还有未钉的真实独有判定面（如其余 A 面脚本边界、config/ 下文档链接），**先 /tmp 探针确认真实未覆盖再新增，不为凑数**。
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35/#36，纯 python）接进 CI。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
