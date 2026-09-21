@@ -3316,7 +3316,7 @@
 
 ---
 
-## 轮次 46 — 2026-09-21 18:17（Asia/Shanghai）— risk-matrix §9.4 Hold guard 负向自测 #41（功能 PR TBD）
+## 轮次 46 — 2026-09-21 18:17（Asia/Shanghai）— risk-matrix §9.4 Hold guard 负向自测 #41（功能 PR #138，main c26401b）
 
 ### 只读取证（先排查、不为凑数造测试）
 
@@ -3355,6 +3355,12 @@
 - eval-only 自测：**24 个 fail=0**（23→24，新增 #41）；#35 注册面 PASS（磁盘 24 selftest ↔ yaml 41 script ↔ 41 case ↔ README 41 一致）；#36 doc_link PASS（README 新增锚点/专节无断链）；
 - `npx promptfoo@0.123.1 eval`：**41/41 passed (100%)、0 failed、0 errors**，合并前 eval `eval-9KB-2026-09-21T10:17:10`（Duration 4s，高负载窗口 0 error，轮次43 provider 预算硬化继续有效）。
 
+### 合并后权威回归（main `c26401b`）
+
+- 功能 PR #138（分支 test/risk-matrix-guard-selftest，commit 2dd55c6，4 files +370/−3：新增 risk_matrix_guard_selftest.py 279 行、yaml +17、README +19/−3、日志 +58）required 三检 structure/contracts/boundary 全 pass、CodeQL 与 Analyze(actions/js/python) 全 pass、Cursor Approval APPROVED（1m17s）→ squash-merge，mergeCommit `c26401b2e82a314e684aacabccd7ded8745f02a7`，远端分支已删。
+- 回 main 同步后回归：compileall OK；gate **13/13** all gates green；stdout 指纹 **15/15 stable**；**24 个** eval-only 自测 fail=0；promptfoo **41/41 passed (100%)、0 failed、0 errors**，合并后权威 eval `eval-41F-2026-09-21T10:23:53`（Duration 5s）。
+- 合并前 eval `eval-9KB-2026-09-21T10:17:10`（4s/0 error）与合并后 eval 双样本均 0 error，轮次43 provider 预算硬化在高负载窗口继续有效。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml（仅在 tempdir 放其内容副本，原文件只读未改）、未改 SCOREBOARD 数字（同上，tempdir 副本）；未启用 Agnocast/zenoh；未改 dimos_bridge DDS 行为/vendor/shell 包装；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / 任何 gate 代码 / 15 个指纹 fixtures；新 eval 纯标准库 + tempdir/内存变异，不新增运行时依赖、不在树内建 fixture、不跑不受信代码；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3367,7 +3373,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 41/41、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 41/41、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ 已完成：#138 merged→main c26401b，合并后 41/41 eval-41F-2026-09-21T10:23:53，本回填 PR 即收尾。
 2. 剩余无专属负向自测、会 exit1 的文档 guard 候选：`check_dual_chain_baseline.md` 指针检查（先探针确认是否有独有判定，还是与 #19/#32/#34 双链族重复）；同样须先 /tmp 探针证实独有未覆盖分支才新增，不为凑数。
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope（ci.yml 接线 + 把纯 python 指纹/selftest 纳入 CI）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
