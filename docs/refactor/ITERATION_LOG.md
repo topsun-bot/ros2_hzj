@@ -3126,7 +3126,7 @@
 3. 独立改进候选（需先探针、拆清楚，勿与小步重构混 PR）：fingerprint_check 高负载并发健壮性（子进程超时/重试，或评估 promptfoo 侧降并发/重跑该 case），注意可能影响 #17/#31。
 4. 长期阻塞不变：ci.yml 接线（需用户本机 `gh auth refresh -h github.com -s workflow`）；《6》CVE 修复三项待用户明确批准后拆独立 PR；4 份飞书文档 3380004 无权限；Humble Linux 主机解除端到端 blocked。
 
-## 轮次 43 — 2026-09-21 12:43（Asia/Shanghai）— local-script provider 超时预算硬化（修轮次41 fingerprint 高负载 flaky 根因）（功能 PR TBD）
+## 轮次 43 — 2026-09-21 12:43（Asia/Shanghai）— local-script provider 超时预算硬化（修轮次41 fingerprint 高负载 flaky 根因）（功能 PR #132，squash main `178cfc3`）
 
 - **主题**：轮次41 合并后 promptfoo 在整机高负载（`vm.loadavg` 实测 19–35）下，最重的 `evals/fingerprint_check.py`（#17，内部**串行**跑 13 gate + 2 个 `load.py print-*` 共 15 个 python 子进程）case 偶发 provider 层 `[ERROR] ... exited`、**0 failed**（无断言失败），当时留作独立健壮性改进项。本轮先只读取证、再最小修复，不改 gate/生产代码、不改 fingerprint 判定与 fixtures。
 
@@ -3162,6 +3162,12 @@
 - gate：**13/13** all gates green（不变）；stdout 指纹：**15/15 stable**（不变）；eval-only 自测：**22 个全 PASS（fail=0）**（#33 由 7 项断言增至 9 项）。
 - promptfoo：**39/39 passed (100%)、0 failed、0 errors**，合并前 eval `eval-pQI-2026-09-21T04:42:54`（Duration 4s，loadavg 10–13）。
 
+### 合并后回归（main `178cfc3`，2026-09-21 12:49 CST）
+
+- 功能 PR **#132**（分支 `fix/local-script-provider-timeout`，commit `8a0d2a1`，5 files +154/−9）required checks（structure/contracts/boundary）+ CodeQL（actions/javascript-typescript/python + 聚合）全 pass、Cursor Approval **APPROVED**（1m24s），已 squash-merge 并删远端分支，mergeCommit `178cfc3e6d0123d48a6d0d57e1ceae7b7d765310`。
+- 回 main 拉取后：compileall 通过；gate **13/13** all gates green；stdout 指纹 **15/15 stable**（fixtures 未改）；22 个 eval-only 自测 **fail=0**（#33 为 9 项断言）。
+- 合并后权威 promptfoo：**39/39 passed (100%)、0 failed、0 errors**，eval `eval-d5a-2026-09-21T04:49:03`（Duration 4s，loadavg 10–13）。provider 预算硬化后本轮高负载窗口 fingerprint case 未再超时（合并前 `eval-pQI-2026-09-21T04:42:54` 同为 39/39、0 error）。
+
 ### Hold 合规
 
 - 不编辑 `config/fastdds.xml`；不改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未碰任何 fixtures、ci.yml、shell 包装、vendor、`dimos_bridge/dimos/**`；不启用 Agnocast/zenoh、不集成 Cega、不重写 Bridge runtime。
@@ -3176,7 +3182,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR **#132** 已合并（main `178cfc3`）；合并后全套回归 39/39、0 error（eval `eval-d5a-2026-09-21T04:49:03`），PR 号 / main HEAD / eval ID 已由本回填 PR 补入。
 2. 轮次41 flaky 的运行面缓解（provider 预算已硬化）可在后续高负载窗口再观察：若仍偶发超时，考虑在 promptfoo 侧对 fingerprint 单 case 降并发（独立 PR、先取证），而不是继续加大全局超时。
 3. 共享底座 `_repo`(#37)/`_md_paths` 解析半(#38)/校验渲染半(#39) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针找到真实未覆盖的独有判定，不为凑数新写低价值自测。
 4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
