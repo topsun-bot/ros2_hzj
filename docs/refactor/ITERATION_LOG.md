@@ -2951,7 +2951,7 @@
 
 ---
 
-## 轮次 40 — 2026-09-21 08:16（Asia/Shanghai）— eval #37：共享 gate helper `scripts/_repo.py` 自身契约自测（功能 PR TBD）
+## 轮次 40 — 2026-09-21 08:16（Asia/Shanghai）— eval #37：共享 gate helper `scripts/_repo.py` 自身契约自测（功能 PR #122，squash-merge main `9625cdc`）
 
 ### 背景与取证（先探针、后写脚本）
 
@@ -2979,6 +2979,11 @@
 - eval-only 自测：**20 个全 PASS**（fail=0，cwd 已恢复仓库根；新增 `repo_helper_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串；#35 自举 orphan 已随登记消除）；
 - promptfoo：**37/37 passed (100%)、0 failed、0 errors**（合并前 eval `eval-KLh-2026-09-21T00:16:18`，Duration 6s，热缓存）。
 
+### 合并后回归（main `9625cdc`，2026-09-21 08:29 CST）
+
+- 功能 PR **#122**（分支 `test/repo-helper-selftest`，commit `5a11136`，4 files：新 `evals/repo_helper_selftest.py` 146 行、yaml +16、README +15/−3、日志）required checks（structure/contracts/boundary）+ CodeQL（actions/javascript-typescript/python + 聚合）全 pass、Cursor Approval **APPROVED**，squash-merge 至 main **`9625cdc`**（mergeCommit `9625cdcf7dbee0032122179a9b03a6106a6c307d`），远端分支已删。
+- 回 main 全套回归：gate **13/13**、指纹 **15/15 stable**、eval-only 自测 **20 个全 PASS**（fail=0，cwd 已恢复仓库根）、promptfoo **37/37 passed (100%)、0 failed、0 errors**（合并后 eval `eval-uB3-2026-09-21T00:29:58`，Duration 6s）。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记；`scripts/_repo.py` 只读 import、未改一行）。
@@ -2994,7 +2999,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 37/37），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 37/37），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ **[x] 已完成：功能 PR #122 → main `9625cdc`；合并后回归 37/37（eval `eval-uB3-2026-09-21T00:29:58`），本回填 PR 即补登。**
 2. 取证 `scripts/_md_paths.py` 解析器自身边界（`to_repo_rel` 逃逸/裸词/fragment、`parse_map` ambiguous line cite）是否有未被 source_map/executor_map guard 间接覆盖的独有判定，**先探针逐字确认再决定是否新增**；不为凑数。
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35–#37，纯 python）接进 CI。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
