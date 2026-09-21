@@ -3062,7 +3062,7 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#38 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
-## 轮次 42 — 2026-09-21 10:32（Asia/Shanghai）— eval #39：共享 markdown 源图校验渲染器 `scripts/_md_paths.check_cited_paths` 自身契约自测（功能 PR TBD）
+## 轮次 42 — 2026-09-21 10:32（Asia/Shanghai）— eval #39：共享 markdown 源图校验渲染器 `scripts/_md_paths.check_cited_paths` 自身契约自测（功能 PR #129，squash-merge main `dd706e1`）
 
 ### 本轮做了什么（评估驱动，一个小步，纯 eval-only）
 
@@ -3099,6 +3099,12 @@
 - 22 个 eval-only 自测循环全 PASS；gate 13/13；指纹 stable；Promptfoo 39/39。
 - 改动文件仅 4 个：新自测 1 个、yaml、README、本日志；无 fixture 新增、无树内文件改动。
 
+### 合并后回归（main `dd706e1`，2026-09-21 10:38 CST）
+
+- 功能 PR **#129**（分支 `test/md-paths-cited-selftest`，commit `ee2ef8a`，4 files +272/−3）required checks（structure/contracts/boundary）+ CodeQL（actions/javascript-typescript/python + 聚合）全 pass、Cursor **APPROVED**（1m28s）、MERGEABLE，squash-merge main **`dd706e1`**（mergeCommit `dd706e15f04743cbf8fe6d7418ebf8a1e95de646`），远端分支已删。
+- 合并后回归：gate **13/13**（all gates green）；`fingerprint_check.py` 单独 **15/15 stable**；**22 个** eval-only 自测全 PASS（fail=0）。
+- promptfoo：**39/39 passed (100%)、0 failed、0 errors**（合并后权威 eval `eval-3ee-2026-09-21T02:37:59`，Duration 4s，loadavg 12–15）。合并前 eval `eval-Od8-2026-09-21T02:32:02`（3s）同为 39/39；轮次41 记录的高负载 fingerprint flaky 本轮合并前后均未复现（根因未除，仍列独立改进项）。
+
 ### Hold 合规
 
 - 不编辑 `config/fastdds.xml`；不改 `docs/artifacts/bench/SCOREBOARD.md` 数字；负向场景一律 tempdir 副本 / 内存变异，不在原地改。
@@ -3115,7 +3121,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR **#129** 已 squash-merge main `dd706e1`；合并后回归 39/39（权威 eval `eval-3ee-2026-09-21T02:37:59`），结果已回填本小节（本回填 PR）。
 2. 共享底座盘点：`_repo`（#37）、`_md_paths` 解析半（#38）与校验渲染半（#39）均已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 与既有断言重叠）维持**合理空缺**倾向，下轮若要动须先探针找到真实未覆盖的独有判定。
 3. 独立改进候选（需先探针、拆清楚，勿与小步重构混 PR）：fingerprint_check 高负载并发健壮性（子进程超时/重试，或评估 promptfoo 侧降并发/重跑该 case），注意可能影响 #17/#31。
 4. 长期阻塞不变：ci.yml 接线（需用户本机 `gh auth refresh -h github.com -s workflow`）；《6》CVE 修复三项待用户明确批准后拆独立 PR；4 份飞书文档 3380004 无权限；Humble Linux 主机解除端到端 blocked。
