@@ -3,7 +3,8 @@
 Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / 契约 / Hold 边界变成必绿检查，再谈更重的流水线。  
 查阅日期：2026-09-12。决策背景：[feishu-middleware-adr.md](feishu-middleware-adr.md)（#25）、[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)（#23）。
 
-工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。
+工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。  
+另有 advisory 的 Claude 自动代码审查工作流（§4a），**不是** required check。
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
@@ -70,6 +71,18 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 4. 合入后应摘标签；下一次 PR 默认重新上闸。
 
 没有该标签时，动 XML / SCOREBOARD / Agnocast·zenoh 路径 = CI 红。
+
+---
+
+## 4a. Claude 自动代码审查（advisory）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。用 [`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action) 在每个非 draft、非机器人作者的 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上跑一次审查，把结论以 PR 评论 + 行内评论发回（单条 sticky 评论，后续 push 就地更新）。
+
+- **只是建议，不是闸门**：不进 §5 的 required status checks；`structure` / `contracts` / `boundary` 仍是唯一的合并阻塞。审查不 approve、不 request changes、不 merge、不 push、不改文件（`--allowedTools` 只放行 `gh pr comment` / `gh pr diff` / `gh pr view` 与行内评论工具）。
+- **审什么**：gate 脚本 / eval 自测 / shell 包装 / CI YAML 的正确性；§2 Hold 边界（`fastdds.xml`、SCOREBOARD、Agnocast / zenoh 路径、`dimos_bridge` DDS 行为、vendor、Cega / Bridge）；诚实标记（不得发明分位数、`STATUS: PASS`、`DoD: met`、本机已复现）；文档与代码漂移（README / `evals/README.md` 表格、promptfoo 用例数、注册表、相对链接）。
+- **需要的 secret**：仓库 Settings → Secrets and variables → Actions 里配置 `ANTHROPIC_API_KEY`。缺失时该 job 失败，但因为它不是 required check，不影响合并。
+- **权限**：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`；同 PR 的进行中 run 会被取消。
+- **人类仍批准 merge**（§5）。Claude 的评论与任何人类 review 一样，由 PR 作者决定采纳与否。
 
 ---
 
