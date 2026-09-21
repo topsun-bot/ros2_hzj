@@ -31,6 +31,23 @@ import path from 'node:path';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..');
 
+// Wall-clock budget for one script. The strictest case is
+// `evals/fingerprint_check.py`, which serially spawns the 13 gates plus the
+// two `load.py print-*` subcommands (15 python processes). On a host under
+// heavy concurrent load (promptfoo concurrency=4 plus other work, observed
+// loadavg ~35) that can take longer than the previous fixed 30s, at which
+// point node killed an otherwise-correct check and promptfoo recorded a
+// provider-level `[ERROR]` with 0 assertion failures. 120s gives a 4x margin
+// without weakening any assertion: a real non-zero exit or stdout drift still
+// fails exactly as before. Overridable for CI / fast timeout tests via
+// LOCAL_SCRIPT_TIMEOUT_MS (positive integer ms).
+const DEFAULT_TIMEOUT_MS = 120000;
+
+function resolveTimeoutMs() {
+  const raw = Number(process.env.LOCAL_SCRIPT_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_TIMEOUT_MS;
+}
+
 export default class LocalScriptProvider {
   constructor(config = {}) {
     this.config = config;
@@ -52,10 +69,11 @@ export default class LocalScriptProvider {
       };
     }
 
+    const timeoutMs = resolveTimeoutMs();
     try {
       const stdout = execFileSync('python3', argv, {
         cwd: repoRoot,
-        timeout: 30000,
+        timeout: timeoutMs,
         encoding: 'utf8',
         // Inherit the operator's env. On this host ROS_* / RMW_* are unset,
         // which is exactly the baseline the gate scripts already expect.
@@ -65,10 +83,23 @@ export default class LocalScriptProvider {
     } catch (err) {
       const stdout = err && err.stdout ? String(err.stdout) : '';
       const stderr = err && err.stderr ? String(err.stderr) : '';
-      const code = err && typeof err.status === 'number' ? err.status : 'unknown';
+      // node kills an over-budget child with signal SIGTERM and code
+      // ETIMEDOUT and no numeric exit status; distinguish that from a script
+      // that actively exits non-zero so the failure reason is not mislabeled.
+      const timedOut =
+        !!err && (err.code === 'ETIMEDOUT' || err.signal === 'SIGTERM');
+      const code =
+        err && typeof err.status === 'number'
+          ? err.status
+          : timedOut
+            ? 'timeout'
+            : 'unknown';
+      const when = timedOut ? ` after ${timeoutMs}ms` : '';
       return {
         output: stdout + (stderr ? '\n' + stderr : ''),
-        error: `local-script: ${command} exited with code ${code}: ${err && err.message}`,
+        error: `local-script: ${command} exited with code ${code}${when}: ${
+          err && err.message
+        }`,
       };
     }
   }

@@ -3126,3 +3126,58 @@
 3. 独立改进候选（需先探针、拆清楚，勿与小步重构混 PR）：fingerprint_check 高负载并发健壮性（子进程超时/重试，或评估 promptfoo 侧降并发/重跑该 case），注意可能影响 #17/#31。
 4. 长期阻塞不变：ci.yml 接线（需用户本机 `gh auth refresh -h github.com -s workflow`）；《6》CVE 修复三项待用户明确批准后拆独立 PR；4 份飞书文档 3380004 无权限；Humble Linux 主机解除端到端 blocked。
 
+## 轮次 43 — 2026-09-21 12:43（Asia/Shanghai）— local-script provider 超时预算硬化（修轮次41 fingerprint 高负载 flaky 根因）（功能 PR TBD）
+
+- **主题**：轮次41 合并后 promptfoo 在整机高负载（`vm.loadavg` 实测 19–35）下，最重的 `evals/fingerprint_check.py`（#17，内部**串行**跑 13 gate + 2 个 `load.py print-*` 共 15 个 python 子进程）case 偶发 provider 层 `[ERROR] ... exited`、**0 failed**（无断言失败），当时留作独立健壮性改进项。本轮先只读取证、再最小修复，不改 gate/生产代码、不改 fingerprint 判定与 fixtures。
+
+### 取证（先探针、不臆测）
+
+- re-ground：main `7f119af`=origin/main、工作区仅受保护旧草稿 untracked、本循环无在途 PR。
+- **纯并发压力不复现**：/tmp 脚本以并发 8 连开 8 波、每波 4 个 fingerprint_check + 2 个会 chdir 的 repo_helper selftest（共 32 个 fingerprint 实例、16 个 selftest），4s 内**全部 rc=0**。说明非零**不是** fork/进程资源竞争，也不是 gate 输出不确定。
+- 读 `evals/localScriptProvider.mjs`：`execFileSync('python3', argv, { timeout: 30000, ... })` 是**固定 30s** 硬超时。fingerprint 正常 2–4s，但在整机 loadavg≈35 且 promptfoo concurrency=4 争抢时，15 个串行子进程墙钟可超 30s，被 node 杀掉 → provider 返回 error（轮次41 单次 promptfoo 总时长飙到 3m14s 与此一致）；这是 provider 层超时，**不是**断言失败，故 0 failed。
+- node 探针（`timeout:200` 跑 sleep 1.5）逐字取超时 err 字段：`status=null`、`signal="SIGTERM"`、`code="ETIMEDOUT"`、`message="spawnSync python3 ETIMEDOUT"`。旧 catch 用 `typeof err.status==='number' ? err.status : 'unknown'`，会把超时**误标成 `code unknown`**，无法与主动非零退出区分。
+- 确认 #33 `local_script_provider_selftest.py` 此前**无超时用例**、也不钉 30000 数值（`timeout:30000` 仅出现在 .mjs 与测试内盲桩副本），故提高预算不破坏既有断言。
+
+### 改动（仅 eval 工具层 + 其自测，0 gate / 0 fixture / 0 ci.yml）
+
+- `evals/localScriptProvider.mjs`（76→106 行，`node --check` 通过）：
+  - 新增具名 `DEFAULT_TIMEOUT_MS = 120000`（30s→120s，给过载下串行 15 子进程 4 倍余量）；
+  - 新增 `resolveTimeoutMs()`：读 env `LOCAL_SCRIPT_TIMEOUT_MS`，正整数 ms 生效、否则回退默认（`Number.isFinite && >0`，非法/非正不清零预算）；
+  - catch 中分类：`err.code==='ETIMEDOUT' || err.signal==='SIGTERM'` → `code` 标为 `timeout` 并附 ` after {N}ms`；主动非零退出仍是数字 `code`（如 `code 1`）。
+  - **不加重试、不软化**：超时与非零一样返回 error（promptfoo 仍判失败）；真实 exit1 / stdout drift 行为逐字不变；成功 output 仍仅 stdout。
+- `evals/local_script_provider_selftest.py`（#33，225→282 行）在既有 7 项检查上新增 2 项（真实行为先经 /tmp node 探针逐字取证）：
+  - **N4 超时负向**：harness 末尾临时 `LOCAL_SCRIPT_TIMEOUT_MS=250` 跑 sleep 1.2s 夹具 → 必须 error 且含 `code timeout`、`ETIMEDOUT`/`SIGTERM`、`after 250ms`；同时钉主动 exit1 仍报 `code 1`（不被误标/软化）；删除覆盖后再跑快速 exit0 夹具必须成功（env 不泄漏）。
+  - **超时预算契约（静态）**：.mjs 必须有具名 `DEFAULT_TIMEOUT_MS` 且 ≥60000（防退回过紧的 30s）、`LOCAL_SCRIPT_TIMEOUT_MS` 覆盖已接线、含 `ETIMEDOUT`/`SIGTERM` 分类、非法覆盖回退默认。
+  - 计数串由 `3 negative, 2 non-flag, 1 healthy, 1 mutation` 更新为 `4 negative, 2 non-flag, 1 healthy, 1 mutation, 1 timeout-budget contract`（9 项检查全 ok）。
+- 登记同步：`evals/promptfooconfig.yaml` **仅 #33 块**（description 补超时语义 + 计数串；#32/#34–#39 的同名计数串未动）；`evals/README.md` 文件表行、明细表 #33 行、#33 专节（新增超时负向 + 预算契约两 bullet，并把过时的「不修改 provider 行为（行为不变）」范围边界改为如实说明本次唯一行为变更），548→550 行。用例总数仍 **39**（未新增 promptfoo case，#33 内部加断言）。
+
+### 行为不变与产物检查
+
+- provider 非零→error、成功 output 仅 stdout 的裁决语义未变；`evals/fingerprint_check.py` 与 15 个 fixtures **一行未改**（provider 不在 fingerprint 的 15 个被跑命令内），指纹仍 **stable、无需 `--update`**；#31 钉的「恒非零 gate 必 FAIL」不受影响（本轮未碰 fingerprint）。
+- 端到端 /tmp node 探针实测：主动 exit1→`exited with code 1`；env250+sleep1.2→`exited with code timeout after 250ms: spawnSync python3 ETIMEDOUT`；删 env 后快速命令 OK；env=garbage 回退默认真实命令 OK。
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py` 通过。
+
+### 分数前后对比（本机 macOS，无 ROS runtime）
+
+- gate：**13/13** all gates green（不变）；stdout 指纹：**15/15 stable**（不变）；eval-only 自测：**22 个全 PASS（fail=0）**（#33 由 7 项断言增至 9 项）。
+- promptfoo：**39/39 passed (100%)、0 failed、0 errors**，合并前 eval `eval-pQI-2026-09-21T04:42:54`（Duration 4s，loadavg 10–13）。
+
+### Hold 合规
+
+- 不编辑 `config/fastdds.xml`；不改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未碰任何 fixtures、ci.yml、shell 包装、vendor、`dimos_bridge/dimos/**`；不启用 Agnocast/zenoh、不集成 Cega、不重写 Bridge runtime。
+- 仅改 eval 工具（custom provider）与其 eval-only 自测；无框架迁移/依赖升级/API 变更；新断言纯标准库 + tempdir node harness，不新增运行时依赖（promptfoo 仅 npx 缓存运行，node 本就是其依赖）；CVE 审计只读；旧草稿未跟踪未改。
+
+### 剩余风险
+
+- 120s 是工程余量而非无界保证：若整机持续极端过载（远超 loadavg 35）fingerprint 墙钟仍可能超 120s——那属资源争抢，正确做法是降载/降并发，不应靠无限放宽超时或重试掩盖；本轮刻意**不加重试**，避免把严格层变软（真实 drift/非零仍稳定复现并失败）。
+- provider 超时分类与预算下限已由 #33 两条新断言钉死，退回 30s / 吞掉超时 / env 泄漏都会让 #33 FAIL。
+- eval-only 自测仍不是 gate、不进 GATES、CI structure 不枚举（第 13 gate 与把 fingerprint/selftest 接 ci.yml 仍待 `workflow` scope，离线备份在 `~/ros2_hzj_pending/`）。
+- 真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`（无 Humble 主机），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 轮次41 flaky 的运行面缓解（provider 预算已硬化）可在后续高负载窗口再观察：若仍偶发超时，考虑在 promptfoo 侧对 fingerprint 单 case 降并发（独立 PR、先取证），而不是继续加大全局超时。
+3. 共享底座 `_repo`(#37)/`_md_paths` 解析半(#38)/校验渲染半(#39) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针找到真实未覆盖的独有判定，不为凑数新写低价值自测。
+4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
+
