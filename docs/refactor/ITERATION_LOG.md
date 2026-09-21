@@ -3314,3 +3314,61 @@
 3. `prove_rmw`/`check_risk_matrix`/`_freeze_paths` 维持合理空缺倾向，须先 /tmp 探针证实独有未覆盖判定分支才新增自测，不为凑数。
 4. 外部阻塞不变：workflow scope（ci.yml 接线）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 46 — 2026-09-21 18:17（Asia/Shanghai）— risk-matrix §9.4 Hold guard 负向自测 #41（功能 PR TBD）
+
+### 只读取证（先排查、不为凑数造测试）
+
+- **gate 计数"12/13"表述面排查（轮次45 自然延续）**：全仓 grep A 面（排除 vendor/artifacts/.git）"12/13 gate"表述，分类结论——
+  - `docs/testing/2026-09-mac-hil.md:25/27` 的"12 个 gate / 12/12"是 **2026-09-19 带日期的实测分诊报告**，当天第 13 gate 尚未随本循环落地，写 12 是**准确历史证据**，改数字即篡改历史 → 不改；
+  - `docs/eval/2026-09-loop.md:5/18` 的"12 个 gate"是迭代0 方法论**历史快照** → 不改；
+  - `docs/architecture/ci-cd-gates.md:139-144`、`docs/refactor/01-dds-request-flow.md`、`evals/*` 里的"12/twelve"均**准确描述 CI structure 仍只枚举前 12 gate**（第 13 gate ci.yml 接线受 workflow scope 阻塞）→ 不改；
+  - 结论：gate 计数面**无真实漂移可修**，不制造无意义文档提交。
+- **三个长期"合理空缺"候选探针**：
+  - `scripts/_freeze_paths.py`（26 行）：纯常量（2 Path + 2 字符串），无函数无分支，其消费已由 #18 frozen guard 钉 → **确认合理空缺**；
+  - `scripts/prove_rmw.py`（222 行）：恒 exit0 的信息打印器（设计如此），本机完整 stdout 已被 #17 指纹逐字节钉、伪造环境诚实文案被 mac-hil 用例2 钉；未覆盖分支（找到 .so 的 loaded/identifier-unavailable 渲染态）在无 ROS 机恒不触发且非 PASS/FAIL 裁决，造假日录树价值低 → **维持空缺**；
+  - `scripts/check_risk_matrix.py`（139 行）：是 13 gate 中少数**无专属负向自测、却会 exit1** 的文档 guard，且源码 line 42-47 有作者明确注释的**反缩写契约**——矩阵必须逐 token 含 `《3》《4》《5》《6》`，裸 `《3》–《6》` 区间不得替代缺失项；正向 gate 证明不了它被削弱时 fail-closed → **选定为本轮目标**。
+
+### 改动（行为不变，4 文件，eval-only）
+
+1. 新增 `evals/risk_matrix_guard_selftest.py`（#41，纯标准库、tempdir-only、读真实仓库）：把 guard 实读的 8 个文件（6 份内容文档 + 只读 fastdds.xml / SCOREBOARD.md）**复制进 temp 树**后逐树变异，经可注入的 `render(root=...)` 驱动，绝不写仓库/不改两个冻结文件。
+   - **3 negative**：N1 删矩阵独立 `《4》`、保留 `《3》–《6》` 区间 → exit1 逐字 `FAIL markers ... (need 《4》)`（钉反缩写契约）；N2 删 R0 必需文件 → exit1 `FAIL missing`；N3 ADR 去 `§9.4` → exit1（钉 marker 逐文件强制）；
+   - **2 non-flag（双向）**：SCOREBOARD 副本仅留 `STATUS`（无数字）、fastdds.xml 副本仅留 `<domainId>42</domainId>`，两棵最小锚点树都 exit0——钉死冻结文件"只验存在/最小锚点、不读数字/不读其余内容"的 Hold 边界；
+   - **2 healthy**：真实仓 `render()` 与纯复制 temp 树都 exit0 含 `Risk matrix healthy`；
+   - **1 mutation**：模块级 `read_utf8` 换成对矩阵总返回未篡改原文的盲桩 → N1 漏报成 exit0，恢复后重新 exit1。计数串 `3 negative, 2 non-flag, 2 healthy, 1 mutation`。
+2. `evals/promptfooconfig.yaml`：注册 #41，case **40→41**（cases=41、scripts=41）。
+3. `evals/README.md`：两处标题计数 40→41、文件表新增行、明细表 #41、seed 用例长枚举句尾新增 #41 片段、新增 #41 专节（倒序置于 #40 专节之前）。
+4. 本日志小节。
+
+### 评估驱动证据（先证非恒真）
+
+- N1 在真实 guard 上独立复现：code=1，逐字 `- **FAIL markers:** `docs/architecture/feishu-risk-matrix.md` (need 《4》)`；
+- 新脚本未注册时 #35 注册面自测真实 FAIL：`orphan self-test on disk not registered in yaml: risk_matrix_guard_selftest.py`，注册后转 PASS（证明注册面 live）；
+- #41 自测自身：`negative 3/3、non-flag 2/2、healthy 2/2、mutation 1/1` PASS。
+
+### 实测（本机 macOS，2026-09-21 18:17 CST）
+
+- `python3 -m compileall evals scripts config/env dimos_bridge/dual_chain_env.py`：OK；
+- `python3 scripts/run_all_gates.py`：**13/13 all gates green**；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（#41 不在 15 个指纹命令内，fixtures 零改动）；
+- eval-only 自测：**24 个 fail=0**（23→24，新增 #41）；#35 注册面 PASS（磁盘 24 selftest ↔ yaml 41 script ↔ 41 case ↔ README 41 一致）；#36 doc_link PASS（README 新增锚点/专节无断链）；
+- `npx promptfoo@0.123.1 eval`：**41/41 passed (100%)、0 failed、0 errors**，合并前 eval `eval-9KB-2026-09-21T10:17:10`（Duration 4s，高负载窗口 0 error，轮次43 provider 预算硬化继续有效）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml（仅在 tempdir 放其内容副本，原文件只读未改）、未改 SCOREBOARD 数字（同上，tempdir 副本）；未启用 Agnocast/zenoh；未改 dimos_bridge DDS 行为/vendor/shell 包装；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / 任何 gate 代码 / 15 个指纹 fixtures；新 eval 纯标准库 + tempdir/内存变异，不新增运行时依赖、不在树内建 fixture、不跑不受信代码；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（纯新增 eval-only 自测 + 文档），runner/gate/公共 API/fixtures 零改动。
+- N1 依赖矩阵文档当前 `《4》` 仅 1 次独立出现；若未来文档改写使区间与独立 token 合并，自测健康树 H2 会先红（夹具有效性保护），需同步评估而非改测试放水。
+- `prove_rmw` 找到 .so 的渲染态、真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 ROS Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 41/41、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 剩余无专属负向自测、会 exit1 的文档 guard 候选：`check_dual_chain_baseline.md` 指针检查（先探针确认是否有独有判定，还是与 #19/#32/#34 双链族重复）；同样须先 /tmp 探针证实独有未覆盖分支才新增，不为凑数。
+3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope（ci.yml 接线 + 把纯 python 指纹/selftest 纳入 CI）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
