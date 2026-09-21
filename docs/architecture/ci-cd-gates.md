@@ -20,7 +20,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 | **contracts** | `python3 config/env/load.py print-a\|print-b` 打印契约且 import **不**写 `os.environ`；`dds_topics.py` 常量；上表文档的相对链接可解析；`python3 scripts/prove_rmw.py` 在 **没有 ROS** 时仍 exit 0 并打印 `ROS not loaded` |
 | **boundary** | 仅对 `pull_request` **失败**：diff 碰到冻结路径或明显引入 Agnocast / zenoh 的路径。`push` 到 `main` **只警告、不失败**（已合入历史不得被这道闸误杀） |
 
-**辅助审查（不是 required check）**：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml) 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`，跳过 draft 与 fork PR）上运行 `anthropics/claude-code-action@v1`，按 [AGENTS.md](../../AGENTS.md) 的 Hold 清单与本文规则给 PR 留行内评论 + 一条总结；规则文档从 PR 的 **base** 提交读取（`git show <base sha>:AGENTS.md`），不是从 PR 树读取，PR 改写规则文档或本工作流会被点名。fork PR 拿不到 secret，直接跳过。 它只**评论**，不产出 `structure` / `contracts` / `boundary` 之外的任何 required status check，也不自动合入； 需要仓库 secret `ANTHROPIC_API_KEY`，缺失时该 job 红但**不**阻塞 §5 的三道必绿闸。
+**辅助审查（不是 required check）**：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml) 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`，跳过 draft 与 fork PR）上运行 `anthropics/claude-code-action`（钉到 commit SHA，注释标 v1.0.231；升级须改本文件而非随 tag 漂移），按 [AGENTS.md](../../AGENTS.md) 的 Hold 清单与本文规则给 PR 留行内评论 + 一条总结；规则文档从 PR 的 **base** 提交读取（`git show <base sha>:AGENTS.md`），不是从 PR 树读取，PR 改写规则文档或本工作流会被点名。fork PR 拿不到 secret，直接跳过。 它只**评论**，不产出 `structure` / `contracts` / `boundary` 之外的任何 required status check，也不自动合入； 需要仓库 secret `ANTHROPIC_API_KEY`，缺失时该 job 红但**不**阻塞 §5 的三道必绿闸。
 
 **本阶段不做**（仍 Hold，不要在本工作流加）：
 
