@@ -578,3 +578,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #38 shared markdown source-map parser (scripts/_md_paths.py) own contracts.
+  # #22 only pins parse_map's two caller params (absent_keys/reject_bare_words)
+  # and #21 monkeypatches symbol_lines; the parser's root-escape (depth
+  # sensitive), fragment/angle/space stripping, non-path rejection, identifier
+  # word-boundary/cache, 1-based lines, and parse_map line-number / unique-suffix
+  # / ambiguous / fenced-code handling had no direct assertions. Imports the
+  # REAL parser on minimal temp trees.
+  - description: 'md_paths_parser_selftest.py: scripts/_md_paths.py to_repo_rel must reject root-escaping/external/absolute/ellipsis targets but keep legal-depth and stripped relative paths; looks_like_repo_path must reject non-paths; parse_map must report ambiguous filename:line cites without attributing them, exclude fenced-code links, and map link/tick/suffix line numbers; ident_re must be word-boundary + cached and symbol_lines 1-based'
+    vars:
+      script: evals/md_paths_parser_selftest.py
+    assert:
+      - type: contains
+        value: 'md paths parser selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'

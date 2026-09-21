@@ -3005,3 +3005,53 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#37 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
+---
+
+## 轮次 41 — 2026-09-21 09:15（Asia/Shanghai）— eval #38：共享 markdown 源图解析器 `scripts/_md_paths.py` 自身契约自测（功能 PR TBD）
+
+### 背景与取证（先探针、后写脚本）
+
+- re-ground：`main`=`0a410d3`=origin/main（轮次40 回填 #124 后），工作区干净，仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked（未碰）；本循环无在途 PR。
+- 轮次40 下一步第 2 条点名取证 `scripts/_md_paths.py`。盘点现有覆盖：#22（executor_map_guard）直接调 `parse_map` 但**只钉两个调用方参数**（`absent_keys`/`reject_bare_words`）；#21（source_map_guard）只在一个 mutation 里 monkeypatch `symbol_lines`；#36（doc_link）仅注释提及 `parse_map`。解析器自身的细粒度契约——`to_repo_rel` 的 root 逃逸（深度敏感）、fragment/`<>`/空格剥离、非路径拒绝、`ident_re` 词边界与缓存、`symbol_lines` 1-based、`parse_map` 的 LINK/TICK 行号、同名 suffix 唯一映射、ambiguous 报错、fenced code 排除——**零直接断言**。
+- 读 `_md_paths.py` 全文（253 行）后用最小 temp tree 探针逐字验证。探针发现并修正一处**期望值错误（非代码 bug）**：map 位于 `docs/architecture/` 时，`../../etc/passwd` 只上两级到 root，解析为仍在 root 内的 `etc/passwd`（合法）；必须 `../../../etc/passwd`（上三级越出 root）才返回 None——逃逸判定是**深度敏感**的，两种深度都钉进自测。其余分支（剥离、external/绝对/`...` 拒绝、bare-word 开关、ident 词边界不匹配 `foobar` 但匹配 `x-foo-y`、正则缓存同一性、行号 1-based、LINK `a.cpp:12`/TICK `b.py:7`/同名 suffix 唯一映射补 55、双同名 → ambiguous note 且不归因、fence 内排除/fence 外保留、absent key 跳过）逐字成立。
+
+### 改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml）
+
+- 新增 `evals/md_paths_parser_selftest.py`（**eval #38**，对象是**共享解析器底座**，中缀 `md_paths_parser`；import **真实** `scripts/_md_paths.py`，在最小 temp tree 上断言，不在仓库内写文件；不是 gate、不进 GATES、不被 CI 枚举）。场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - N1 越出 root 的 `../../../etc/passwd`、`../../../outside/x.md` 与 external/绝对路径必须 `to_repo_rel` 返回 None；N2 非路径 token（`...`、内嵌 `...`、URL、绝对路径、无前缀裸 `foo/bar.py`）必须被 `looks_like_repo_path` 拒绝、含 `...` target 返回 None，而 `scripts/`、`./docs/` 必须接受；N3 一个 `filename:line` 残余同名命中多个被引路径必须报 `ambiguous line cite ... matches N cited paths` 且不把行号归因到任一路径；
+  - NF1 fragment/`<>`/空格剥离、**合法深度** `../../etc/passwd`→`etc/passwd` 不误杀、bare-word 开关 True/False 行为正确；NF2 ident 词边界（不匹配子串、匹配连字符边界）、正则缓存同一性、symbol_lines 1-based；
+  - healthy：真实 `docs/architecture/ros2-source-map.md` 经 `parse_map` 得非空 cited、无 ambiguous note、至少一个被引目标在磁盘存在；
+  - mutation：fenced code block 内链接排除、fence 外同形链接保留（证明 fence 剥离真实生效）。
+- `evals/promptfooconfig.yaml`：37→**38**，末尾追加 #38 块（2 条 contains：`md paths parser selftest: PASS` + 计数串）。
+- `evals/README.md`：六处登记（配置表/seed 叙述 38、文件表新增解析器自测行、枚举句追加 #38、明细表 `| 38 |`、倒序新增 #38 专节置于 #37 专节之前），523→535 行。
+- 自举联动：新脚本落地未登记 yaml 时被 #35 报 orphan（实测 `orphan ... md_paths_parser_selftest.py`）；登记后 #35 与 #38 同时 PASS。#22 已钉的两个调用方参数只在 NF1 轻触、不重复。
+
+### 合并前回归（分支，2026-09-21 09:15 CST）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py`：通过；
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（未改任何被指纹命令的 stdout；`_md_paths.py` 只读 import、未改一行）；
+- eval-only 自测：**21 个全 PASS**（fail=0；新增 `md_paths_parser_selftest.py` 本地逐行 `  ok ...` + PASS + 计数串；#35 自举 orphan 已随登记消除）；
+- promptfoo：**38/38 passed (100%)、0 failed、0 errors**（合并前 eval `eval-5gX-2026-09-21T01:15:11`，Duration 8s，热缓存）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记；`scripts/_md_paths.py` 只读 import、未改一行）。
+- 所有 temp tree 仅在 `tempfile.TemporaryDirectory()` 内、自动清理；不新增依赖（仅一个新 .py）。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md`（untracked）未删除/覆盖/提交。
+
+### 剩余风险与缺口
+
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`，未伪造。
+- 第 13 闸与全部 eval-only 自测（含 #38）仍未接 CI structure 枚举（active 账号缺 `workflow` scope）。#38 自身 eval-only、不进 GATES、无需 ci.yml 接线。
+- `check_cited_paths`（存在性 + allowlist symbol + stale-line warning 渲染）经 source/executor guard 黑盒与 #21 mutation 间接覆盖，本轮未对其逐字渲染重复断言；若后续取证发现 stale-line WARN vs symbol-gone FAIL 的边界仍有未覆盖细支，再单独探针。
+- 《6》CVE 修复三项仍待用户明确批准、拆独立 PR；4 份飞书文档仍 3380004 无权限。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 38/38），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 三个共享底座（`_repo` #37、`_md_paths` #38、`_freeze_paths` 真源）中，`_freeze_paths.py`（frozen 字面量真源生成）目前仅经 #18 guard 黑盒与 `from _freeze_paths import` 间接覆盖；下轮探针其真源生成/集合契约是否需要独立直接断言，**先探针逐字确认再决定**，不为凑数。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35–#38，纯 python）接进 CI。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#38 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
