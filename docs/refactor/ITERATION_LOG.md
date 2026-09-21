@@ -3062,3 +3062,61 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#38 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
+## 轮次 42 — 2026-09-21 10:32（Asia/Shanghai）— eval #39：共享 markdown 源图校验渲染器 `scripts/_md_paths.check_cited_paths` 自身契约自测（功能 PR TBD）
+
+### 本轮做了什么（评估驱动，一个小步，纯 eval-only）
+
+- re-ground：main `d6c9460`=origin/main，工作区仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked，本循环无在途 PR。
+- 按轮次41 下一步先取证 `scripts/_freeze_paths.py`（frozen 字面量真源）：全文仅 26 行、**4 个纯常量、无函数/无生成逻辑/无集合**（`FASTDDS_XML_REL`、`SCOREBOARD_REL`、`XML_EXISTENCE_NOTE`、`SCOREBOARD_EXISTENCE_NOTE`）。查清：①第 13 gate `check_frozen_path_literals.py` **不 import 它**，只静态扫描有无第二个 `Path(...)` 硬编码（#18 钉的是该检测器）；②4 常量被 **8 个 gate** import 消费（cega/dod/dual_chain_baseline/risk_matrix/sink/three_chain/unitree/print_bench），路径值由 gate existence 检查、NOTE 字符串由 #17 stdout 指纹（15 fixtures）+ 8 个 guard 黑盒**三重间接逐字钉死**。结论：纯常量真源无独有分支逻辑，另写 selftest 只会重复断言同样 4 个字面量，判为**合理空缺，不为凑数新增**。
+- 转向轮次41 明确挂起项：`scripts/_md_paths.py` 的另一半公共函数 `check_cited_paths`（把 `parse_map` 解析出的 `{path: cited 行号}` 转成存在性 + allowlist symbol 裁决 + 渲染 + 计数）。盘点确认 #21（source_map_guard）经 guard `render()` 黑盒只覆盖 missing path→FAIL / allowlisted symbol gone→FAIL / cited 行与 symbol 全不交集→WARN-only / healthy→exit0 四主判定 + 一个 `symbol_lines` mutation，#22 只钉 `parse_map` 参数；下列细粒度契约**零直接断言**。
+- 内联探针（tempdir + 真实 `_md_paths`）逐字取证后新增 `evals/md_paths_cited_selftest.py`（**eval #39**，中缀 `md_paths_cited`，import 真实 `_md_paths` 与真实 `check_source_map.SYMBOL_ALLOWLIST`，文件只建在 `TemporaryDirectory`；被测 `_md_paths.py` **只读 import、不改一行**）。场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - N1 不存在的被引路径必进 failures（`missing path`）且**不计入** ok_paths、不计 symbol；
+  - N2 文件存在但 allowlisted symbol 消失必进 failures（`symbol ... gone`）且**不计入** symbol_ok；
+  - N3 被引的是**目录**时，即使 allowlist 给它配了 symbol，也必须渲染 `ok dir`、**跳过 symbol 检查**（不读目录、不 FAIL、不计 symbol_ok）——防 false-positive；
+  - NF1 cited 行与真实 symbol 行**全不交集**时只进 warnings（WARN stale line）、不进 failures、present symbol **仍计入** symbol_ok（warn-only 不改 exit）；
+  - NF2 计数口径（ok_paths 数 file+dir、missing 排除；symbol_ok 数 present、gone 排除、无 allowlist 文件不查）、多 hit 渲染 `at L<first> (+N-1)`、被引行号渲染 `(cited L…)`；
+  - healthy：真实 `docs/architecture/ros2-source-map.md` 经 `parse_map` + 真实 `SYMBOL_ALLOWLIST` 跑 `check_cited_paths`，failures 为空、ok_paths == cited 数（全在盘）、至少 1 个 symbol 命中；
+  - mutation：cited 行集合与真实 symbol 行**部分交集**（cited {1,2}、symbol 在 {2,9}）时**不得**报 stale warning 且 symbol 计 ok——钉死 `cited_lines.isdisjoint(hits)` 的**集合**语义，防退化为「首行不等就 warn」。
+- 探针修正：首版自测把三元组返回值误按二元组解包（`ValueError: too many values to unpack`），改为 `lines, ok_paths, symbol_ok` 后全绿（自测脚本自身笔误，非被测代码问题）。
+- 登记：`evals/promptfooconfig.yaml` 38→39（EOF 追加，2 条 contains：PASS marker + 计数串）；`evals/README.md` 六处（535→548 行：配置表、seed 叙述、文件表、枚举句、明细表 `| 39 |`、倒序 #39 专节置于 #38 专节前）。自举：未登记 yaml 时 #35 立即报 orphan `md_paths_cited_selftest.py`，登记后 #35/#39 同 PASS。
+
+### 分数前后对比
+
+| 项 | 轮次41 后 | 轮次42 后 |
+| --- | --- | --- |
+| `run_all_gates.py` | 13/13 all gates green | **13/13**（不变） |
+| stdout 指纹 `fingerprint_check.py` | 15/15 stable | **15/15 stable**（单独串行） |
+| eval-only 自测脚本数 | 21（#18–#38） | **22（#18–#39）**，循环 fail=0 |
+| Promptfoo seed 用例 | 38/38 (100%) | **39/39 (100%)、0 failed、0 errors** |
+| 合并前权威 eval ID | eval-5gX-2026-09-21T01:15:11 | **eval-Od8-2026-09-21T02:32:02**（Duration 3s，loadavg 已降到 11–16） |
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py` 通过。
+- 轮次41 记录的高负载 fingerprint flaky 本轮未复现（本轮 promptfoo 3s、0 error；仍作为独立健壮性改进项保留）。
+
+### 产物检查结果
+
+- 新增 `evals/md_paths_cited_selftest.py` 单独运行 PASS（计数串 `3 negative, 2 non-flag, 1 healthy, 1 mutation`）；#35 注册面自测在登记前报 orphan、登记后 PASS（自举符合预期）。
+- 22 个 eval-only 自测循环全 PASS；gate 13/13；指纹 stable；Promptfoo 39/39。
+- 改动文件仅 4 个：新自测 1 个、yaml、README、本日志；无 fixture 新增、无树内文件改动。
+
+### Hold 合规
+
+- 不编辑 `config/fastdds.xml`；不改 `docs/artifacts/bench/SCOREBOARD.md` 数字；负向场景一律 tempdir 副本 / 内存变异，不在原地改。
+- 不启用 Agnocast/zenoh（无 vendor 树/kmod/rmw_zenoh）；不改 `dimos_bridge/dimos/**` DDS 行为与 vendor 源码；不集成 Cega、不重写 Bridge runtime；不改 shell 包装。
+- `scripts/_md_paths.py`、`scripts/check_source_map.py` 只读 import，未改一行；无框架迁移/依赖升级/API 变更；新自测纯标准库、tempdir-only，不新增运行时依赖（promptfoo 仅 npx 缓存运行）。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md` 未跟踪、未提交、未改动。
+
+### 剩余风险
+
+- 与 #38 同：eval-only 自测不是 CI gate，不进 `run_all_gates.GATES`、不被 CI structure 枚举（第 13 gate 与全部 selftest 接 ci.yml 仍卡在 active 账号缺 `workflow` scope）。
+- `check_cited_paths` 的真实 guard 集成路径仍由 #21/#22 黑盒兜底；本轮补齐的是函数级直接断言，二者互补。
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`，未伪造。
+- 高负载下 `fingerprint_check.py` 在 promptfoo concurrency=4 偶发非零（轮次41 记录）本轮未复现，根因未除，留作独立改进。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 共享底座盘点：`_repo`（#37）、`_md_paths` 解析半（#38）与校验渲染半（#39）均已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 与既有断言重叠）维持**合理空缺**倾向，下轮若要动须先探针找到真实未覆盖的独有判定。
+3. 独立改进候选（需先探针、拆清楚，勿与小步重构混 PR）：fingerprint_check 高负载并发健壮性（子进程超时/重试，或评估 promptfoo 侧降并发/重跑该 case），注意可能影响 #17/#31。
+4. 长期阻塞不变：ci.yml 接线（需用户本机 `gh auth refresh -h github.com -s workflow`）；《6》CVE 修复三项待用户明确批准后拆独立 PR；4 份飞书文档 3380004 无权限；Humble Linux 主机解除端到端 blocked。
+
