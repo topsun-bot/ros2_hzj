@@ -562,3 +562,19 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #37 shared gate-helper (scripts/_repo.py) own contracts. The 11 guard
+  # selftests exercise gates that consume the helpers and #29 only lists
+  # _repo.py as a non-gate; nothing pinned repo_root's ValueError/exit/fallback
+  # precedence, lenient read_utf8, line_at edges, emit_render code passthrough,
+  # or the verbatim FAIL rendering. Imports the REAL helper; tempdir + chdir
+  # (restored), pure in-memory rendering.
+  - description: 'repo_helper_selftest.py: scripts/_repo.py repo_root must raise ValueError with no anchor, exit nonzero with no anchor anywhere, prefer a cwd same-named anchor over the scripts-parent fallback, and keep FAIL rendering verbatim; lenient utf8/line_at edges and emit_render code passthrough must hold'
+    vars:
+      script: evals/repo_helper_selftest.py
+    assert:
+      - type: contains
+        value: 'repo helper selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'

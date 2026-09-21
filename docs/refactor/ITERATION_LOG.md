@@ -2949,3 +2949,54 @@
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
 5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#36 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
 
+---
+
+## 轮次 40 — 2026-09-21 08:16（Asia/Shanghai）— eval #37：共享 gate helper `scripts/_repo.py` 自身契约自测（功能 PR TBD）
+
+### 背景与取证（先探针、后写脚本）
+
+- re-ground：`main`=`00a8fb8`=origin/main（轮次39 回填 #121 后），工作区干净，仅受保护旧草稿 `docs/01-dds-request-flow.md` untracked（未碰）；本循环无在途 PR。
+- runner 双面（#29/#30）、eval 注册面（#35）、文档链接面（#36）、11 guard（#18–#28）、指纹严格层（#31）、env 三层（#19/#32/#34）、provider（#33）已闭环。本轮盘点 **selftest 直接 import 的 scripts 模块**：11 个 guard、`run_all_gates`、`print_bench_gates`、`_freeze_paths`、`_md_paths` 均被覆盖；未被任何 selftest 直接钉到的有 `_repo.py`、`check_risk_matrix.py`（marker/order 断言重叠，已确认合理空缺）、`prove_rmw.py`（恒 exit0、无 FAIL 分支，已确认合理空缺）。
+- 取证 `scripts/_repo.py`（《2》§5.3 下沉的**共享底座**，7 个函数 `repo_root`/`read_utf8`/`line_at`/`emit_render`/`append_bullets`/`report_missing_file`/`append_failures_block`，被 11 个 gate 复用）：#18–#28 只钉**消费** helper 的 gate，#29 仅把 `_repo.py` 列为"非 gate 库"用于注册面排除——helper 模块自身的分支/渲染契约**零直接断言**。底座一旦回归（root 解析到错目录、`emit_render` 吞掉非零退出码、FAIL 块丢标题）会同时静默削弱所有 gate。对称 #32（钉 load.py 真源）、#34（钉薄包装），这是真实未覆盖的共享底座面。
+- /tmp 探针逐字验证 14 项分支全部成立：`repo_root` cwd 命中/fallback 命中/无参 ValueError/两处无 anchor SystemExit（文案 `cannot find repo root`）/tempdir 同名 anchor 压过 fallback；`line_at` 首/中/末/换行符 index/单行无换行 5 边界；`read_utf8` 非法字节 `\ufffd` lenient replace；`emit_render` stdout 文本 + code 0/1 透传；`append_bullets` 前缀与空 items no-op；`report_missing_file`/`append_failures_block` 逐字渲染。
+
+### 改动（纯 eval-only，0 生产代码 / 0 fixture / 0 ci.yml）
+
+- 新增 `evals/repo_helper_selftest.py`（**eval #37**，对象是**共享 helper 底座**，中缀 `repo_helper`；import **真实** `scripts/_repo.py`，文件系统分支用 tempdir + `os.chdir` 且 try/finally 必恢复 cwd，渲染 helper 纯内存；不改仓库）。场景 **3 negative / 2 non-flag / 1 healthy / 1 mutation**：
+  - healthy：cwd=真实 root 时 `repo_root(AGENTS.md)` 返回真实 root、`scripts/_repo.py` 在其下，`read_utf8` 读到 AGENTS 首行，`line_at` 对自身源码 index 0 取首行一致；
+  - N1 `repo_root()` 无参必须抛 `ValueError`；N2 cwd 空 tempdir、anchor 在 cwd 与 scripts 父目录都不存在时必须 `SystemExit` 非零且文案含 `cannot find repo root`；N3 `report_missing_file` 必须同时追加 failure 条目与 `- **FAIL missing:**` bullet、`append_failures_block` 必须 `FAIL:` 开头/每失败一 bullet/尾空行（失败必须可见、逐字）；
+  - non-flag1 空 items 调 `append_bullets` 不改列表、`emit_render(("...",0))` 返回 0 且写文本；non-flag2 `read_utf8` 非法字节 lenient replace 不抛、`line_at` 五边界正确；
+  - mutation：tempdir 放与真实 root 同名 anchor（`AGENTS.md`）并 chdir，`repo_root` 必须返回 tempdir（cwd 优先于 scripts 父回退），证明非恒返回 scripts 父。
+- `evals/promptfooconfig.yaml`：36→**37**，末尾追加 #37 块（2 条 contains：`repo helper selftest: PASS` + 计数串）。
+- `evals/README.md`：六处登记（配置表/seed 叙述 37、文件表新增 helper 自测行、枚举句追加 #37、明细表 `| 37 |`、倒序新增 #37 专节置于 #36 专节之前），511→523 行。
+- 自举联动：新脚本匹配 `evals/*_selftest.py`，落地未登记 yaml 时被 #35 报为 orphan（实测 `orphan self-test ... repo_helper_selftest.py`）；登记 yaml 后 #35 与 #37 同时 PASS。
+
+### 合并前回归（分支，2026-09-21 08:16 CST）
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py`：通过；
+- `python3 scripts/run_all_gates.py`：**13/13**，`run_all_gates: all gates green`；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（未改任何被指纹命令的 stdout）；
+- eval-only 自测：**20 个全 PASS**（fail=0，cwd 已恢复仓库根；新增 `repo_helper_selftest.py` 本地 7 个 `  ok ...` + PASS + 计数串；#35 自举 orphan 已随登记消除）；
+- promptfoo：**37/37 passed (100%)、0 failed、0 errors**（合并前 eval `eval-KLh-2026-09-21T00:16:18`，Duration 6s，热缓存）。
+
+### Hold 合规
+
+- 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记；`scripts/_repo.py` 只读 import、未改一行）。
+- 文件系统分支一律 tempdir + chdir 且 try/finally 恢复 cwd；渲染断言纯内存；不新增依赖（仅一个新 .py）。
+- 《6》CVE 审计保持只读；受保护旧草稿 `docs/01-dds-request-flow.md`（untracked）未删除/覆盖/提交。
+
+### 剩余风险与缺口
+
+- 本机无 ROS Humble runtime：真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`，未伪造。
+- 第 13 闸与全部 eval-only 自测（含 #37）仍未接 CI structure 枚举（active 账号缺 `workflow` scope）。#37 自身 eval-only、不进 GATES、无需 ci.yml 接线。
+- 本轮钉的是共享 helper 底座；`_md_paths.py`（解析器）虽被 source_map/executor_map guard 间接 import，但其 `to_repo_rel`/`parse_map` 解析边界（逃逸返回 None、bare-word、fragment 剥离、ambiguous line cite）是否需要独立直接断言，留待下轮探针取证，不与本轮混合。
+- 《6》CVE 修复三项仍待用户明确批准、拆独立 PR；4 份飞书文档仍 3380004 无权限。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 37/37），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 取证 `scripts/_md_paths.py` 解析器自身边界（`to_repo_rel` 逃逸/裸词/fragment、`parse_map` ambiguous line cite）是否有未被 source_map/executor_map guard 间接覆盖的独有判定，**先探针逐字确认再决定是否新增**；不为凑数。
+3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35–#37，纯 python）接进 CI。
+4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
+5. 若以上均不可推进且确无新高价值项：做完整 gate + 指纹 + #18–#37 + promptfoo 回归并在日志标注「等待新指令」，不制造无意义提交。
+
