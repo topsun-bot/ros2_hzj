@@ -31,6 +31,16 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### Claude 代码评审（advisory，不是 required check）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。
+触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`），draft PR 跳过；同 PR 的进行中 run 会被取消。
+权限：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`——只发评论，**不**推提交。
+
+- 用 `anthropics/claude-code-action@v1` 把 Claude 加为自动 reviewer，与现有 bot reviewer 并行；每次 push 更新同一条 sticky comment，具体问题走行内评论。
+- 评审重点写在工作流 prompt 里：改动代码的正确性、AGENTS.md Hold 越界（`fastdds.xml` / SCOREBOARD 数字 / Agnocast·zenoh / `dimos_bridge` DDS 行为 / vendor / Cega·Bridge）、诚实标记（`STATUS: blocked` / `DoD: unmet` 处不得新增 PASS / PROVEN / 实测时延）、新 gate / selftest 必须真会在其声称拦截的回归上失败、`run_all_gates.GATES` / promptfoo / README 计数一致、临时文件与 cwd 复原。
+- 需要仓库 secret `ANTHROPIC_API_KEY`；缺 secret 时该 job 失败但**不**影响 §5 的三个 required job。它是建议性评审，**不要**把 `claude-review` 设为 required status check；合并仍由人类批准。
+
 ---
 
 ## 2. Hold 政策
