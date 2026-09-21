@@ -46,6 +46,19 @@ node v22):
     exit-1 command as success (the check observes that miss), while the real
     provider reports the error -- proving this test distinguishes a provider
     that swallows failures.
+
+Round-43 timeout-budget hardening (the provider previously used a fixed 30s
+``execFileSync`` timeout; under heavy host load the 15-process fingerprint case
+could exceed it and be killed, surfacing as a provider-level [ERROR] with 0
+assertion failures):
+  * 1 extra negative: with LOCAL_SCRIPT_TIMEOUT_MS=250 a script that sleeps
+    past the budget must return an `error` labeled "code timeout" (node kills
+    it with ETIMEDOUT / SIGTERM), distinct from an active non-zero exit; after
+    the override is deleted a fast command succeeds again (env restored);
+  * 1 timeout-budget contract (static): the default DEFAULT_TIMEOUT_MS is at
+    least 60s (no regression to the too-tight 30s), the LOCAL_SCRIPT_TIMEOUT_MS
+    override is wired, and the ETIMEDOUT/SIGTERM timeout classification exists.
+    A non-numeric override falls back to the default.
 """
 
 from __future__ import annotations
@@ -53,6 +66,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -82,6 +96,8 @@ fs.writeFileSync(failPy, "import sys;sys.stdout.write('OUT-LEAD\\n');sys.stderr.
 const okStderrPy = path.join(dir, 'okstderr.py');
 fs.writeFileSync(okStderrPy, "import sys;sys.stdout.write('CLEAN-OUT\\n');sys.stderr.write('NOISE-STDERR\\n');sys.exit(0)\n");
 const missingPy = path.join(dir, 'does_not_exist.py');
+const slowPy = path.join(dir, 'slow.py');
+fs.writeFileSync(slowPy, "import time;time.sleep(1.2)\n");
 
 const run = async (prompt) => {
   const r = await provider.callApi(prompt);
@@ -118,6 +134,15 @@ const blind = new BlindProvider();
 const blindRes = await blind.callApi(failPy);
 results.blindExit1 = { hasError: !!(blindRes.error), output: blindRes.output };
 results.realExit1HasError = results.exit1.hasError;
+
+// Timeout branch (run last): shrink the budget via env so a slow child is
+// killed fast, then restore the env so the override cannot leak. node kills
+// an over-budget child with ETIMEDOUT / SIGTERM and no numeric status.
+process.env.LOCAL_SCRIPT_TIMEOUT_MS = '250';
+results.timeout = await run(slowPy);
+delete process.env.LOCAL_SCRIPT_TIMEOUT_MS;
+results.envRestored = !('LOCAL_SCRIPT_TIMEOUT_MS' in process.env);
+results.afterOverrideFast = await run(okStderrPy);
 
 process.stdout.write('__JSON_BEGIN__\n' + JSON.stringify(results) + '\n__JSON_END__\n');
 """
@@ -198,6 +223,36 @@ def _check_mutation_blind_swallows(r: dict) -> None:
         "the real provider must report the same exit-1 command as an error"
 
 
+def _check_negative_timeout(r: dict) -> None:
+    x = r["timeout"]
+    assert x["hasError"] is True, "an over-budget (killed) command must set error"
+    err = x["error"] or ""
+    assert "code timeout" in err, f"timeout must be labeled code timeout, got: {err}"
+    assert "ETIMEDOUT" in err or "SIGTERM" in err, err
+    assert "after 250ms" in err, f"error should state the applied budget, got: {err}"
+    # An active exit-1 is still classified as code 1 (timeout hardening must
+    # not relabel/soften a real non-zero exit).
+    assert "exited with code 1" in (r["exit1"]["error"] or ""), r["exit1"]
+    assert r["envRestored"] is True, "LOCAL_SCRIPT_TIMEOUT_MS override must be removed after test"
+    after = r["afterOverrideFast"]
+    assert after["hasError"] is False and "CLEAN-OUT" in (after["output"] or ""),         "after deleting the override a fast command must succeed on the default budget"
+
+
+def _check_timeout_budget_contract(_r: dict | None = None) -> None:
+    src = PROVIDER_PATH.read_text(encoding="utf-8")
+    m = re.search(r"DEFAULT_TIMEOUT_MS\s*=\s*(\d+)", src)
+    assert m, "provider must define a named DEFAULT_TIMEOUT_MS constant"
+    default_ms = int(m.group(1))
+    assert default_ms >= 60000, (
+        f"default per-script timeout {default_ms}ms regressed below 60s; the 15-process "
+        "fingerprint case needs headroom under host load (was 30s, round 41 flake)"
+    )
+    assert "LOCAL_SCRIPT_TIMEOUT_MS" in src, "timeout budget must be env-overridable"
+    assert "ETIMEDOUT" in src and "SIGTERM" in src, "timeout classification markers missing"
+    # Non-numeric / non-positive override must not silently zero the budget.
+    assert "Number.isFinite" in src and "> 0" in src, "override validation missing"
+
+
 def main() -> int:
     try:
         r = _run_harness()
@@ -209,6 +264,8 @@ def main() -> int:
             ("non-flag whitespace-only still errors", _check_nonflag_whitespace),
             ("non-flag success output is stdout-only", _check_nonflag_success_stdout_only),
             ("mutation blind provider swallows exit-1 vs real reports", _check_mutation_blind_swallows),
+            ("negative over-budget command reports code timeout, env restores", _check_negative_timeout),
+            ("timeout-budget contract: default >=60s, env override wired", _check_timeout_budget_contract),
         ]
         for label, fn in checks:
             fn(r)
@@ -217,7 +274,7 @@ def main() -> int:
         print(f"{SUCCESS_MARKER.replace('PASS', 'FAIL')}: {exc}")
         return 1
     print(SUCCESS_MARKER)
-    print("3 negative, 2 non-flag, 1 healthy, 1 mutation")
+    print("4 negative, 2 non-flag, 1 healthy, 1 mutation, 1 timeout-budget contract")
     return 0
 
 

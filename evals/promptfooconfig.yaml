@@ -500,7 +500,7 @@ tests:
   # provider that swallows non-zero exits (mutation, distinguished from the
   # real one). A python harness shells out to a tempdir Node harness that
   # imports the real .mjs provider; no in-tree fixtures, repo untouched.
-  - description: 'local_script_provider_selftest.py: the local-script promptfoo provider must id as local-script, error on an empty or whitespace-only prompt, propagate exit 1 as an error with stdout+stderr and a missing script as code 2, return stdout-only output on success, and split argv with cwd=repoRoot; a blind provider that swallows non-zero exits must be distinguishable, tempdir node harness only'
+  - description: 'local_script_provider_selftest.py: the local-script promptfoo provider must id as local-script, error on an empty or whitespace-only prompt, propagate exit 1 as an error with stdout+stderr and a missing script as code 2, return stdout-only output on success, and split argv with cwd=repoRoot; a blind provider that swallows non-zero exits must be distinguishable; a child past the timeout budget must be reported as `code timeout` (ETIMEDOUT/SIGTERM, distinct from active exit 1), the default per-script budget must be >=60s and LOCAL_SCRIPT_TIMEOUT_MS-overridable, tempdir node harness only'
     vars:
       script: evals/local_script_provider_selftest.py
     assert:
@@ -508,7 +508,7 @@ tests:
         value: 'local-script provider selftest: PASS'
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+        value: '4 negative, 2 non-flag, 1 healthy, 1 mutation, 1 timeout-budget contract'
 
   # #34 dual-chain env thin wrapper self-test: dimos_bridge/dual_chain_env.py
   # only re-exports config/env/load.py via importlib. Pins CHAIN_A/CHAIN_B being
