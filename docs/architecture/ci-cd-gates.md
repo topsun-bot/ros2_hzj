@@ -33,7 +33,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ### 1.1 Claude 代码审查（advisory，不是闸门）
 
-工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，用 `anthropics/claude-code-action@v1` 在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`；draft 不跑）上让 Claude 做一次代码审查，与已接入的 Codex 审查并列。
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，用 `anthropics/claude-code-action`（v1.0.231，钉扎到完整 commit SHA）在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`；draft 不跑）上让 Claude 做一次代码审查，与已接入的 Codex 审查并列。
 
 - **只评论，不合入**：发一条 sticky review comment（阻塞项优先，再 nit）；不 approve、不 merge、不贴标签、不推提交。人类批准 merge 的政策不变（§5）。
 - **不是 required status check**：merge 闸门仍只有 `ci.yml` 的 `structure` / `contracts` / `boundary`。Claude 审查红了不阻塞合入，绿了也不替代闸门。
