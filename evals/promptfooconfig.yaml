@@ -630,3 +630,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #41 check_risk_matrix §9.4 Hold guard negative self-test. The positive
+  # gate only proves healthy docs print the marker; nothing proved its Hold
+  # detectors fail closed. Pins the per-token 《3》/《4》/《5》/《6》 contract (a
+  # bare 《3》–《6》 range must not substitute for each standalone token),
+  # required-file and per-file marker enforcement, and the minimal-anchor
+  # treatment of the frozen SCOREBOARD (STATUS only) and fastdds.xml
+  # (domainId>42 only, content never read).
+  - description: 'risk_matrix_guard_selftest.py: the risk-matrix guard must exit 1 when a standalone 《4》 token is dropped while the 《3》–《6》 range remains, when a required file is missing, or when the ADR loses §9.4; minimal-anchor SCOREBOARD (STATUS only) and fastdds.xml (domainId>42 only) must stay green; a reader that hides the tampered matrix must silence then re-catch the failure'
+    vars:
+      script: evals/risk_matrix_guard_selftest.py
+    assert:
+      - type: contains
+        value: 'risk matrix guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 2 healthy, 1 mutation'
