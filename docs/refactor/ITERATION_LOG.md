@@ -3007,7 +3007,7 @@
 
 ---
 
-## 轮次 41 — 2026-09-21 09:15（Asia/Shanghai）— eval #38：共享 markdown 源图解析器 `scripts/_md_paths.py` 自身契约自测（功能 PR TBD）
+## 轮次 41 — 2026-09-21 09:15（Asia/Shanghai）— eval #38：共享 markdown 源图解析器 `scripts/_md_paths.py` 自身契约自测（功能 PR #126，squash-merge main `53e8570`）
 
 ### 背景与取证（先探针、后写脚本）
 
@@ -3034,6 +3034,13 @@
 - eval-only 自测：**21 个全 PASS**（fail=0；新增 `md_paths_parser_selftest.py` 本地逐行 `  ok ...` + PASS + 计数串；#35 自举 orphan 已随登记消除）；
 - promptfoo：**38/38 passed (100%)、0 failed、0 errors**（合并前 eval `eval-5gX-2026-09-21T01:15:11`，Duration 8s，热缓存）。
 
+### 合并后回归（main `53e8570`，2026-09-21 09:34 CST）
+
+- 功能 PR **#126**（分支 `test/md-paths-parser-selftest`，commit `ed66081`，4 files +247/−3）required checks（structure/contracts/boundary）+ CodeQL 全 pass、Cursor **APPROVED**（1m12s）、MERGEABLE，squash-merge main **`53e8570`**（mergeCommit `53e8570a1b1a7039b8fc0dad43d58c4ffe9d9b3e`），远端分支已删；合并后本地 pull 撞 2 次网断，API 确认 MERGED 后重试成功（未重复 merge）。
+- 合并后回归：gate **13/13**（all gates green）；`fingerprint_check.py` 单独连跑 **2 次均 15/15 stable、exit 0**；**21 个** eval-only 自测全 PASS（fail=0）。
+- promptfoo：合并后**权威结果 38/38 passed (100%)、0 failed、0 errors**（eval `eval-8dC-2026-09-21T01:34:41`，Duration 12s）。
+- **高负载瞬时 flaky 记录（非本轮引入、非断言漂移）**：合并后首轮 promptfoo（`eval-P3D-2026-09-21T01:27:18`）报 3 errors、次轮（`eval-5k9-2026-09-21T01:30:55`）报 1 error，均为既有 `evals/fingerprint_check.py`（#17，内部串行 15 个 gate/load 子进程）在本机高负载（`vm.loadavg` 实测 19–35）叠加 promptfoo concurrency=4 时偶发非零退出；0 failed（无任何 contains 断言失败）。该脚本单独串行连跑两次均 stable，负载缓解后第三轮 promptfoo 即 38/38、12s。结论：#38 纯 tempdir/内存、不起子进程，不增加该 flaky 面；fingerprint_check 在高负载并发下的健壮性（超时/重试）可作为后续独立改进项，**不在本轮处理、不为此放水断言**。
+
 ### Hold 合规
 
 - 未编辑 `config/fastdds.xml`；未改 `docs/artifacts/bench/SCOREBOARD.md` 数字；未启用 Agnocast/zenoh；未改 `dimos_bridge` DDS 行为与 vendor 源码；未集成 Cega、未重写 Bridge runtime；未改 shell 包装；无框架迁移/依赖升级/API 变更/架构调整（仅新增一个 eval-only 自测 + 登记；`scripts/_md_paths.py` 只读 import、未改一行）。
@@ -3049,7 +3056,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 38/38），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR **#126** 已 squash-merge main `53e8570`；合并后回归 38/38（权威 eval `eval-8dC-2026-09-21T01:34:41`），结果已回填本小节（本回填 PR）。
 2. 三个共享底座（`_repo` #37、`_md_paths` #38、`_freeze_paths` 真源）中，`_freeze_paths.py`（frozen 字面量真源生成）目前仅经 #18 guard 黑盒与 `from _freeze_paths import` 间接覆盖；下轮探针其真源生成/集合契约是否需要独立直接断言，**先探针逐字确认再决定**，不为凑数。
 3. 若 `workflow` scope 已授权：用离线备份开**独立 PR** 把第 13 闸与 eval-only 自测（含 #35–#38，纯 python）接进 CI。
 4. 若用户批准 CVE 修复三项：拆 3 个独立 PR（不与重构/eval 混合）。
