@@ -595,3 +595,21 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #39 shared markdown source-map cited-path verifier
+  # (scripts/_md_paths.check_cited_paths) own contracts. #38 pins the parsing
+  # half; the guard selftests #21/#22 only drive check_cited_paths through the
+  # render() black box (missing / symbol-gone / disjoint-stale / healthy).
+  # Directly pins: cited directories skip symbol checks even when allowlisted,
+  # allowlist-less files skip symbols, stale uses set isdisjoint (partial
+  # intersect is OK), multi-hit (+N) rendering, and the ok_paths/symbol_ok
+  # counters. Imports the REAL helper + real guard allowlist on temp trees.
+  - description: 'md_paths_cited_selftest.py: check_cited_paths must FAIL missing paths and gone allowlisted symbols without counting them, skip symbol checks for cited directories and allowlist-less files, warn (not fail) on a fully-disjoint stale line while still counting the present symbol, render multi-hit (+N) and cited lines, count paths/symbols correctly, and NOT warn on a partially-intersecting cited set (set-isdisjoint semantics)'
+    vars:
+      script: evals/md_paths_cited_selftest.py
+    assert:
+      - type: contains
+        value: 'cited paths selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
