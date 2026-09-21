@@ -3248,7 +3248,7 @@
 3. 共享底座 `_repo`(#37)/`_md_paths`(#38/#39)/文档链接面(#36 本轮扩面) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针证实真实未覆盖的独有判定，不为凑数新写低价值自测。
 4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`（离线备份在 `~/ros2_hzj_pending/`）；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
 
-## 轮次 45 — 2026-09-21 17:24（Asia/Shanghai）— 修复 AGENTS.md 命令清单漏登第 13 gate + 新增操作员命令注册面自测 #40（功能 PR TBD）
+## 轮次 45 — 2026-09-21 17:24（Asia/Shanghai）— 修复 AGENTS.md 命令清单漏登第 13 gate + 新增操作员命令注册面自测 #40（功能 PR #136，main 2ca88ad）
 
 ### 触发与只读取证
 
@@ -3301,9 +3301,15 @@
 - #40 的白名单是**精确集合** `{config/env/load.py}`：未来若确需在 Commands 块新增其他手动非 gate 命令，需同步改白名单（这是有意的防杂项累积设计）。
 - 本机无 Humble runtime，真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`，未伪造。
 
+### 合并后权威回归（main 2ca88ad，PR #136 squash-merge）
+
+- 功能 PR #136（分支 test/agents-commands-registry，commit d640718，5 files +291/−3：AGENTS.md 补 1 行、新增 agents_commands_selftest.py、yaml +17、README +18/−3、日志）required 三检 structure/contracts/boundary 全 pass、CodeQL 与 Analyze(actions/js/python) 全 pass、Cursor Approval APPROVED（1m16s）→ squash-merge，main `2ca88ad8cd1b2001ec727f5cc67e00ebf320388b`，远端分支已删。
+- 回 main 同步后回归：gate **13/13** all gates green；stdout 指纹 **15/15 stable**；**23 个** eval-only 自测 fail=0；promptfoo **40/40 passed (100%)、0 failed、0 errors**，合并后权威 eval `eval-mRA-2026-09-21T09:32:15`（Duration 4s）。
+- 合并前 eval `eval-bBE-2026-09-21T09:24:06`（4s/0 error）与合并后 eval 双样本均 0 error，轮次43 provider 预算硬化在高负载窗口继续有效（连续正面样本）。
+
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 40/40、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 40/40、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ 已完成：#136 merged→main 2ca88ad，合并后 40/40 eval-mRA-2026-09-21T09:32:15，本回填 PR 即收尾。回 main 跑合并后全套回归（应 40/40、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
 2. 继续在高负载窗口收集轮次43 provider 预算硬化后 fingerprint 0-error 样本（本轮 loadavg 高负载仍 4s/0 error，为又一正面样本）。
 3. `prove_rmw`/`check_risk_matrix`/`_freeze_paths` 维持合理空缺倾向，须先 /tmp 探针证实独有未覆盖判定分支才新增自测，不为凑数。
 4. 外部阻塞不变：workflow scope（ci.yml 接线）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
