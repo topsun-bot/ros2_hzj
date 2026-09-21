@@ -13,6 +13,9 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  # id-token: write is required by claude-code-action's default auth path:
+  # it exchanges the workflow's OIDC token for a Claude GitHub App token so
+  # comments post as claude[bot]. Remove only if github_token is supplied.
   id-token: write
 
 concurrency:
