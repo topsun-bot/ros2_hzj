@@ -613,3 +613,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+
+  # #40 AGENTS.md Commands block <-> run_all_gates.GATES operator registry.
+  # #29 pins disk gates <-> GATES and #35 pins the eval registry; neither
+  # covers the operator checklist in AGENTS.md. Round 44 found the 13th gate
+  # (check_frozen_path_literals) had never been added to the Commands block.
+  # Pins: every GATES script documented in the fenced Commands block, every
+  # listed script on disk, and config/env/load.py the sole non-gate manual
+  # entry; print-a/print-b collapse to one path and prose is not enumerated.
+  - description: 'agents_commands_selftest.py: every run_all_gates.GATES script must appear in the AGENTS.md ## Commands fenced bash block, every listed python script must exist on disk, and config/env/load.py is the sole non-gate manual entry (print-a/print-b collapse to one path, python3 text outside the block ignored); a dropped/new gate or a missing listed script must be detected'
+    vars:
+      script: evals/agents_commands_selftest.py
+    assert:
+      - type: contains
+        value: 'agents commands selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
