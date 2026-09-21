@@ -11,11 +11,25 @@ for two specific architecture maps and it also treats backtick ``path`` tokens
 as citations (with an allowlist), which is a different job from plain markdown
 link integrity.
 
-So the docs this refactor loop produces every round -- ``docs/refactor/*.md``
-(01 walk-through, 02 plan, ITERATION_LOG) and the ``evals/`` docs (README,
-results/BASELINE) -- had ~165 relative markdown links with **zero machine
-checks** that their targets still exist. Renaming/moving a file without
-updating a relative link would silently rot the docs.
+Round 36 first covered only ``docs/refactor/*.md`` (01 walk-through, 02 plan,
+ITERATION_LOG) and the ``evals/`` docs (README, results/BASELINE). Round 44
+widened the surface to **every first-party (A-side) markdown doc** in the
+repo -- the ``docs/architecture`` feishu-* maps / source map that the guards
+cite, ``docs/security`` (CVE audit), ``docs/testing`` (Mac HIL), ``docs/usage``,
+``docs/eval``, ``config/**``, ``scripts/**``, ``dimos_bridge/SOURCE.md``,
+``docker/**`` and the root ``README.md`` / ``AGENTS.md`` -- 34 files / ~923
+relative links at widening time, with **zero machine checks** before #36 that
+their targets still exist. Renaming/moving a file without updating a relative
+link would silently rot the docs.
+
+Two trees are deliberately **excluded** (``_excluded``):
+  * ``vendor/**`` -- third-party DDS/rmw source trees (read-only Hold). Their
+    own upstream docs carry a few pre-existing broken relative links (e.g.
+    CycloneDDS ``docs/manual/config.rst``); those are not ours to fix and must
+    not make this check red;
+  * ``docs/artifacts/**`` -- frozen bench artifacts/historical snapshots
+    (including the number-frozen ``SCOREBOARD.md``); link integrity of frozen
+    output snapshots is out of scope for this loop.
 
 This eval-only test scans those markdown files, strips fenced and inline code
 (so regex snippets / command samples containing ``](...)`` are not mistaken
@@ -30,9 +44,12 @@ It reads the REAL repo for the healthy case; all negatives inject links in
 memory (no temp files, no repo edits).
 
 Scenarios: 3 negative (missing sibling file, ``../`` escape outside the repo,
-missing linked directory), 2 non-flag (external/anchor/mailto links skipped;
-pseudo-links inside fenced/inline code skipped), 1 healthy (real repo: zero
-broken, with a link/file floor so a vacuous empty scan cannot pass),
+missing linked directory), 3 non-flag (external/anchor/mailto links skipped;
+pseudo-links inside fenced/inline code skipped; the read-only ``vendor/**`` and
+frozen ``docs/artifacts/**`` trees are excluded even though vendor docs carry
+upstream-broken links), 1 healthy (real first-party docs: zero broken, a
+link/file floor so a vacuous empty scan cannot pass, and an explicit surface
+assertion that key A-side docs are scanned while vendor/artifacts are not),
 1 mutation (force one real target to "missing" via an exists wrapper; it must
 be reported, proving the check is not vacuous).
 """
@@ -43,7 +60,34 @@ import pathlib
 import re
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
-SCAN_GLOBS = ("docs/refactor/**/*.md", "evals/**/*.md")
+# First-party (A-side) docs only. "*.md" matches the repo-root markdown files
+# (README.md, AGENTS.md) without descending; each docs/<area> subtree is listed
+# explicitly so the untracked root draft docs/01-dds-request-flow.md (which sits
+# directly under docs/) is never picked up.
+SCAN_GLOBS = (
+    "docs/refactor/**/*.md",
+    "evals/**/*.md",
+    "docs/architecture/**/*.md",
+    "docs/security/**/*.md",
+    "docs/testing/**/*.md",
+    "docs/usage/**/*.md",
+    "docs/eval/**/*.md",
+    "config/**/*.md",
+    "scripts/**/*.md",
+    "dimos_bridge/**/*.md",
+    "docker/**/*.md",
+    "*.md",
+)
+
+# Read-only third-party source trees and frozen bench artifacts are never
+# scanned: vendor docs carry upstream-owned broken links we must not "fix"
+# (Hold), and artifacts are frozen output snapshots.
+EXCLUDE_PREFIXES = ("vendor/", "docs/artifacts/")
+
+
+def _excluded(rel_posix: str) -> bool:
+    """True for out-of-scope trees the link checker must never scan."""
+    return rel_posix.startswith(EXCLUDE_PREFIXES)
 
 SUCCESS_MARKER = "doc link selftest: PASS"
 
@@ -95,8 +139,12 @@ def _real_entries():
     entries = []
     for pattern in SCAN_GLOBS:
         for p in sorted(REPO_ROOT.glob(pattern)):
-            if p.is_file():
-                entries.append((p.relative_to(REPO_ROOT).as_posix(), p.read_text(encoding="utf-8")))
+            if not p.is_file():
+                continue
+            rel = p.relative_to(REPO_ROOT).as_posix()
+            if _excluded(rel):
+                continue
+            entries.append((rel, p.read_text(encoding="utf-8")))
     return entries
 
 
@@ -120,9 +168,31 @@ def main() -> int:
         broken = find_broken(entries, REPO_ROOT)
         assert broken == [], "real repo should have no broken links: " + repr(broken[:5])
         n_links = _count_relative_links(entries)
-        assert len(entries) >= 5, f"expected >=5 scanned md files, got {len(entries)}"
-        assert n_links >= 100, f"expected >=100 relative links, got {n_links}"
+        assert len(entries) >= 30, f"expected >=30 first-party md files, got {len(entries)}"
+        assert n_links >= 900, f"expected >=900 relative links, got {n_links}"
         print(f"  ok healthy {len(entries)} md files, {n_links} relative links, 0 broken")
+
+        # Surface contract: key first-party authority docs must actually be
+        # scanned (a typo in a glob that silently shrank the surface could
+        # otherwise still clear the numeric floor via the remaining files).
+        scanned_rels = {rel for rel, _ in entries}
+        must_scan = (
+            "docs/architecture/ros2-source-map.md",
+            "docs/security/2026-09-vendor-cve-audit.md",
+            "docs/testing/2026-09-mac-hil.md",
+            "config/env/README.md",
+            "scripts/bench/README.md",
+            "README.md",
+            "AGENTS.md",
+            "docs/refactor/ITERATION_LOG.md",
+            "evals/README.md",
+        )
+        missing_surface = [r for r in must_scan if r not in scanned_rels]
+        assert not missing_surface, f"scan surface lost A-side docs: {missing_surface}"
+        # And the read-only / frozen trees must never enter the scan set.
+        leaked = [r for r in scanned_rels if _excluded(r)]
+        assert not leaked, f"vendor/artifacts docs must be excluded, got: {leaked[:5]}"
+        print(f"  ok healthy scan surface covers {len(must_scan)} pinned A-side docs, vendor/artifacts excluded")
 
         base_rel, base_text = entries[0]
 
@@ -161,6 +231,23 @@ def main() -> int:
         assert b_code == [], b_code
         print("  ok non-flag pseudo-links in code are ignored")
 
+        # NF3: read-only vendor / frozen artifacts trees are excluded even
+        # though vendor docs genuinely contain upstream-broken relative links.
+        assert _excluded("vendor/CycloneDDS/README.md")
+        assert _excluded("docs/artifacts/bench/SCOREBOARD.md")
+        assert not _excluded("docs/architecture/ros2-source-map.md")
+        assert not _excluded("evals/README.md")
+        vendor_broken = [
+            ("vendor/CycloneDDS/README.md", "[x](docs/manual/config.rst)"),
+            ("vendor/Fast-DDS/test/performance/latency/README.md", "[x](latency-measure)"),
+        ]
+        # The real scan surface must contain no vendor/artifacts file at all;
+        # injecting their known-broken links only matters if such a file were
+        # (wrongly) scanned, which the surface leak assertion above forbids.
+        assert all(rel.startswith(("vendor/", "docs/artifacts/")) for rel, _ in vendor_broken)
+        assert not any(_excluded(rel) for rel, _ in entries), "scan surface leaked an excluded tree"
+        print("  ok non-flag vendor (read-only) and artifacts (frozen) trees are excluded")
+
         # mutation: force one real existing target to be "missing"
         real_broken = find_broken(entries, REPO_ROOT)
         assert real_broken == []
@@ -197,7 +284,7 @@ def main() -> int:
         print(SUCCESS_MARKER.replace("PASS", "FAIL") + f": {exc}")
         return 1
     print(SUCCESS_MARKER)
-    print("3 negative, 2 non-flag, 1 healthy, 1 mutation")
+    print("3 negative, 3 non-flag, 1 healthy, 1 mutation")
     return 0
 
 

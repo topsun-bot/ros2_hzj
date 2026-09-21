@@ -3187,3 +3187,58 @@
 3. 共享底座 `_repo`(#37)/`_md_paths` 解析半(#38)/校验渲染半(#39) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针找到真实未覆盖的独有判定，不为凑数新写低价值自测。
 4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
 
+## 轮次 44 — 2026-09-21 13:17（Asia/Shanghai）— doc-link 自测扫描面扩到全部自有（A 面）文档（功能 PR TBD）
+
+- **主题**：轮次43 收尾后按日志下一步候选，深化《5》评估套件的**真实覆盖广度**。#36 `evals/doc_link_selftest.py` 首版（轮次39）只扫本循环每轮产出的 `docs/refactor/**` 与 `evals/**`（5 个 md、165 个相对链接），而双链中间件的**权威文档**（`docs/architecture/` 各 feishu-* 图 / source-map、`docs/security/` CVE 审计、`docs/testing/` Mac HIL、`config/**`、`scripts/bench/README` 等）此前不在任何链接完整性检查内——CI contracts job 只对固定白名单 `test -f`、不解析链接。本轮把扫描面扩到全部自有 A 面文档，并明确只读/冻结树的排除边界。
+
+### 取证（先全仓探针、不臆测）
+
+- re-ground：main `087468f`=origin/main、无在途本循环 PR、仅受保护旧草稿 untracked。
+- 用 #36 同款解析（剥围栏+行内代码、外链/锚点/mailto 跳过、相对路径解析+越界/缺失裁决）扫**全部 260 个 tracked md / 1226 个相对链接**，分组结果：
+  - 旧扫描面 current（docs/refactor+evals）：5 文件 / 165 链接 / **0 broken**；
+  - 自有其余 A 面（根 README/AGENTS、docs/architecture 16、docs/security、docs/testing、docs/usage、docs/eval、config/env、scripts/bench、dimos_bridge/SOURCE、docker/ros）：29 文件 / 758 链接 / **0 broken**；
+  - `docs/artifacts/**`（132 个 bench 快照/产物，含数字冻结 SCOREBOARD）：207 链接 / 0 broken；
+  - `vendor/**`（94 个第三方 DDS/rmw md）：96 链接 / **3 broken，全部是上游文档自身问题**——CycloneDDS `README.md → docs/manual/config.rst`、CycloneDDS `docs/dev/dds_security_effort.md → multi_process_testing.md`、Fast-DDS `test/performance/latency/README.md → latency-measure`。
+- glob 命中探针：12 条 SCAN_GLOBS 精确命中 34 个自有文件（=current+A-own），0 遗漏、0 多扫、vendor/artifacts 零泄漏；untracked 旧草稿 `docs/01-dds-request-flow.md` 位于 `docs/` 根，不被任何 `docs/<area>/**` glob 命中，天然不扫。
+
+### 改动（仅 eval-only 自测 + 登记文档；解析裁决逻辑零改动）
+
+- `evals/doc_link_selftest.py`（#36，约 200→292 行）：
+  - `SCAN_GLOBS` 由 2 条扩到 12 条（新增 docs/architecture|security|testing|usage|eval、config、scripts、dimos_bridge、docker 的 `**/*.md`，以及根 `*.md` 覆盖 README.md/AGENTS.md）；
+  - 新增 `EXCLUDE_PREFIXES=("vendor/","docs/artifacts/")` 与纯函数 `_excluded(rel)`，`_real_entries()` 据此过滤；
+  - healthy 下限由「≥5 md / ≥100 链接」上调为「**≥30 md / ≥900 链接**」（扩面时实测 34/923，留余量且能抓住大面积回退）；
+  - healthy 新增**扫描面契约**：9 个钉选 A 面权威文档（ros2-source-map、CVE 审计、Mac HIL、config/env/README、scripts/bench/README、根 README/AGENTS、ITERATION_LOG、evals/README）必须在扫描集，且 vendor/artifacts 不得泄漏进扫描集——防 glob 笔误静默缩面/扩面；
+  - 新增 **NF3（non-flag）**：`_excluded()` 真值表（vendor/artifacts=True、architecture/evals=False）+ 真实扫描集不含任何排除树，并以 vendor 两处已知上游断链作为「为何必须排除」的对照；
+  - 计数串 `2 non-flag`→`3 non-flag`（3 negative / 3 non-flag / 1 healthy / 1 mutation）；模块 docstring 同步说明扩面历史与排除理由。
+  - `find_broken`/`strip_code`/外链裁决等**纯函数一行未改**，只扩大了喂入的 entries 来源；N1/N2/N3、NF1/NF2、mutation 全部仍通过。
+- 登记：`evals/promptfooconfig.yaml` **仅 #36 块**（description 改为全 A 面 + vendor/artifacts 排除 + 钉选文档；计数串 3 non-flag）；`evals/README.md` 文件表行、明细表 #36 行、#36 专节（扩面历史、34/923、排除两棵树、健康表面契约、3 non-flag），550→551 行。promptfoo 用例总数仍 **39**（#36 内部加断言，未新增 case）。
+
+### 行为不变与产物检查
+
+- 扩面后真实 A 面 **0 broken**——本轮**没有为让检查通过而修改任何被扫文档的链接**（A 面本来就健康）；3 处 broken 全在只读 vendor，按 Hold 只记录、不修。
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py` 通过；#36 实跑 8 行 ok（healthy 34/923/0、表面契约、3 negative、3 non-flag、mutation）后 PASS。
+
+### 分数前后对比（本机 macOS，无 ROS runtime）
+
+- gate：**13/13** all gates green（不变）；stdout 指纹：**15/15 stable**（未改 gate/fixtures，无需 `--update`）；eval-only 自测：**22 个全 PASS（fail=0）**（#36 由 7 项断言增至 8 项、non-flag 2→3）。
+- promptfoo：**39/39 passed (100%)、0 failed、0 errors**，合并前 eval `eval-uH8-2026-09-21T05:16:59`（Duration **4s**，当时 `vm.loadavg`≈28 偏高仍 0 error——轮次43 把 provider 预算从 30s 提到 120s 后，高负载窗口 fingerprint case 未再超时，初步佐证硬化有效）。
+
+### Hold 合规
+
+- 不编辑 `config/fastdds.xml`；不改 `docs/artifacts/bench/SCOREBOARD.md` 数字（且本轮把整个 `docs/artifacts/**` 列为不扫描的冻结面）；**未改 vendor 任何文件**（发现的 3 处上游断链只在日志/自测注释中记录，归上游修）；未改 shell 包装、未改 `dimos_bridge/dimos/**`；不启用 Agnocast/zenoh、不集成 Cega、不重写 Bridge runtime。
+- 仅改 eval-only 自测与其登记文档；#36 仍非 gate、不进 GATES、CI structure 不枚举、无需 ci.yml 接线；纯标准库 + 读真实仓库/内存注入，不新增依赖、不写 tempdir、不改仓库文档；CVE 审计只读；旧草稿未跟踪未扫未改。
+
+### 剩余风险
+
+- vendor 的 3 处断链是上游 CycloneDDS/Fast-DDS 文档自身问题，已如实记录、刻意不扫不修；若未来 vendor 升级改变文档布局，以新版本实际为准，不影响本仓 A 面。
+- `docs/artifacts/**` 不扫是刻意范围（冻结产物/快照）；其链接若腐烂不影响构建与 guard，且 SCOREBOARD 数字面另有 boundary/fingerprint 保护。
+- 全新的**顶层 A 面 md 目录**若日后出现，需要在 SCAN_GLOBS 加一条；9 个钉选文档 + ≥30/≥900 下限能捕获主要缩面回退，但不会自动发现一个未登记的新目录（README 已说明枚举式 glob 的边界，属可接受）。
+- 真·双链 pub/sub、p99、跨机 UDP、三链**实际复现**仍 `STATUS: blocked`（无 Humble 主机），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 39/39、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 继续在高负载窗口观察轮次43 provider 预算硬化后 fingerprint flaky 是否消除（本轮 loadavg≈28 下 4s/0 error 为首个正面样本，需更多样本）；若仍偶发再独立 PR 取证降并发。
+3. 共享底座 `_repo`(#37)/`_md_paths`(#38/#39)/文档链接面(#36 本轮扩面) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针证实真实未覆盖的独有判定，不为凑数新写低价值自测。
+4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`（离线备份在 `~/ros2_hzj_pending/`）；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
+

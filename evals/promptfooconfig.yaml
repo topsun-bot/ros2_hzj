@@ -553,7 +553,7 @@ tests:
   # citations only for two architecture maps. This scans docs/refactor/**.md
   # and evals/**.md, strips fenced/inline code, and requires every relative
   # [text](target) link to stay inside the repo and resolve on disk.
-  - description: 'doc_link_selftest.py: relative markdown links in docs/refactor/** and evals/** must resolve on disk and stay inside the repo (code spans stripped, external/anchor/mailto skipped); missing sibling file, parent-directory escape and missing directory must be detected, and a real target forced missing must be caught'
+  - description: 'doc_link_selftest.py: relative markdown links across every first-party (A-side) doc (docs/refactor, docs/architecture|security|testing|usage|eval, evals, config, scripts, dimos_bridge, docker, root README/AGENTS) must resolve on disk and stay inside the repo (code spans stripped, external/anchor/mailto skipped); read-only vendor/** (upstream-broken links) and frozen docs/artifacts/** are excluded; missing sibling file, parent-directory escape and missing directory must be detected, pinned A-side docs must be scanned, and a real target forced missing must be caught'
     vars:
       script: evals/doc_link_selftest.py
     assert:
@@ -561,7 +561,7 @@ tests:
         value: 'doc link selftest: PASS'
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '3 negative, 2 non-flag, 1 healthy, 1 mutation'
+        value: '3 negative, 3 non-flag, 1 healthy, 1 mutation'
 
   # #37 shared gate-helper (scripts/_repo.py) own contracts. The 11 guard
   # selftests exercise gates that consume the helpers and #29 only lists
