@@ -34,7 +34,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 ### Claude 代码评审（advisory，不是 required check）
 
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。
-触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`），draft PR 跳过；同 PR 的进行中 run 会被取消。
+触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`），draft PR 与 fork PR 跳过（fork 的 `pull_request` run 拿不到仓库 secret）；同 PR 的进行中 run 会被取消。
 权限：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`——只发评论，**不**推提交。
 
 - 用 `anthropics/claude-code-action`（固定到 v1.0.231 对应的 commit SHA，不用浮动 `@v1` tag）把 Claude 加为自动 reviewer，与现有 bot reviewer 并行；每次 push 更新同一条 sticky comment，具体问题走行内评论。

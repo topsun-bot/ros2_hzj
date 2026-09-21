@@ -25,7 +25,11 @@ concurrency:
 jobs:
   review:
     name: claude-review
-    if: github.event.pull_request.draft == false
+    # Skip drafts and fork PRs: pull_request runs from forks get no repository
+    # secrets, so ANTHROPIC_API_KEY would be empty and the job would fail red.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
