@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           use_sticky_comment: true
@@ -49,7 +49,7 @@ jobs:
             - Correctness bugs and regressions in changed code.
             - Hold violations: edits to config/fastdds.xml or
               docs/artifacts/bench/SCOREBOARD.md numbers, enabling Agnocast or
-              zenoh, changes to dimos_bridge DDS behavior or vendor/ sources,
+              zenoh, changes to dimos_bridge DDS behavior or vendor sources,
               Cega integration or Bridge runtime rewrites.
             - Honesty markers: new claims of PASS / PROVEN / measured latency
               where the repo documents `STATUS: blocked` or `DoD: unmet`.
