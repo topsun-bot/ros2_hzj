@@ -81,7 +81,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - **只是建议，不是闸门**：不进 §5 的 required status checks；`structure` / `contracts` / `boundary` 仍是唯一的合并阻塞。审查不 approve、不 request changes、不 merge、不 push、不改文件（`--allowedTools` 只放行 `gh pr comment` / `gh pr diff` / `gh pr view` 与行内评论工具）。
 - **审什么**：gate 脚本 / eval 自测 / shell 包装 / CI YAML 的正确性；§2 Hold 边界（`fastdds.xml`、SCOREBOARD、Agnocast / zenoh 路径、`dimos_bridge` DDS 行为、vendor、Cega / Bridge）；诚实标记（不得发明分位数、`STATUS: PASS`、`DoD: met`、本机已复现）；文档与代码漂移（README / `evals/README.md` 表格、promptfoo 用例数、注册表、相对链接）。
 - **需要的 secret**：仓库 Settings → Secrets and variables → Actions 里配置 `ANTHROPIC_API_KEY`。缺失时该 job 失败，但因为它不是 required check，不影响合并。
-- **权限**：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`；同 PR 的进行中 run 会被取消。
+- **权限**：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`（action 默认认证路径用 GitHub OIDC token 换取短期 Claude GitHub App installation token 来发评论，与 Anthropic API 认证无关；只有改用自定义 `github_token` 输入时才可去掉）；同 PR 的进行中 run 会被取消。
 - **人类仍批准 merge**（§5）。Claude 的评论与任何人类 review 一样，由 PR 作者决定采纳与否。
 
 ---

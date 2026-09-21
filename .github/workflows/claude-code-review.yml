@@ -25,6 +25,11 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      # id-token: write is required by claude-code-action's default auth
+      # path: it exchanges the GitHub OIDC token for a short-lived Claude
+      # GitHub App installation token used to post the comments. It is not
+      # used for Anthropic API auth (that is ANTHROPIC_API_KEY). Only drop it
+      # if a custom `github_token` input is supplied instead.
       id-token: write
     steps:
       - uses: actions/checkout@v4
