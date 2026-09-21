@@ -3248,3 +3248,63 @@
 3. 共享底座 `_repo`(#37)/`_md_paths`(#38/#39)/文档链接面(#36 本轮扩面) 已直接钉；`_freeze_paths`（纯常量）、`prove_rmw`（恒 exit0）、`check_risk_matrix`（marker/order 重叠）维持**合理空缺**倾向，要动须先 /tmp 探针证实真实未覆盖的独有判定，不为凑数新写低价值自测。
 4. 长期外部阻塞不变：ci.yml 接线需 `gh auth refresh -s workflow`（离线备份在 `~/ros2_hzj_pending/`）；CVE 修复三项待用户批准拆独立 PR；4 份飞书文档 3380004；Humble 主机解除端到端 blocked。
 
+## 轮次 45 — 2026-09-21 17:24（Asia/Shanghai）— 修复 AGENTS.md 命令清单漏登第 13 gate + 新增操作员命令注册面自测 #40（功能 PR TBD）
+
+### 触发与只读取证
+
+- re-ground：`main`=`8c9bed6`=origin/main（轮次44 回填 #135 的 squash HEAD），无在途本循环 PR，工作区仅受保护 untracked 旧草稿 `docs/01-dds-request-flow.md`（未碰）。
+- 探针（内联 python，import `scripts/run_all_gates` 取 `GATES`，正则解析 `AGENTS.md` 的 `## Commands` 围栏 bash 块）证实一处真实文档↔代码漂移：
+  - `GATES` 13 个脚本，AGENTS.md 命令块 13 个脚本路径（`load.py` 出现 print-a/print-b 两行但折叠为一个脚本）；
+  - 差集 GATES−AGENTS = `{'scripts/check_frozen_path_literals.py'}`：**第 13 gate（轮次5 加入 runner）从未登记进操作员命令清单**；
+  - 反向差集 AGENTS−GATES = `{'config/env/load.py'}`（手动 print-a/print-b 命令，非 gate，属预期白名单）；
+  - AGENTS 命令块所列脚本磁盘全部存在（missing=空）。
+- 根因：轮次5 加第 13 gate 时 ci.yml 接线因缺 `workflow` scope 长期阻塞、CI structure 至今只硬编码枚举前 12 gate，AGENTS.md 是唯一向操作员记录完整本地集合之处却漏登；#29 只钉 scripts/ 侧 gate 注册面、#35 只钉 eval 注册面，操作员文档面零断言。
+
+### 改动（行为不变，最小，5 文件）
+
+1. `AGENTS.md`：Commands bash 块按 GATES 顺序在 `check_cega_bridge_hold.py` 之后、`load.py` 之前补登 `python3 scripts/check_frozen_path_literals.py`（纯文档同步，未重排既有行）。
+2. 新增 `evals/agents_commands_selftest.py`（#40，eval-only、纯标准库、读真实仓库、负向全内存变异、无 tempdir）：只解析 `## Commands` 围栏 bash 块（块外散文不枚举）、取每行 `python3` 后首个 token（`load.py print-a/print-b` 折叠为一个脚本）；钉 ①每个 GATES 脚本必在块中登记、②块中所列脚本磁盘必存在、③非 gate 脚本精确等于白名单 `{config/env/load.py}`。计数 `3 negative, 2 non-flag, 1 healthy, 1 mutation`，SUCCESS_MARKER `agents commands selftest: PASS`。
+3. `evals/promptfooconfig.yaml`：末尾注册 #40 case（PASS marker + 计数串），case 39→**40**。
+4. `evals/README.md`：两处 #35 钉的标题计数 39→40、文件表加 #40 行（紧随 #35 注册面行）、明细表加 `| 40 |`、seed 用例长枚举句尾加 #40 片段、新增 #40 专节（倒序置于 #39 专节之前）。
+5. 本日志小节。
+
+### 评估驱动证据（先证非恒真再修复）
+
+- 修复前实跑 #40：真实 FAIL，逐字 `gate missing from AGENTS.md Commands block: scripts/check_frozen_path_literals.py`（exit 1），证明检查 live、确实抓到漂移；补登 AGENTS.md 后 PASS（13 gates documented、14 listed commands、0 problems）。
+- 负向/non-flag/变异全过：删真实 gate 行、注入未登记新 gate、列入磁盘缺失脚本必报；load.py 带参折叠为一个白名单项、块外散文 python3 不枚举；exists 包装把 prove_rmw.py 判失必报。
+
+### 分数前后对比
+
+| 项 | 轮次44 | 轮次45 |
+|---|---|---|
+| gate | 13/13 | **13/13** all gates green |
+| stdout 指纹 | 15/15 stable | **15/15 stable**（#40 不在 15 个指纹命令内，fixtures 未改） |
+| eval-only 自测 | 22 个 fail=0 | **23 个 fail=0**（新增 #40） |
+| promptfoo | 39/39 | **40/40 passed (100%)、0 failed、0 errors**，合并前 eval `eval-bBE-2026-09-21T09:24:06`（Duration 4s，loadavg 高负载窗口仍 0 error） |
+| compileall | OK | OK |
+| #35 注册面 | PASS | PASS（磁盘 23 selftest ↔ yaml 40 script ↔ 40 case ↔ README 40 全一致） |
+
+### 产物检查
+
+- `python3 -m compileall -q evals scripts config/env dimos_bridge/dual_chain_env.py` 通过；
+- #36 doc_link 自测在 AGENTS.md 被纳入扫描后仍 PASS（新增行无链接，0 broken）；
+- yaml 权威计数（#35 正则）cases=40、scripts=40；磁盘 `*_selftest.py`=23；
+- 改动仅限 AGENTS.md、evals/agents_commands_selftest.py、evals/promptfooconfig.yaml、evals/README.md、本日志；未改任何 gate 代码/fixtures/ci.yml/被扫文档正文。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml、未改 SCOREBOARD 数字；未启用 Agnocast/zenoh；未改 dimos_bridge DDS 行为/vendor 源码/shell 包装；未集成 Cega、未重写 Bridge runtime；新 eval 纯标准库 + 读真实仓库/内存变异，不新增运行时依赖、不在树内建 fixture、不跑不受信代码；promptfoo 仅 npx 缓存运行；旧草稿未跟踪未提交。
+
+### 剩余风险
+
+- ci.yml 的 structure job 仍只硬编码前 12 gate（#40 与第 13 gate 一样不被 CI 枚举），根因是 active 账号缺 `workflow` scope，需用户本机 `gh auth refresh -h github.com -s workflow` 后用离线备份补独立 PR；本轮只修操作员文档面与本地 eval，未触碰 ci.yml。
+- #40 的白名单是**精确集合** `{config/env/load.py}`：未来若确需在 Commands 块新增其他手动非 gate 命令，需同步改白名单（这是有意的防杂项累积设计）。
+- 本机无 Humble runtime，真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`，未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 40/40、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 继续在高负载窗口收集轮次43 provider 预算硬化后 fingerprint 0-error 样本（本轮 loadavg 高负载仍 4s/0 error，为又一正面样本）。
+3. `prove_rmw`/`check_risk_matrix`/`_freeze_paths` 维持合理空缺倾向，须先 /tmp 探针证实独有未覆盖判定分支才新增自测，不为凑数。
+4. 外部阻塞不变：workflow scope（ci.yml 接线）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+

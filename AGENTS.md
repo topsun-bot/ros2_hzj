@@ -17,6 +17,7 @@ python3 scripts/check_sink_layers.py
 python3 scripts/check_dual_chain_baseline.py
 python3 scripts/check_dod_evidence.py
 python3 scripts/check_cega_bridge_hold.py
+python3 scripts/check_frozen_path_literals.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
