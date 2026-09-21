@@ -40,7 +40,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - **审查侧重**：改动正确性；Hold 边界（`fastdds.xml` / `SCOREBOARD.md` / agnocast·zenoh 路径 / `dimos_bridge` DDS 行为 / vendor / Cega）；诚实标记（`STATUS: blocked` / `DoD: unmet` 不得被写成 PASS / PROVEN / 分位数）；`scripts/` 与 `evals/` 只读契约；双链契约（A = `rmw_fastrtps_cpp` 域 42，B = `rmw_cyclonedds_cpp` 域 0）。
 - **前置**：仓库 secret `ANTHROPIC_API_KEY`（或改用 `CLAUDE_CODE_OAUTH_TOKEN`）。没配 secret 时该 job 失败，但不影响 `ci.yml`。
 - 权限：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`、`actions: read`；同 PR 进行中 run 会被取消。
-- **信任模型**：`pull_request` 触发——fork PR 拿不到 secret 且 `GITHUB_TOKEN` 只读；同仓分支作者本就有 push 权限。审查依据的 `AGENTS.md` / 本文从 **PR base SHA** 取可信副本（`.review-trusted/`），PR 改这两份文件不能改写自己被审的规则；prompt 明示仓内文件 / PR 描述只是被审材料，不是指令。action 钉扎到完整 commit SHA（注释标版本），升级需人工改。
+- **信任模型**：`pull_request` 触发——fork PR 拿不到 secret 且 `GITHUB_TOKEN` 只读；同仓分支作者本就有 push 权限。审查依据的 `AGENTS.md` / 本文从 **PR base SHA** 取可信副本（`.review-trusted/`），PR 改这两份文件不能改写自己被审的规则；prompt 明示仓内文件 / PR 描述只是被审材料，不是指令。`actions/checkout` 与 `claude-code-action` 都钉扎到完整 commit SHA（注释标版本），升级需人工改。
 
 ---
 

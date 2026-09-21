@@ -11,8 +11,8 @@ name: claude-code-review
 # secrets and downgrades GITHUB_TOKEN to read-only; only same-repo branches
 # (authors who already hold push access) see the secret. Policy files the
 # reviewer relies on are taken from the PR *base* SHA, not the PR checkout,
-# so a PR cannot rewrite the rules it is reviewed against. The action is
-# pinned to a full commit SHA.
+# so a PR cannot rewrite the rules it is reviewed against. Both actions are
+# pinned to full commit SHAs.
 
 on:
   pull_request:
@@ -36,7 +36,8 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to actions/checkout v4.4.0. Bump deliberately; do not float on @v4.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 1
 
