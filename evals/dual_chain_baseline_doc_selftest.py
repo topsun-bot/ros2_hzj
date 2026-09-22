@@ -31,7 +31,8 @@ Why this exists
   the paused phrase and N2/N5/N6 only add percentile tokens. The Unitree swap
   record keeps N4 for the whole file missing and adds N10/N11/N12 for a
   present-but-stripped swap doc (drop-in FAIL / bundled 0.10.2 / vendor
-  11.0.1). The map /
+  11.0.1). N13 covers the R0 freeze doc losing Hold while present, and
+  N14/N15 cover the source map losing vendor / 不是复现 while present. The map /
   rewrite / pointer phrase checks reuse strings already in the marker tuple
   and so are always accompanied by a FAIL markers line (they cannot fire
   independently like the paused phrase); they get no separate negative.
@@ -40,7 +41,7 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs twelve negative scenarios, three non-flag (existence-only /
+result. It then runs fifteen negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -283,6 +284,43 @@ def main() -> int:
               and "- **FAIL missing:**" not in out,
               f"{label} must trip only the marker scan")
 
+    # N13/N14/N15: the R0 freeze record and the source map stay present but
+    # lose a content marker. The R0 freeze doc carries Hold (3 occurrences);
+    # the source map carries vendor (72) and the not-a-reproduction verdict
+    # 不是复现 (1). N1 covered only the paused phrase, N4 only the swap file
+    # missing, and N7-N12 only baseline/swap markers -- there was no
+    # present-but-weakened negative for R0 or the map, so keeping either
+    # file shell while deleting its Hold / vendor / not-a-reproduction
+    # marker would weaken the freeze or source-map evidence while the
+    # existing negatives stayed green. Stripping one word must fail markers
+    # and name it against that file only, trip no other check, and leave the
+    # baseline doc healthy. Probed on the real guard in a temp tree.
+    for label, rel, fname, word in (
+        ("N13 R0 freeze doc drops Hold", g.R0_REL,
+         "ros2-dds-r0-interface-freeze.md", "Hold"),
+        ("N14 source map drops vendor", g.MAP_REL,
+         "ros2-source-map.md", "vendor"),
+        ("N15 source map drops not-a-reproduction verdict", g.MAP_REL,
+         "ros2-source-map.md", "不是复现"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                rel: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and fname in out
+              and f"need {word}" in out,
+              f"{label} must report the file missing {word}")
+        check("feishu-dual-chain-baseline.md` (need" not in out,
+              f"{label} must not flag the healthy baseline doc")
+        check("- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL missing:**" not in out
+              and "- **FAIL map:**" not in out,
+              f"{label} must trip only the marker scan")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -350,7 +388,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("12 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("15 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
