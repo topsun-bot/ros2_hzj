@@ -2,8 +2,8 @@ name: claude-code-review
 
 # Advisory PR review by Claude. Separate from ci.yml on purpose: the three
 # gate jobs (structure / contracts / boundary) stay untouched and remain the
-# only required checks. This workflow only leaves a review comment; it cannot
-# push, merge, or label (no allow-hold-bypass from a bot).
+# only required checks. This workflow only leaves one review comment per run;
+# it cannot push, merge, or label (no allow-hold-bypass from a bot).
 #
 # Requirements (repo settings, not code):
 #   - secret ANTHROPIC_API_KEY
@@ -34,8 +34,14 @@ concurrency:
 jobs:
   review:
     name: review
-    # Drafts are reviewed once they are marked ready_for_review.
-    if: github.event.pull_request.draft == false
+    # Drafts are reviewed once they are marked ready_for_review. Fork PRs are
+    # skipped explicitly: on `pull_request` a fork run gets no secrets and no
+    # OIDC-to-App exchange anyway, so it could only fail; skipping keeps that
+    # boundary visible instead of leaving a red job. Same-repo PR authors
+    # already hold write access to this repository.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -47,7 +53,9 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          use_sticky_comment: true
+          # One write path only: Claude posts its findings with `gh pr comment`
+          # (one comment per run). use_sticky_comment is deliberately not set so
+          # the action does not also maintain its own comment.
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
