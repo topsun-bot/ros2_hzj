@@ -3600,3 +3600,49 @@
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 51 — 2026-09-22 22:21（Asia/Shanghai）— 给 #20 unitree guard 补合法 external 路径 marker 删除负向场景（功能 PR TBD）
+
+### 只读取证（断言质量复查，接续轮次50 下一步候选 a）
+
+- 读 `scripts/check_unitree_cyclone_swap.py`（206 行）与 `evals/unitree_swap_guard_selftest.py`（轮次49 后含 NF1/NF2）逐分支对照：#20 原有 5 negative（N1 裁决句翻转→FAIL verdict、N2 引文 0.10.2 篡改→FAIL quote、N3 vendor SHA 行篡改→FAIL VERSIONS row、N4 CMake project() VERSION 篡改→FAIL CMake project()、N5 删交换文档→FAIL missing）、2 non-flag（existence-only NF1/NF2）、2 healthy、1 mutation（CMake 正则改宽即漏报 N4）。
+- 真实盲区：guard docstring 与安全契约把「唯一合法替换路径 = `unitree_sdk2_hzj` + opt-in `UNITREE_DDS_PROVIDER=external`」列为关键结论，这两个 marker 走通用 18-marker substring 元组（guard 行 56–57），缺失会 FAIL markers 并点名；但 #20 的 5 个 negative **没有任何一个删除这两个合法路径 marker**。若未来有人把它们从 `_SWAP_MARKERS` 元组里「简化」掉，删除文档里的合法路径就不再报 FAIL，现有断言全绿、安全契约悄悄丢失。
+- /tmp 探针（复制 5 个真实文件进 tempdir，真实交换文档中 `UNITREE_DDS_PROVIDER=external` 出现 5 次、`unitree_sdk2_hzj` 出现 11 次）：删前者 → code1 `FAIL markers (need UNITREE_DDS_PROVIDER=external)`；删后者 → code1 `FAIL markers (need unitree_sdk2_hzj)`；两者均不连带——`ok quoted 0.10.2`、`ok verdict phrase`、`ok VERSIONS row`、`ok CMake project()` 四个独立检查仍报 ok（marker 缺失只 continue 交换文档的 ok file 行，texts 已载入故引文/裁决独立检查照跑，VERSIONS/CMake 是独立文件）；pristine code0。
+
+### 改动（行为不变，3 文件，eval-only，case 数不变仍 42）
+
+1. `evals/unitree_swap_guard_selftest.py`（#20）：新增 **N6**（删除 opt-in env marker `UNITREE_DDS_PROVIDER=external`）与 **N7**（删除合法外部工作区 marker `unitree_sdk2_hzj`），各要求 code1 + 无 success marker + `FAIL markers` 且点名被删 marker，并断言引文/裁决/VERSIONS/CMake 四个独立检查仍 ok（不连带）；negative 5→7，计数由 `5 negative, 2 non-flag, 2 healthy, 1 mutation` 扩为 **`7 negative, 2 non-flag, 2 healthy, 1 mutation`**；汇总行 `/5`→`/7`；同步 docstring 第 1 点枚举（five→seven，列 N6/N7）。
+2. `evals/promptfooconfig.yaml`：更新 #20 description（补 dropped legal-path markers）与计数 value；该 `5 negative, 2 non-flag…` 串在 yaml 另属一个 case（行 329），按 #20 块整段上下文精确替换、另一处不动；cases=42、scripts=42。
+3. `evals/README.md`：#20 文件表行、明细表行（整行，#23 同形串不动）、专节（5→7 负向场景并补 N6/N7 说明）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N6/N7 先在真实 guard 上 /tmp 探针逐字取证（删 marker 的 FAIL markers 点名行 + 四个独立 ok 行）再写进自测；
+- 两场景都断言「该 FAIL 的点名 + 不该 FAIL 的独立检查仍 ok」，与 N1–N4 的独立性断言同构，非恒真（健康对照 H2 不删则绿，证明删除确实触发）；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #20 对合法路径 marker 的负向判别；不额外加 mutation（N6/N7 由 H2 健康对照与真实删除探针自证非恒真，避免过度堆夹具）。
+
+### 实测（本机 macOS，2026-09-22 22:21 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-0Jy-2026-09-22T14:21:36`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（vendor 文件仅复制进 tempdir 读取，未写）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- 合法 external 路径契约现有 N6/N7 钉删除侧；其「default bundled、external 必须 opt-in」的正向语义仍由正向 #7 与 marker 存在性覆盖，未单独造 env 组合夹具（guard 本身只读文档不执行 env，造 env 夹具属越界，不做）。
+- existence-only 放行 helper 仍在 #20/#27/#42 三处重复（seed 签名不同，本轮不抽）；`prove_rmw` 维持合理空缺；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 断言质量复查继续：对 #41 risk_matrix_guard（复制 8 真实文件型）做 existence-only/放行侧盲区探针；或复查其余复制真实文件型 selftest 是否还有「关键 marker 走通用元组却无删除负向场景」的同类缺口；均先探针证盲区再加强。
+3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
