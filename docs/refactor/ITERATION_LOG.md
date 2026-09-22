@@ -3865,3 +3865,50 @@
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–55 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 56 — 2026-09-23 03:10（Asia/Shanghai）— 给 #42 R0 冻结文档（Hold）与源映射文档（vendor / 不是复现）补 present-but-stripped 内容 marker 删除负向 N13/N14/N15（功能 PR TBD）
+
+### 只读取证（断言质量复查，接续轮次55 下一步第2条）
+
+- guard required 表：R0 冻结文档 `ros2-dds-r0-interface-freeze.md` 带 marker `Hold`；源映射文档 `ros2-source-map.md` 带 marker `vendor` 与 `不是复现`（非复现结论）。
+- 真实盲区：#42 此前 N1 只覆盖 paused 短语、N4 只覆盖 swap 整文件缺失、N7–N12 只覆盖 baseline/swap marker；**R0 与源映射的 present-but-weakened 形态零负向**。保留文件外壳却删掉 R0 的 Hold，或源映射的 vendor / 不是复现，会让接口冻结或源映射证据在文档面失效，而既有 N1–N12 全绿。
+- /tmp 探针（复制 11 真实文件；出现次数 R0 Hold 3；MAP vendor 72、不是复现 1）：文件保留、各删该词全部分出现处 → code1，逐字 `FAIL markers: docs/architecture/ros2-dds-r0-interface-freeze.md (need Hold)`、`ros2-source-map.md (need vendor)`、`(need 不是复现)`，ok file 数 8（只该文件不 ok、baseline 不连带），且不触发 paused/percentile/missing/map 任一检查；pristine code0。
+- 三个场景同型、同安全逻辑（内容 marker 删除必 fail markers、只点名该文件、不连带），作为同一项一次补齐；baseline 元组其余诚实性词留下一轮。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`（#42）：新增参数化 **N13/N14/N15**（R0 保留删 Hold、源映射保留删 vendor / 不是复现，要求 code1 + FAIL markers 点名 `need <词>` + baseline 不连带 + 不触发 paused/percentile/missing/map），negative 12→15，计数扩为 **`15 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（twelve→fifteen、补 R0/MAP present-but-stripped）。
+2. `evals/promptfooconfig.yaml`：#42 description 补 R0/MAP marker stripped、计数 value 12→15；cases=42、scripts=42。
+3. `evals/README.md`：#42 文件表行、明细表行（整行计数）、专节（12→15 negative 并补 N13–N15）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N13–N15 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + ok file 8 + baseline 不连带）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言不连带 baseline、不误触 paused/percentile/missing/map；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #42 对 R0/源映射 present-but-weakened 的负向判别；既有 N1–N12、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 03:10 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-5pu-2026-09-22T19:10:50`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- #42 仍未覆盖：baseline 元组其余诚实性词（Not Feishu field proof、派生自 等）present-but-stripped 删除负向；ADR 文档除「不重写 XML」外其余 marker（FastDDS + Cyclone / SCOREBOARD）的 present-but-stripped 删除负向。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 给 #42 补 baseline 元组其余诚实性词（Not Feishu field proof、派生自）与 ADR 其余 marker（FastDDS + Cyclone / SCOREBOARD）present-but-stripped 删除负向，先探针证独有边界。
+3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–56 持续 0 error）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
