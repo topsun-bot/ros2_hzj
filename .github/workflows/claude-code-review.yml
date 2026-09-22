@@ -8,6 +8,9 @@ name: claude-code-review
 # - The review model gets NO shell, no network tools and no write tools. It
 #   can only Read / Grep / Glob the checkout plus the PR diff a trusted step
 #   fetched, and post inline comments through the action's structured MCP tool.
+#   `blockReadsOutsideWorkingDirectories` fences Read / Grep / Glob to the
+#   checkout in every permission mode, so /proc, the runner temp dir and the
+#   home dir are unreachable; the explicit deny rules below are a second layer.
 # - The summary is the model's final message; a trusted step posts it (one
 #   overwritable comment) and refuses to post anything that looks like a
 #   credential. The model never runs `gh`, so the API key in its environment
@@ -81,6 +84,19 @@ jobs:
         uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Fence every file-reading tool (Read, Grep, Glob, LSP) to the checkout,
+          # in every permission mode; deny rules below are defense in depth.
+          settings: |
+            {
+              "permissions": {
+                "blockReadsOutsideWorkingDirectories": true,
+                "deny": [
+                  "Bash", "WebFetch", "WebSearch", "Edit", "Write", "NotebookEdit", "Agent", "Task",
+                  "Read(//proc/**)", "Read(//dev/**)", "Read(//sys/**)",
+                  "Read(~/.claude/**)", "Read(//home/runner/work/_temp/**)"
+                ]
+              }
+            }
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
