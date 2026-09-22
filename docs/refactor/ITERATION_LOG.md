@@ -3654,7 +3654,7 @@
 
 ---
 
-## 轮次 52 — 2026-09-22 23:13（Asia/Shanghai）— 给 #41 risk_matrix guard 补三个核心 Hold 禁令词的删除负向场景（功能 PR TBD）
+## 轮次 52 — 2026-09-22 23:13（Asia/Shanghai）— 给 #41 risk_matrix guard 补三个核心 Hold 禁令词的删除负向场景（功能 PR #153，main 8895d34）
 
 ### 只读取证（断言质量复查，接续轮次51 下一步候选 a）
 
@@ -3682,6 +3682,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-G4m-2026-09-22T15:12:59`（Duration 5s，0 error）。
 
+### 合并后权威回归（功能 PR #153 已 squash-merge）
+
+- 功能 PR #153（分支 test/risk-matrix-holdban-marker-negatives，commit 6bffcee，4 files）required 三检 + CodeQL + Cursor Approval(1m35s) 全 pass，squash-merge 到 main，mergeCommit `8895d34ea98eeff84855581ef6a278ddd6cc97a2`（远端分支已删；#152 被他人占用，本功能 PR 号为 #153）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `8895d34`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-wPp-2026-09-22T15:19:36`（Duration 5s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega（本轮恰恰是把这三条 Hold 禁令在风险矩阵文档面的存在性断言补严）；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3694,7 +3700,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #153 已合并（main `8895d34`），合并后权威回归 42/42、0 error（eval `eval-wPp-2026-09-22T15:19:36`），本回填 PR 即补登。
 2. 断言质量复查继续：类推审计其余复制真实文件型 selftest（#42 dual_chain_baseline、#27 three_chain 已补 existence non-flag/legal-path）的 marker 元组里安全关键项是否都有删除负向；或补 R0/MAP/METHOD/GATES 单 marker 文件的删除负向（先探针证盲区）。
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
