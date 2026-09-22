@@ -3705,3 +3705,50 @@
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 53 — 2026-09-23 00:15（Asia/Shanghai）— 给 #41 四个单 marker 文件补「文件保留、内容丢 marker」删除负向 N7/N8/N9/N10（功能 PR TBD）
+
+### 只读取证（断言质量复查，接续轮次52 下一步第2条）
+
+- 读 `scripts/check_risk_matrix.py`（139 行）required 表：8 个必需文件中，R0 / 源映射 / 延迟方法 / CI gates 四个文件各只带**一个** marker——R0 `Hold`、MAP `vendor`、METHOD `wiki`、GATES `structure`。
+- 真实盲区：#41 的 N2 只覆盖 R0 文件**整文件缺失**（`FAIL missing`）；文件仍在、但内容里唯一 marker 被删（present-but-weakened）这一形态对 R0 没有断言，而 MAP/METHOD/GATES 三个文件**原本零负向**。若未来有人保留文件外壳却删掉该 marker（例如源映射文档不再提 vendor、CI gates 文档不再提 structure），guard 对该文件的强制在文档面失效，其余断言全绿。
+- /tmp 探针（复制 8 真实文件；marker 在各文件出现次数：Hold 3、vendor 72、wiki 8、structure 6）：文件保留、各删该 marker 全部分出现处 → code1，逐字 `FAIL markers` 点名 `(need Hold)` / `(need vendor)` / `(need wiki)` / `(need structure)`，且其余 7 个文件仍打印 `ok file`（ADR 在内，不连带）；pristine code0、8 个 ok file。
+- 四个场景结构同构、安全逻辑一致（每个必需文件的唯一内容 marker 被删必 fail markers 且不连带），作为同一项「单 marker 文件 present-but-weakened 负向」一次补齐；与 N4/N5/N6 同型，复用 `expect(..., also_ok=...)`。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/risk_matrix_guard_selftest.py`（#41）：`_seed_tree()` 扩展，新增 `r0_text` / `map_text` / `method_text` / `gates_text` 四个 override（此前这四个文件只能整文件 drop、不能改内容）；新增 **N7/N8/N9/N10**（文件保留、各删唯一 marker，要求 code1 + 无健康 marker + `need <词>` 点名 + 其余 7 文件 ok），negative 6→10，计数扩为 **`10 negative, 2 non-flag, 2 healthy, 1 mutation`**；汇总行 `/6`→`/10`；同步 docstring 枚举与结尾散文。
+2. `evals/promptfooconfig.yaml`：#41 description 补 present-but-marker-stripped 四文件、计数 value 6→10；cases=42、scripts=42。
+3. `evals/README.md`：#41 文件表行、明细表行（整行）、专节（6→10 negative 并补 N7–N10）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N7–N10 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + 其余 7 文件 ok file 行 + adr 不连带）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；`also_ok` 钉单文件 marker 缺失不误伤兄弟文件；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #41 对单 marker 文件 present-but-weakened 的负向判别；既有 N1–N6、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 00:15 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-cO4-2026-09-22T16:15:15`（Duration 4s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- 至此 #41 对 8 个必需文件的负向覆盖：矩阵（N1 + N4/N5/N6）、ADR（N3）、R0（N2 缺失 + N7 内容）、MAP/METHOD/GATES（N8/N9/N10 内容）、冻结两文件（NF1/NF2 最小锚点）；矩阵 order 检查 token 全是 marker 子集、必被 marker FAIL 遮蔽，不单独造负向。
+- 类推审计尚未做到 #42 dual_chain_baseline（复制 11 文件）marker 元组安全关键项的删除负向；existence-only 放行 helper 仍在 #20/#27/#42 三处重复；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 断言质量复查转向 #42 dual_chain_baseline_doc selftest：读 guard 复制的 11 个文件 marker/指针元组，定位安全关键项（Hold 指针、SCOREBOARD/XML 只读锚点、blocked 标注等）是否都有删除负向，先探针证独有未覆盖边界再补。
+3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+

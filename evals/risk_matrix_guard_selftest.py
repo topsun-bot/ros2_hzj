@@ -33,6 +33,14 @@ file-existence shape already covered elsewhere:
     failure). The three bans ride the generic matrix marker tuple, and each is
     asserted on its own so dropping just one from the guard's tuple cannot hide
     behind the other two, mirroring the per-token 《3》..《6》 contract;
+  * N7/N8/N9/N10 keep a required single-marker file present but strip its
+    sole marker -- the R0 freeze loses ``Hold``, the source map loses
+    ``vendor``, the latency method doc loses ``wiki``, the CI gates doc loses
+    ``structure`` -- exit 1, ``FAIL markers`` naming the marker, while the
+    other seven files still print ``ok file``. N2 only covers the R0 file
+    being absent (``FAIL missing``); these cover the present-but-weakened
+    shape, which had no assertion (and the map/method/gates files had no
+    negative at all);
   * NF1/NF2 are the bidirectional, anti-false-positive half: the two Hold
     -frozen files are checked at a **minimal anchor only** -- SCOREBOARD needs
     just ``STATUS`` (its numbers are never read) and fastdds.xml needs just the
@@ -93,6 +101,10 @@ def _seed_tree(
     *,
     matrix_text: str | None = None,
     adr_text: str | None = None,
+    r0_text: str | None = None,
+    map_text: str | None = None,
+    method_text: str | None = None,
+    gates_text: str | None = None,
     scoreboard_text: str | None = None,
     xml_text: str | None = None,
     drop: tuple[Path, ...] = (),
@@ -100,6 +112,10 @@ def _seed_tree(
     overrides = {
         g.MATRIX_REL: matrix_text,
         g.ADR_REL: adr_text,
+        g.R0_REL: r0_text,
+        g.MAP_REL: map_text,
+        g.METHOD_REL: method_text,
+        g.GATES_REL: gates_text,
         g.SCOREBOARD_REL: scoreboard_text,
         g.XML_REL: xml_text,
     }
@@ -177,6 +193,38 @@ def _check_negatives(failures: list[str]) -> int:
         "need Cega",
         also_ok=sibling_ok,
         matrix_text=_real_text(g.MATRIX_REL).replace("Cega", ""),
+    )
+    # N7/N8/N9/N10: four required files each carry a single marker distinct
+    # from the matrix tuple -- R0 needs "Hold", the source map needs "vendor",
+    # the latency method doc needs "wiki", the CI gates doc needs "structure".
+    # N2 only covers the R0 file being *missing* (FAIL missing); it does not
+    # cover the file staying present while its sole marker is stripped, and
+    # the other three files had no negative at all. Keeping the file in place
+    # but removing the marker must fail markers and name it, while the other
+    # seven files still report ok (per-file enforcement, no collateral).
+    expect(
+        "R0 file present but drops Hold marker",
+        "need Hold",
+        also_ok=sibling_ok,
+        r0_text=_real_text(g.R0_REL).replace("Hold", ""),
+    )
+    expect(
+        "source map present but drops vendor marker",
+        "need vendor",
+        also_ok=sibling_ok,
+        map_text=_real_text(g.MAP_REL).replace("vendor", ""),
+    )
+    expect(
+        "latency method present but drops wiki marker",
+        "need wiki",
+        also_ok=sibling_ok,
+        method_text=_real_text(g.METHOD_REL).replace("wiki", ""),
+    )
+    expect(
+        "CI gates present but drops structure marker",
+        "need structure",
+        also_ok=sibling_ok,
+        gates_text=_real_text(g.GATES_REL).replace("structure", ""),
     )
     return caught
 
@@ -280,7 +328,7 @@ def main() -> int:
 
     print("# Risk-matrix §9.4 Hold guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/6; "
+        f"- negative scenarios caught: {negative}/10; "
         f"non-flag scenarios green: {non_flag}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -298,13 +346,15 @@ def main() -> int:
 
     print(
         f"- **{SUCCESS_MARKER}** "
-        "(6 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        "(10 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard fails closed when a standalone 《3》/《4》/《5》/《6》 Hold "
         "token is replaced by a bare 《3》–《6》 range, when a required file is "
-        "missing, when the ADR loses §9.4, or when one of the Agnocast / "
-        "zenoh / Cega Hold-ban words is dropped from the matrix; the frozen "
+        "missing, when the ADR loses §9.4, when one of the Agnocast / "
+        "zenoh / Cega Hold-ban words is dropped from the matrix, or when a "
+        "present R0 / source-map / latency-method / CI-gates file loses its "
+        "single Hold / vendor / wiki / structure marker; the frozen "
         "SCOREBOARD (STATUS only) and fastdds.xml (domainId anchor only) stay "
         "green at their minimal anchors; a healthy tree stays green; and a "
         "reader that hides the tampered matrix demonstrably silences the "
