@@ -12,10 +12,21 @@ name: claude-code-review
 #   - the action is pinned to a release commit SHA, not a mutable tag;
 #   - it authenticates to GitHub with the job's own short-lived GITHUB_TOKEN
 #     (no id-token / OIDC exchange, no GitHub App);
-#   - Claude has read-only repository access (Read/Glob/Grep, git diff/log,
-#     gh pr view/diff) plus comment-writing access (the action's tracking
-#     comment and inline review comments). It cannot execute repository
-#     code, edit files, or run gh pr comment (no --body-file upload path).
+#   - Claude has read-only repository access (Read/Glob/Grep/LS, gh pr
+#     view/diff) plus comment-writing access (the action's tracking comment
+#     and inline review comments). No shell access to git or python: no
+#     `git diff --no-index` / `--output` file-read primitive, no `gh pr
+#     comment --body-file` upload path, no file edits or commits.
+#   - No GitHub token is written into the checkout: actions/checkout runs
+#     with persist-credentials: false and use_commit_signing: true makes the
+#     action skip its git-credential setup (which would otherwise embed the
+#     token in the origin URL). The repository is public, so the action's
+#     own `git fetch` of the PR branch works anonymously.
+#   - Residual risk, inherent to any tool-using reviewer: the process env
+#     holds ANTHROPIC_API_KEY and the job GITHUB_TOKEN, and a file-reading
+#     tool plus a comment tool is a text channel. Mitigations: minimal,
+#     short-lived GITHUB_TOKEN scopes; fork PRs receive no secrets; use a
+#     dedicated, spend-capped Anthropic workspace key for this secret.
 #
 # Docs: https://github.com/anthropics/claude-code-action
 
@@ -39,9 +50,12 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to the v4.4.0 commit; persist-credentials: false keeps the job
+      # token out of .git/config in the workspace Claude reads.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       # Pinned to the v1.0.99 release commit. Bump deliberately, never to a tag.
       - uses: anthropics/claude-code-action@c3d45e8e941e1b2ad7b278c57482d9c5bf1f35b3 # v1.0.99
@@ -52,6 +66,10 @@ jobs:
           # Tag mode with a tracking comment: the summary is written through the
           # action's own comment tool, so no `gh pr comment` shell access is needed.
           track_progress: true
+          # API commit signing path: the action then skips configureGitAuth, so
+          # the token is never embedded in the origin URL. This job never
+          # commits anyway (contents: read, file tools disallowed below).
+          use_commit_signing: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -96,5 +114,5 @@ jobs:
           claude_args: |
             --model claude-opus-5
             --max-turns 30
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*)"
-            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit,mcp__github_file_ops__commit_files,mcp__github_file_ops__delete_files"

@@ -86,7 +86,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（`anthropics/claude-code-action`，钉 v1.0.99 release commit SHA）。每个非 draft PR 在 `opened / synchronize / reopened / ready_for_review` 时自动跑一次 Claude 审查，按 [AGENTS.md](../../AGENTS.md) 的 Hold 规则找正确性 bug、Hold 越界、诚实标记（`STATUS: blocked` / `DoD: unmet`）与 eval 断言质量问题，结果以 PR 评论 + 行内评论发回（sticky comment，重跑覆盖同一条）。
 
 - **只评论、不改文件、不合入**；`structure` / `contracts` / `boundary` 仍是唯一必绿闸门，本 job **不要**设为 required status check。
-- **供应链 / 权限**：action 钉到 release commit SHA（不是可变 tag）；用 job 自身的短期 `GITHUB_TOKEN`（`contents: read` / `pull-requests: write` / `issues: write`，无 `id-token`）；Claude 只有只读仓库访问（Read/Glob/Grep、`git diff/log`、`gh pr view/diff`）加评论写入（tracking comment + 行内评论），**不能执行仓库代码、不能改文件、无 `gh pr comment`**（去掉 `--body-file` 上传通道）。安全审计基线的变化见 [2026-09-vendor-cve-audit.md §2.2](../security/2026-09-vendor-cve-audit.md)。
+- **供应链 / 权限**：action 钉到 release commit SHA（不是可变 tag）；用 job 自身的短期 `GITHUB_TOKEN`（`contents: read` / `pull-requests: write` / `issues: write`，无 `id-token`）；`actions/checkout` 也钉 SHA 且 `persist-credentials: false`，`use_commit_signing: true` 让 action 跳过 git 凭证配置，**token 不落 `.git/config`**；Claude 只有只读仓库访问（Read/Glob/Grep/LS、`gh pr view/diff`）加评论写入（tracking comment + 行内评论），**无 git / python shell、不能改文件、无 `gh pr comment`**（去掉 `git diff --no-index` 读文件与 `--body-file` 上传通道）。残余风险：进程环境里有 `ANTHROPIC_API_KEY`，读文件 + 写评论本身是文本外泄通道（任何工具型审查者都有）；缓解是最小、短期 token，fork PR 拿不到 secrets，建议用独立限额的 workspace key。安全审计基线的变化见 [2026-09-vendor-cve-audit.md §2.2](../security/2026-09-vendor-cve-audit.md)。
 - 需要仓库 secret `ANTHROPIC_API_KEY`（Settings → Secrets and variables → Actions）；未配置时 job 失败但不阻塞合入。
 - 审查语言跟随 PR 描述（中文描述 → 简体中文）。
 
