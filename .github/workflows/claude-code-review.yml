@@ -244,12 +244,29 @@ jobs:
                   "split the PR."
               )
           else:
+              def load_messages(path: str) -> list:
+                  # The action writes a JSON array of SDK messages; also accept a
+                  # single object or line-delimited JSON so a format change
+                  # degrades to a parse warning, not a silent "no summary".
+                  with open(path, encoding="utf-8") as fh:
+                      raw = fh.read()
+                  try:
+                      data = json.loads(raw)
+                  except json.JSONDecodeError:
+                      data = []
+                      for line in raw.splitlines():
+                          line = line.strip()
+                          if line:
+                              data.append(json.loads(line))
+                  if isinstance(data, dict):
+                      data = [data]
+                  return data if isinstance(data, list) else []
+
               msgs = []
               exec_file = os.environ.get("EXEC_FILE", "")
               if exec_file:
                   try:
-                      with open(exec_file, encoding="utf-8") as fh:
-                          msgs = json.load(fh)
+                      msgs = load_messages(exec_file)
                   except Exception as exc:  # noqa: BLE001
                       print(f"::warning::could not read execution log: {exc}")
               text = ""
