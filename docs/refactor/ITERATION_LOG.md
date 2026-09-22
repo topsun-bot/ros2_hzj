@@ -3652,3 +3652,50 @@
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 52 — 2026-09-22 23:13（Asia/Shanghai）— 给 #41 risk_matrix guard 补三个核心 Hold 禁令词的删除负向场景（功能 PR TBD）
+
+### 只读取证（断言质量复查，接续轮次51 下一步候选 a）
+
+- 读 `scripts/check_risk_matrix.py`（139 行）与 `evals/risk_matrix_guard_selftest.py`（轮次46 后）逐分支对照：#41 原有 3 negative（N1 删独立 `《4》` 但保留 `《3》–《6》` 区间→FAIL markers 点名《4》、N2 删 R0 必需文件→FAIL missing、N3 ADR 去 `§9.4`→FAIL markers）、2 non-flag（NF1 仅 STATUS 的 SCOREBOARD、NF2 仅 domainId 锚点的 fastdds.xml 最小锚点树保持绿）、2 healthy、1 mutation（盲 read_utf8 静默 N1）。
+- 真实盲区：矩阵的 19-marker 元组里含三个**核心 Hold 禁令词** `Agnocast` / `zenoh` / `Cega`（对应「不启用 Agnocast/zenoh」「不集成 Cega」硬边界），但 3 个 negative 没有一个删除它们。若未来有人从 `_MATRIX_MARKERS` 元组里「简化」掉其中任一禁令词，矩阵文档删掉该词不再报 FAIL，N1–N3 全绿、Hold 边界在风险矩阵文档面悄悄失效。
+- /tmp 探针（复制 8 个真实文件进 tempdir；真实矩阵中 Agnocast/zenoh 各出现 3 次、Cega 2 次）：各删一词 → code1，打印 `FAIL markers` 并逐字点名 `need Agnocast` / `need zenoh` / `need Cega`，且其余 7 个文件仍打印 `ok file`（ADR/SCOREBOARD 在内，不连带）；pristine code0、8 个 ok file。
+- 与《3》–《6》逐 token 反缩写契约同构：三词必须**各占一个**删除 case（不能合并成「三词全删」单 case），否则只从元组删掉其一时会被保留的另两个掩盖而漏报。order 检查（env/XML→…→core forks）的 token 全是 marker 子集、永远被 marker FAIL 遮蔽，无法独立触发，故不单独造负向。
+
+### 改动（行为不变，3 文件，eval-only，case 数不变仍 42）
+
+1. `evals/risk_matrix_guard_selftest.py`（#41）：`expect()` 增加可选 `also_ok=()` 形参（断言这些串仍在输出，钉「不连带」）；新增 **N4/N5/N6**，从矩阵各删一个 Hold 禁令词（Agnocast / zenoh / Cega），要求 code1 + 无健康 marker + `need <词>` 点名 + 其余文件 ok file / ADR 行仍在；negative 3→6，计数由 `3 negative, 2 non-flag, 2 healthy, 1 mutation` 扩为 **`6 negative, 2 non-flag, 2 healthy, 1 mutation`**；汇总行 `/3`→`/6`；同步 docstring 枚举与结尾散文。
+2. `evals/promptfooconfig.yaml`：更新 #41 description（补 dropped Agnocast/zenoh/Cega、other files still ok）与计数 value（旧 3-neg 串全仓仅 #41 一处）；cases=42、scripts=42。
+3. `evals/README.md`：#41 文件表行、明细表行（整行）、专节（3→6 negative 并补 N4/N5/N6 说明）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N4/N5/N6 先在真实 guard 上 /tmp 探针逐字取证（删词的 FAIL markers 点名行 + 其余 7 文件 ok file 行）再写进自测；
+- 三场景各自独立、与 H2 纯复制健康树配对（不删则绿），证明删除确实触发、非恒真；`also_ok` 钉死矩阵 marker 缺失不误伤兄弟文件；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #41 对 Hold 禁令词的负向判别；既有 mutation（盲 read_utf8 静默 N1）保持不变。
+
+### 实测（本机 macOS，2026-09-22 23:13 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-G4m-2026-09-22T15:12:59`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega（本轮恰恰是把这三条 Hold 禁令在风险矩阵文档面的存在性断言补严）；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- 本轮只钉矩阵文档面的三词存在性；这三条 Hold 的**代码/配置面**由 boundary job、fastdds.xml 冻结、vendor 只读等其他机制覆盖，#41 不越界读代码。
+- R0 的 `Hold`、MAP 的 `vendor`、METHOD 的 `wiki`、GATES 的 `structure` 四个单 marker 文件仍只有正向、无各自删除负向（安全关键性低于三禁令词，留待后续按需补）；existence-only 放行 helper 仍在 #20/#27/#42 三处重复；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 断言质量复查继续：类推审计其余复制真实文件型 selftest（#42 dual_chain_baseline、#27 three_chain 已补 existence non-flag/legal-path）的 marker 元组里安全关键项是否都有删除负向；或补 R0/MAP/METHOD/GATES 单 marker 文件的删除负向（先探针证盲区）。
+3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
