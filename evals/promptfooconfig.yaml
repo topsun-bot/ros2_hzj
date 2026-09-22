@@ -655,7 +655,7 @@ tests:
   # independently of the marker tuple, the booked-percentile (p50/p90/p95/p99)
   # anti-fabrication regex, and the existence-only treatment of fastdds.xml /
   # SCOREBOARD (their content freeze is the boundary job, not this gate).
-  - description: 'dual_chain_baseline_doc_selftest.py: the dual-chain baseline document guard must exit 1 when the contiguous paused phrase is dropped independently of the marker tuple, when an invented p99 token appears, when the ADR §13(3) loses a marker, or when a required doc vanishes; empty SCOREBOARD and arbitrary fastdds.xml must stay green as existence-only; a blind percentile regex must hide then re-catch the invented p99'
+  - description: 'dual_chain_baseline_doc_selftest.py: the dual-chain baseline document guard must exit 1 when the contiguous paused phrase is dropped independently of the marker tuple, when an invented p99 appears (also a CJK-adjacent 链A的p99 with no ASCII boundary, and a p95 not only p99), when the ADR §13(3) loses a marker, or when a required doc vanishes; empty SCOREBOARD, arbitrary fastdds.xml (existence-only) and the bare policy word 分位数 with no pNN token must stay green; a blind percentile regex must hide then re-catch the invented p99'
     vars:
       script: evals/dual_chain_baseline_doc_selftest.py
     assert:
@@ -663,4 +663,4 @@ tests:
         value: 'dual-chain baseline doc guard selftest: PASS'
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '4 negative, 2 non-flag, 2 healthy, 1 mutation'
+        value: '6 negative, 3 non-flag, 2 healthy, 1 mutation'
