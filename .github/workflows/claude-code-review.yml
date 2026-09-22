@@ -94,19 +94,23 @@ jobs:
             backticks and `$(...)`, which the shell would execute. Instead:
             1. Write the full review, starting with the line `## Claude code review`,
                to /tmp/claude-review.md with your Write tool.
-            2. Edit your previous comment in place with your Bash tool:
-                 gh pr comment <PR NUMBER> --edit-last --create-if-none --body-file /tmp/claude-review.md
-               If the installed gh rejects `--create-if-none`, run the same command
-               without that flag; only if that fails because you have no earlier
-               comment on this PR, create one with
-                 gh pr comment <PR NUMBER> --body-file /tmp/claude-review.md
+            2. Edit your previous comment in place with your Bash tool. Only these
+               three exact commands are permitted, in this order of preference:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/claude-review.md
+               If the installed gh rejects `--create-if-none`:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --body-file /tmp/claude-review.md
+               Only if that fails because you have no earlier comment on this PR:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md
             Never leave more than one comment per run.
 
-          # Read-only gh access, the one comment command, and Write scoped to the
-          # single temp file the comment body is read from (--body-file), so the
-          # review text never passes through a shell command line. No push, no
-          # merge, no label. Reference:
+          # Read-only gh/git access, plus Write scoped to the single temp file the
+          # comment body is read from (--body-file), so the review text never
+          # passes through a shell command line. The comment command is not a
+          # prefix pattern: only the three exact invocations below are allowed,
+          # each bound to this event's PR number and repository, so a prompt
+          # injection in the diff cannot make the App token write to any other
+          # PR. No push, no merge, no label. Reference:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           claude_args: |
             --model claude-opus-5
-            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Write(//tmp/claude-review.md)"
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Write(//tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md)"
