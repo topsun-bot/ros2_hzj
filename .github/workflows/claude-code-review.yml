@@ -199,6 +199,11 @@ jobs:
         # Not always(): a run cancelled by a newer push must not publish a
         # stale summary. The step also re-checks the PR head before posting.
         if: ${{ !cancelled() && steps.key.outputs.present == 'true' && steps.diff.outcome != 'skipped' }}
+        # Runs from the runner temp dir, not the PR checkout, and Python runs
+        # in isolated mode without site initialization (-I -S): no cwd or
+        # PYTHONPATH on sys.path, no sitecustomize/usercustomize, so a PR file
+        # cannot shadow `re`/`json`/`subprocess` or run code before the filter.
+        working-directory: ${{ runner.temp }}
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -208,7 +213,7 @@ jobs:
           EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
         run: |
           set -euo pipefail
-          python3 <<'PY'
+          python3 -I -S - <<'PY'
           import json
           import os
           import re
@@ -285,7 +290,10 @@ jobs:
               r"\bhf_[A-Za-z0-9]{30,}",
               r"\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}",
               r"(?i)\bbearer\s+[A-Za-z0-9._\-]{20,}",
-              r"(?i)\b(?:api[_-]?key|secret|token|password|passwd)\b\s*[:=]\s*['\"]?[A-Za-z0-9/+_\-]{16,}",
+              r"(?i)\bauthorization\s*[:=]\s*['\"]?[A-Za-z0-9._\-/+= ]{20,}",
+              # Any identifier containing key/secret/token/password/credential,
+              # e.g. key=, api_key:, AWS_SECRET_ACCESS_KEY=, client-secret=.
+              r"(?i)\b[A-Za-z0-9_\-]*(?:key|secret|token|password|passwd|credential)[A-Za-z0-9_\-]*\s*[:=]\s*['\"]?[A-Za-z0-9/+_\-]{16,}",
           ]
           for pat in secret_patterns:
               if re.search(pat, text):
