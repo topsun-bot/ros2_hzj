@@ -4024,3 +4024,50 @@
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–58 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 59 — 2026-09-23 06:11（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped 双链 RMW/domain 身份词（rmw_fastrtps_cpp / ROS_DOMAIN_ID=42 / rmw_cyclonedds_cpp / 域 0）删除负向 N21–N24（功能 PR TBD）
+
+### 只读取证（系统复查 per-file marker 元组，接续轮次58 下一步第2条）
+
+- 系统盘点 guard required 表各 per-file marker 与现有 N 场景：ADR 4 marker（N3/N16/N17/N18）、R0 Hold（N13）、MAP vendor/不是复现（N14/N15）、SWAP 3 marker（N10/N11/N12）已全覆盖；baseline 27 marker 中已覆盖 Hold/STATUS: blocked/只读（N7–N9）、Not Feishu field proof/派生自（N19/N20）。
+- 真实盲区：baseline 文档里的**双链身份四要素** Chain A `rmw_fastrtps_cpp`、`ROS_DOMAIN_ID=42`，Chain B `rmw_cyclonedds_cpp`、`域 0` present-but-stripped **零负向**。保留 baseline 外壳却删掉任一链的 RMW 实现标识或 domain 标识，会让双链身份在文档面失效，而既有 N1–N20 全绿。
+- /tmp 探针（复制 11 真实文件；出现次数 rmw_fastrtps_cpp 3、ROS_DOMAIN_ID=42 3、rmw_cyclonedds_cpp 2、域 0 2）：文件保留、各删该词全部分出现处 → code1，逐字 `FAIL markers: docs/architecture/feishu-dual-chain-baseline.md (need rmw_fastrtps_cpp)` / `(need ROS_DOMAIN_ID=42)` / `(need rmw_cyclonedds_cpp)` / `(need 域 0)`，ok file 数 8（只 baseline 不 ok、ADR 不连带），且**不触发 chain A/chain B 检查**（chain 检查读 chain_a.sh/chain_b.sh 而非 baseline），不触发 paused/percentile/missing/map/rewrite；pristine code0。
+- 四个场景同文件、同型、同安全逻辑（双链 RMW/domain 身份词删除必 fail markers、只点名 baseline、不连带 chain），作为同项一次完成。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`（#42）：新增参数化 **N21/N22/N23/N24**（baseline 保留删 Chain A rmw/domain、Chain B rmw/domain，要求 code1 + FAIL markers 点名 `need <词>` + ADR 不连带 + 不触发 chain A/B 及其余检查），negative 20→24，计数扩为 **`24 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（twenty→twenty-four、补双链身份词）。
+2. `evals/promptfooconfig.yaml`：#42 description 补双链身份词 stripped、计数 value 20→24；cases=42、scripts=42。
+3. `evals/README.md`：#42 文件表行、明细表行（整行计数）、专节（20→24 negative 并补 N21–N24）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N21–N24 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + ok file 8 + 不连带 chain/ADR）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言不连带 chain A/B、不误触 paused/percentile/missing/map/rewrite；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #42 对 baseline 双链身份词 present-but-weakened 的负向判别；既有 N1–N20、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 06:11 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-9WN-2026-09-22T22:11:44`（Duration 5s，0 error）。中途一次后台 TaskOutput 句柄 TASK_NOT_FOUND，重跑 promptfoo 取到上述权威结果（非 eval 失败）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- baseline 元组其余未加 present-but-stripped 负向的词（§13、chain_a.sh/chain_b.sh、fastdds.xml、CYCLONEDDS_URI、cross-host、three-chain、《3》–《6》等）多为指针/范围/锚点词，安全权重低于身份/诚实/Hold 词；map/rewrite/pointer 三词删除会同时触发独立 FAIL 分支（轮次54 已钉为冗余不造负向）。后续若再扩须先逐个探针确认独有未覆盖边界，不为凑数。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 评估 baseline 其余指针/范围词（CYCLONEDDS_URI、cross-host、three-chain、《3》–《6》等）是否值得补 present-but-stripped 负向，先探针确认独有边界与安全权重，低价值不凑。
+3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–59 持续 0 error）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
