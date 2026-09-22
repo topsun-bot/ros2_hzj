@@ -3378,3 +3378,60 @@
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope（ci.yml 接线 + 把纯 python 指纹/selftest 纳入 CI）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 47 — 2026-09-22 18:28（Asia/Shanghai）— dual-chain baseline 文档/指针面负向自测 #42（功能 PR TBD）
+
+### 只读取证（先判重复、不为凑数造测试）
+
+- 接续轮次46 下一步第 2 条，探针 `scripts/check_dual_chain_baseline.py`（475 行，最大的文档 guard 之一）是否有区别于双链族（#19/#32/#34）的独有未覆盖判定。
+- 读 `evals/dual_chain_env_guard_selftest.py`（#19）确认覆盖面：它钉的是该 guard 的 **env/shell/wrapper 交叉面**（load.py 单一真源 ↔ chain_a.sh/chain_b.sh 字面 export ↔ 薄包装、chain_b.sh `unset CYCLONEDDS_URI`），且**刻意建缺文档的 temp 树、只断言 5 个 `FAIL env|chain` 行族、明确忽略文档失败**。#32 钉 load.py 本体、#34 钉薄包装。
+- 因此该 guard 的**文档/指针面长期无负向自测**，且含 #19 不碰的独有判定：
+  - 9 个必需文件 + 逐文件 marker（baseline 26 个 marker、ADR §13(3) 4 个、R0/MAP/SWAP）；
+  - baseline 文档里**独立于 marker 元组**的 paused 连续短语（`same-topology XML tuning is paused` 不在 `_BASELINE_MARKERS` 内，单独 `FAIL paused`）；
+  - **禁止伪造预订分位数的反伪造正则** `_PERCENTILE_RE`（独立 p50/p90/p95/p99 或 “Nth percentile” → `FAIL percentiles`，中文旁 token 经 ASCII lookaround 也命中，政策词“分位数”允许）——这是全仓独有、其他自测都没有的反伪造分支；
+  - fastdds.xml / SCOREBOARD 在本 guard **仅 existence-only**（docstring 明示内容冻结归 `boundary` job）。
+- /tmp 探针（完整复制 guard 实读的 11 个文件进 tempdir）证实：纯复制树 code=0（env 面在复制树保持绿，夹具可行）；删 paused 仅 `FAIL paused`；追加 `measured p99 = 1.2 ms` 仅 `FAIL percentiles`；ADR 删 `不重写 XML` 仅点名 ADR `FAIL markers`；删 Unitree swap 文档 `FAIL missing`；空 SCOREBOARD 与改成 `<domainId>99</domainId>` 的 XML 均 code=0；把 `_PERCENTILE_RE` 换成永不匹配正则后伪造 p99 漏报成 code=0、恢复后重新 code=1。结论：独有判定成立、与 #19 互补不重复 → 选定。
+
+### 改动（行为不变，4 文件，eval-only）
+
+1. 新增 `evals/dual_chain_baseline_doc_selftest.py`（#42，纯标准库、tempdir-only）：把 guard 实读的 **11 个文件**（9 个 required + `config/env/load.py` + 薄包装，保持相对路径）完整复制进 tempdir，使 env 交叉面保持绿、文档变异是唯一变量，经可注入 `render(root=...)` 驱动。
+   - **4 negative**：N1 删 paused 短语 → 仅 `FAIL paused`（断言不连带 marker/percentile）；N2 注入 p99 → 仅 `FAIL percentiles`；N3 ADR 删 `不重写 XML` → 仅点名 ADR 的 `FAIL markers`、健康 baseline 不误报；N4 删 Unitree swap 文档 → `FAIL missing`；
+   - **2 non-flag（existence-only 双向）**：SCOREBOARD 副本清空、fastdds.xml 副本改成 `<domainId>99</domainId>`，两棵树都必须 exit0 且无 `- **FAIL` 行；
+   - **2 healthy**：真实仓 `render()` 与纯复制 temp 树都 exit0 且含两个 success marker（健康判定用行前缀 `- **FAIL`，避开固定文案里的 “drop-in FAIL” 字样）；
+   - **1 mutation**：盲 `_PERCENTILE_RE` 让伪造 p99 漏报成 exit0，恢复后重新 exit1（finally 必恢复）。计数串 `4 negative, 2 non-flag, 2 healthy, 1 mutation`。
+2. `evals/promptfooconfig.yaml`：注册 #42，case **41→42**（cases=42、scripts=42）。
+3. `evals/README.md`：两处标题计数 41→42、文件表新增行、明细表 #42、seed 用例长枚举句尾新增 #42 片段、新增 #42 专节（倒序置于 #41 专节之前）。
+4. 本日志小节。
+
+### 评估驱动证据（先证非恒真）
+
+- 新脚本未注册时 #35 注册面自测真实 FAIL：`orphan self-test on disk not registered in yaml: dual_chain_baseline_doc_selftest.py`，注册后转 PASS（注册后一度报 README 计数 41 != yaml 42，更新 README 后 PASS，证明计数断言 live）；
+- N2 在真实 guard 上独立复现 code=1，逐字 `- **FAIL percentiles:** do not invent booked pNN tokens`；
+- #42 自测自身：`negative 4/4、non-flag 2/2、healthy 2/2、mutation 1/1` PASS；与 #19 无重叠（#19 钉 env 面、本项钉文档面）。
+
+### 实测（本机 macOS，2026-09-22 18:28 CST）
+
+- `python3 -m compileall evals scripts config/env dimos_bridge/dual_chain_env.py`：OK；
+- `python3 scripts/run_all_gates.py`：**13/13 all gates green**；
+- `python3 evals/fingerprint_check.py`：**15/15 stable**（#42 不在 15 个指纹命令内，fixtures 零改动）；
+- eval-only 自测：**25 个 fail=0**（24→25，新增 #42）；#35 注册面 PASS（磁盘 25 selftest ↔ yaml 42 script ↔ 42 case ↔ README 42 一致）；#36 doc_link PASS（README 新增锚点/专节无断链）；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-FOo-2026-09-22T10:28:01`（Duration 4s，高负载窗口 0 error，轮次43 provider 预算硬化继续有效）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml（仅在 tempdir 放内容副本并改成 domainId 99 验证 existence-only，原文件只读未改）、未改 SCOREBOARD 数字（tempdir 副本清空）；未启用 Agnocast/zenoh；未改 dimos_bridge DDS 行为/vendor/shell 包装（wrapper 与 load.py 仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / 任何 gate 代码 / 15 个指纹 fixtures；新 eval 纯标准库 + tempdir/内存变异，不新增运行时依赖、不在树内建 fixture、不跑不受信代码；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（纯新增 eval-only 自测 + 文档），runner/gate/公共 API/fixtures 零改动。
+- N2 依赖 baseline 文档当前不含任何独立 pNN token（健康树 H1/H2 守护）；若未来确需引用真实预订分位数，应先解除 blocked 取到实测数据并同步更新 guard 策略，而非改测试放水。
+- 13 个 gate 中 `prove_rmw`（恒 exit0，#17 指纹 + mac-hil 已钉）维持合理空缺；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 ROS Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 13 gate 的负向自测覆盖已基本闭合（仅 prove_rmw 维持合理空缺）；后续深化方向转向**断言质量**：复查各 selftest 的 non-flag/healthy 是否仍有盲区、跨 guard 共享 fixture（tempdir 复制真实文件）是否值得抽公共 helper（仅在出现第三处重复时再抽，避免过早抽象）。
+3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope（ci.yml 接线 + 把纯 python 指纹/selftest 纳入 CI）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
