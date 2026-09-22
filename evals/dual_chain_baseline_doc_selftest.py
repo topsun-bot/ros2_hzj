@@ -24,13 +24,20 @@ Why this exists
   regex** that forbids invented p50/p90/p95/p99 tokens, and the contract that
   fastdds.xml / SCOREBOARD are existence-only here (their content freeze is
   the ``boundary`` job, not this gate). #19 explicitly ignores doc failures,
-  so until now nothing proved these document checks fail closed.
+  so until now nothing proved these document checks fail closed. Of the
+  baseline marker tuple, its three core safety words -- ``Hold``,
+  ``STATUS: blocked`` (blocked honesty), ``只读`` (the fastdds.xml read-only
+  contract) -- now have removal negatives N7/N8/N9 too, since N1 only covers
+  the paused phrase and N2/N5/N6 only add percentile tokens. The map /
+  rewrite / pointer phrase checks reuse strings already in the marker tuple
+  and so are always accompanied by a FAIL markers line (they cannot fire
+  independently like the paused phrase); they get no separate negative.
 
 The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs six negative scenarios, three non-flag (existence-only /
+result. It then runs nine negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -207,6 +214,40 @@ def main() -> int:
         check("- **FAIL paused:**" not in out and "- **FAIL markers:**" not in out,
               "N6 must trip only the percentile check")
 
+    # N7/N8/N9: three core safety markers ride the baseline marker tuple but
+    # had no removal negative -- the Hold boundary (Hold, 6 occurrences), the
+    # blocked-status honesty phrase (STATUS: blocked, 7), and the fastdds.xml
+    # read-only contract (只读, 5). N1 only covers the paused phrase (which is
+    # NOT in the tuple) and N2/N5/N6 only add percentile tokens; nothing
+    # removed a core tuple marker, so a future edit that dropped one of these
+    # words would weaken the baseline document face while the existing
+    # negatives stayed green. Keeping the file present but stripping the word
+    # must fail markers and name it, trip no other check, and not collaterally
+    # fail a sibling file. Probed on the real guard in a temp tree.
+    for label, word in (
+        ("N7 baseline drops Hold marker", "Hold"),
+        ("N8 baseline drops STATUS: blocked marker", "STATUS: blocked"),
+        ("N9 baseline drops read-only marker", "只读"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                g.BASELINE_REL: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and "feishu-dual-chain-baseline.md" in out
+              and f"need {word}" in out,
+              f"{label} must report the baseline missing {word}")
+        check("- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL map:**" not in out
+              and "- **FAIL rewrite:**" not in out
+              and "- **FAIL pointer:**" not in out,
+              f"{label} must trip only the marker scan")
+        check("feishu-middleware-adr.md" in out,
+              f"{label} must not collaterally fail a sibling file")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -274,7 +315,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("6 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("9 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
