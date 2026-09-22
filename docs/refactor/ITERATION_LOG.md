@@ -4026,7 +4026,7 @@
 
 ---
 
-## 轮次 59 — 2026-09-23 06:11（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped 双链 RMW/domain 身份词（rmw_fastrtps_cpp / ROS_DOMAIN_ID=42 / rmw_cyclonedds_cpp / 域 0）删除负向 N21–N24（功能 PR TBD）
+## 轮次 59 — 2026-09-23 06:11（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped 双链 RMW/domain 身份词（rmw_fastrtps_cpp / ROS_DOMAIN_ID=42 / rmw_cyclonedds_cpp / 域 0）删除负向 N21–N24（功能 PR #171，main be278d1）
 
 ### 只读取证（系统复查 per-file marker 元组，接续轮次58 下一步第2条）
 
@@ -4054,6 +4054,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-9WN-2026-09-22T22:11:44`（Duration 5s，0 error）。中途一次后台 TaskOutput 句柄 TASK_NOT_FOUND，重跑 promptfoo 取到上述权威结果（非 eval 失败）。
 
+### 合并后权威回归（功能 PR #171 已 squash-merge）
+
+- 功能 PR #171（分支 test/dcb-chain-identity-marker-negatives，commit 5035784，4 files；#170 被他人占用）required 三检 + CodeQL + Cursor Approval(1m55s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `be278d18a88f3c52efb91f88f4cf6bcc85621e95`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `be278d1`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-HDG-2026-09-22T22:16:47`（Duration 5s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -4066,7 +4072,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #171 已合并（main `be278d1`），合并后权威回归 42/42、0 error（eval `eval-HDG-2026-09-22T22:16:47`），本回填 PR 即补登。
 2. 评估 baseline 其余指针/范围词（CYCLONEDDS_URI、cross-host、three-chain、《3》–《6》等）是否值得补 present-but-stripped 负向，先探针确认独有边界与安全权重，低价值不凑。
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–59 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
