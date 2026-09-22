@@ -3814,7 +3814,7 @@
 
 ---
 
-## 轮次 55 — 2026-09-23 02:12（Asia/Shanghai）— 给 #42 Unitree swap 文档补 present-but-stripped 内容 marker（drop-in FAIL / 0.10.2 / 11.0.1）删除负向 N10/N11/N12（功能 PR TBD）
+## 轮次 55 — 2026-09-23 02:12（Asia/Shanghai）— 给 #42 Unitree swap 文档补 present-but-stripped 内容 marker（drop-in FAIL / 0.10.2 / 11.0.1）删除负向 N10/N11/N12（功能 PR #161，main 015e42b）
 
 ### 只读取证（断言质量复查，接续轮次54 下一步第2条）
 
@@ -3842,6 +3842,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-eQ6-2026-09-22T18:12:03`（Duration 5s，0 error）。
 
+### 合并后权威回归（功能 PR #161 已 squash-merge）
+
+- 功能 PR #161（分支 test/dcb-swap-content-marker-negatives，commit 3b8745a，4 files）required 三检 + CodeQL + Cursor Approval(1m17s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending；合并时一次 TLS handshake timeout 重试即过），squash-merge 到 main，mergeCommit `015e42b9ef5e7b7d0510ad73ba37663bcf10c9c5`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `015e42b`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-eYv-2026-09-22T18:17:21`（Duration 5s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3854,7 +3860,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #161 已合并（main `015e42b`），合并后权威回归 42/42、0 error（eval `eval-eYv-2026-09-22T18:17:21`），本回填 PR 即补登。
 2. 给 #42 补 R0（Hold）、MAP（vendor / 不是复现）内容 marker present-but-stripped 删除负向，先探针证独有边界；baseline 其余诚实性词类推。
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–55 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
