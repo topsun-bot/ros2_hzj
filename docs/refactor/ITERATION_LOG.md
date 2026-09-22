@@ -3495,3 +3495,49 @@
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 49 — 2026-09-22 20:17（Asia/Shanghai）— 给 #20 unitree swap guard 补 existence-only non-flag 放行断言（功能 PR TBD）
+
+### 只读取证（断言质量复查第二个 selftest）
+
+- 接续轮次48 下一步第 2 条，本轮复查 `unitree_swap_guard_selftest.py`（#20，276 行）。读 `scripts/check_unitree_cyclone_swap.py`（206 行）逐分支对照：guard 的 FAIL 面有 verdict / quote / VERSIONS SHA row / CMake project() / swap-doc markers / missing，#20 的 5 negative（N1–N5）+ 1 mutation（CMake 正则放宽）已覆盖篡改/删除面，**但完全没有 non-flag 放行侧**。
+- 真实盲区：guard 把 `config/fastdds.xml` 与 `docs/artifacts/bench/SCOREBOARD.md` 列为 required 但 markers 为空（docstring 明示 existence-only、内容冻结归 boundary job）。#20 没有任何场景证明“这两个文件内容被任意改写时本 guard 仍保持绿”——若未来有人在该 guard 里加内容校验（越界读 XML/SCOREBOARD），现有 5 negative/2 healthy/1 mutation 全绿却无人捕获。
+- /tmp 探针（复制 guard 实读的 5 个真实文件进 tempdir）：SCOREBOARD 副本清空 → code0、无 FAIL 行、两文件仍 `ok file`；fastdds.xml 副本改成 `<domainId>99</domainId>` → code0、无 FAIL；控制组删除 XML → code1 `FAIL missing`（证明 existence 仍被检查，non-flag 只放行内容、不放行缺失）。
+
+### 改动（行为不变，3 文件，eval-only，case 数不变仍 42）
+
+1. `evals/unitree_swap_guard_selftest.py`（#20）：新增 `_check_nonflags()` 与 **NF1**（SCOREBOARD 副本清空 → exit0 + marker + 无 FAIL 行）、**NF2**（fastdds.xml 副本改成 domainId 99 的任意内容 → exit0 + marker + 无 FAIL 行）；计数由 `5 negative, 2 healthy, 1 mutation` 扩为 **`5 negative, 2 non-flag, 2 healthy, 1 mutation`**；同步汇总行与 docstring 断言枚举（新增第 2 点 non-flag，原 healthy/mutation 顺延为 3/4）。
+2. `evals/promptfooconfig.yaml`：更新 #20 description（补 existence-only 放行）与计数 value；该计数串在 yaml 出现 2 次（#20 与 #25 runtime），按 unitree 块整段上下文精确替换、#25 保持不变；cases=42、scripts=42。
+3. `evals/README.md`：#20 文件表行、明细表行、专节（在 N5 与健康对照之间插入 non-flag bullet）同步；两处标题计数仍 42。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- NF1/NF2 先在真实 guard 上 /tmp 探针逐字取证（空 SCOREBOARD / bogus XML 均 code0、删文件 code1），再写进自测；
+- non-flag 断言要求 code0 + success marker + 无 `- **FAIL` 行，与 #42 NF1/NF2 同构；控制组（删 XML FAIL missing）证明它放行的是“内容”而非“缺失”，非恒真；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #20 的放行侧判别；公共 tempdir 复制 helper 仍只 #41/#42 两处，本轮 unitree 是第三处“复制真实文件”但结构（5 文件、`_seed_tree`+`_mutate`+`_remove`）与前两处差异明显，仍不抽 helper。
+
+### 实测（本机 macOS，2026-09-22 20:17 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-gN8-2026-09-22T12:17:40`（Duration 4s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（vendor/CycloneDDS/CMakeLists.txt、vendor/VERSIONS.md 仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- #20 的 swap-doc 18-marker 元组里，合法 external 路径两个 marker（`unitree_sdk2_hzj`、`UNITREE_DDS_PROVIDER=external`）目前只走通用 marker 检查、尚无专门负向场景（删其一应 FAIL markers 且独立检查仍 ok），可作后续断言深化候选；本轮聚焦 non-flag 放行侧，不堆叠。
+- 断言质量复查仍渐进：three_chain_repro_guard 等待后续同类探针；`prove_rmw` 维持合理空缺；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 断言质量复查继续：下一轮候选 three_chain_repro_guard 的 non-flag 放行侧，或给 #20 补 external 合法路径 marker 的专门负向场景；均先探针证盲区再加强；公共 tempdir 复制 helper 仍等真正同构的第三处。
+3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
