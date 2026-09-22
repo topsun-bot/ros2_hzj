@@ -3497,7 +3497,7 @@
 
 ---
 
-## 轮次 49 — 2026-09-22 20:17（Asia/Shanghai）— 给 #20 unitree swap guard 补 existence-only non-flag 放行断言（功能 PR TBD）
+## 轮次 49 — 2026-09-22 20:17（Asia/Shanghai）— 给 #20 unitree swap guard 补 existence-only non-flag 放行断言（功能 PR #146，main 2eac0e0）
 
 ### 只读取证（断言质量复查第二个 selftest）
 
@@ -3524,6 +3524,13 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-gN8-2026-09-22T12:17:40`（Duration 4s，0 error）。
 
+### 合并后权威回归（main 2eac0e0，功能 PR #146 squash 合并）
+
+- 功能 PR #146（分支 test/unitree-swap-existence-nonflag，commit 6038e04，4 files +109/−8）required 三检 structure/contracts/boundary 均 success、CodeQL 四检 pass、Cursor Approval pass（1m20s）→ squash 合并 main `2eac0e0d291b32cc6bf531531985ada6e3c27b62`，远端分支已删；gh api 核实合并 commit 三检 success。
+- 回 main pull 后权威回归：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0。
+- 合并后权威 `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-LRs-2026-09-22T12:24:40`（Duration 4s，0 error）。
+
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（vendor/CycloneDDS/CMakeLists.txt、vendor/VERSIONS.md 仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3536,7 +3543,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #146 已 squash 合并 main 2eac0e0；合并后权威回归 42/42、0 error（eval `eval-LRs-2026-09-22T12:24:40`），PR 号 / main HEAD / eval ID 已回填本小节。
 2. 断言质量复查继续：下一轮候选 three_chain_repro_guard 的 non-flag 放行侧，或给 #20 补 external 合法路径 marker 的专门负向场景；均先探针证盲区再加强；公共 tempdir 复制 helper 仍等真正同构的第三处。
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
