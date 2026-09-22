@@ -36,7 +36,9 @@ Why this exists
   N16/N17/N18 cover the ADR losing FastDDS + Cyclone / SCOREBOARD / the
   baseline back-pointer while present.
   N19/N20 cover the baseline losing Not Feishu field proof / 派生自 while
-  present. The map /
+  present.
+  N21-N24 cover the baseline losing Chain A/B rmw / domain identity
+  while present. The map /
   rewrite / pointer phrase checks reuse strings already in the marker tuple
   and so are always accompanied by a FAIL markers line (they cannot fire
   independently like the paused phrase); they get no separate negative.
@@ -45,7 +47,7 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs twenty negative scenarios, three non-flag (existence-only /
+result. It then runs twenty-four negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -393,6 +395,46 @@ def main() -> int:
               and "- **FAIL rewrite:**" not in out,
               f"{label} must trip only the marker scan")
 
+    # N21-N24: the baseline doc stays present but loses one of the four
+    # dual-chain identity markers -- Chain A rmw_fastrtps_cpp (3
+    # occurrences) / ROS_DOMAIN_ID=42 (3), or Chain B rmw_cyclonedds_cpp
+    # (2) / 域 0 (2). N7-N9 and N19/N20 covered the baseline losing its
+    # Hold / blocked / 只读 / honesty words only; they did not cover the
+    # baseline losing the RMW implementation id or the domain id for
+    # either chain while present, so keeping the baseline shell while
+    # deleting one would strip the dual-chain identity while the existing
+    # negatives stayed green. The chain A/B checks read chain_a.sh /
+    # chain_b.sh, not the baseline, so stripping the baseline copy must
+    # fail markers and name it against the baseline only, trip no chain
+    # or other check, and leave the ADR healthy. Probed on the real guard
+    # in a temp tree.
+    for label, word in (
+        ("N21 baseline drops Chain A rmw id", "rmw_fastrtps_cpp"),
+        ("N22 baseline drops Chain A domain id", "ROS_DOMAIN_ID=42"),
+        ("N23 baseline drops Chain B rmw id", "rmw_cyclonedds_cpp"),
+        ("N24 baseline drops Chain B domain id", "域 0"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                g.BASELINE_REL: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and "feishu-dual-chain-baseline.md" in out
+              and f"need {word}" in out,
+              f"{label} must report the baseline missing {word}")
+        check("feishu-middleware-adr.md` (need" not in out,
+              f"{label} must not flag the healthy ADR")
+        check("- **FAIL chain A:**" not in out
+              and "- **FAIL chain B:**" not in out
+              and "- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL missing:**" not in out
+              and "- **FAIL map:**" not in out
+              and "- **FAIL rewrite:**" not in out,
+              f"{label} must trip only the marker scan")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -460,7 +502,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("20 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("24 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
