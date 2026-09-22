@@ -262,15 +262,15 @@ tests:
   # vendored Cyclone SHA / CMake project() VERSION pin, and a deleted swap
   # doc; stays green on a healthy copied tree and the real repo; and a CMake
   # regex widened to drop the VERSION pin demonstrably silences the check.
-  - description: 'unitree_swap_guard_selftest.py: the Unitree swap honesty verdict actually fires on tampering (negative regression, tempdir-only)'
+  - description: 'unitree_swap_guard_selftest.py: the Unitree swap honesty verdict actually fires on tampering (flipped verdict, tampered quoted 0.10.2, vendored SHA/CMake pin, deleted swap doc); an empty SCOREBOARD and an arbitrary fastdds.xml stay green as existence-only; widening the CMake project() VERSION regex demonstrably silences the check (negative + non-flag regression, tempdir-only)'
     vars:
       script: evals/unitree_swap_guard_selftest.py
     assert:
       - type: contains
         value: 'unitree swap guard selftest: PASS'
       - type: contains
-        # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '5 negative, 2 healthy, 1 mutation'
+        # Locks the fixture counts so weakening/removing a negative or non-flag case fails.
+        value: '5 negative, 2 non-flag, 2 healthy, 1 mutation'
 
   # Negative self-test for the ros2-source-map honesty guard (eval-only, not a
   # CI gate). The positive #2 run only proves the current map renders healthy;

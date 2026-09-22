@@ -35,10 +35,14 @@ doc would be brittle and drift from the real record). The guard's injectable
        N3 vendored CycloneDDS SHA row tampered (FAIL VERSIONS row);
        N4 CMake project() VERSION 11.0.1 tampered (FAIL CMake project());
        N5 swap doc deleted (FAIL missing);
-  2. two healthy cases: the real repo ``render()`` and a pristine copied tree
+  2. two non-flag (existence-only) scenarios stay green: an empty SCOREBOARD
+     and an arbitrary fastdds.xml (even a bogus domainId) both exit 0 with the
+     success marker, since this guard opens those two files but never reads
+     their contents (the content freeze is the boundary job);
+  3. two healthy cases: the real repo ``render()`` and a pristine copied tree
      both exit 0 with the success marker (proves the copied fixture itself is
      valid and equivalent to the real tree);
-  3. one mutation: widening ``_CMAKE_PROJECT_RE`` to drop the VERSION pin makes
+  4. one mutation: widening ``_CMAKE_PROJECT_RE`` to drop the VERSION pin makes
      N4 go undetected (the tampered tree prints ``ok CMake project()``), and
      restoring the regex catches it again — proving N4 actually depends on the
      version pin in the detector rather than passing by accident.
@@ -176,6 +180,52 @@ def _check_negatives(failures: list[str]) -> int:
     return caught
 
 
+def _check_nonflags(failures: list[str]) -> int:
+    """Existence-only files (fastdds.xml / SCOREBOARD) must be content-ignored.
+
+    The guard opens both files but never reads their contents (the content
+    freeze is the ``boundary`` job). An empty SCOREBOARD or an arbitrary
+    fastdds.xml (even a bogus domainId) must therefore stay exit 0 with the
+    success marker and no rendered FAIL line. This pins the allow side of the
+    existence-only contract so a future change that starts validating their
+    contents here would be caught.
+    """
+    allowed = 0
+
+    def expect_ok(label: str, rewrite) -> None:
+        nonlocal allowed
+        with tempfile.TemporaryDirectory(prefix="unitree_swap_nf_") as d:
+            tmp = Path(d)
+            _seed_tree(tmp)
+            rewrite(tmp)
+            out, code = g.render(root=tmp)
+        has_fail = any(line.startswith("- **FAIL") for line in out.splitlines())
+        if code == 0 and g.SUCCESS_MARKER in out and not has_fail:
+            allowed += 1
+        else:
+            failures.append(
+                f"non-flag '{label}': expected exit 0 + success marker + no "
+                f"FAIL line (code={code}, has_fail={has_fail})"
+            )
+
+    # NF1: an empty SCOREBOARD stays green -- its number freeze is owned by
+    # boundary, not this guard.
+    expect_ok(
+        "empty SCOREBOARD",
+        lambda t: (t / g.SCOREBOARD_REL).write_text("", encoding="utf-8"),
+    )
+
+    # NF2: arbitrary fastdds.xml content (even a bogus domainId) stays green.
+    expect_ok(
+        "bogus fastdds.xml",
+        lambda t: (t / g.XML_REL).write_text(
+            "<profiles><domainId>99</domainId></profiles>\n", encoding="utf-8"
+        ),
+    )
+
+    return allowed
+
+
 def _check_healthy(failures: list[str]) -> int:
     healthy = 0
 
@@ -239,12 +289,14 @@ def main() -> int:
     failures: list[str] = []
 
     negative = _check_negatives(failures)
+    nonflags = _check_nonflags(failures)
     healthy = _check_healthy(failures)
     mutation = _check_mutation(failures)
 
     print("# Unitree Cyclone-swap honesty guard negative self-test")
     print(
         f"- negative scenarios caught: {negative}/5; "
+        f"non-flag existence-only green: {nonflags}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
     )
@@ -260,7 +312,7 @@ def main() -> int:
         return 1
 
     print(
-        f"- **{SUCCESS_MARKER}** (5 negative, 2 healthy, 1 mutation)"
+        f"- **{SUCCESS_MARKER}** (5 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard catches a flipped drop-in/wire verdict, a tampered quoted"
