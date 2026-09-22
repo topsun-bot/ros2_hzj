@@ -3920,7 +3920,7 @@
 
 ---
 
-## 轮次 57 — 2026-09-23 04:11（Asia/Shanghai）— 给 #42 中间件 ADR 补 present-but-stripped 其余内容 marker（FastDDS + Cyclone / SCOREBOARD / baseline 回指）删除负向 N16/N17/N18（功能 PR TBD）
+## 轮次 57 — 2026-09-23 04:11（Asia/Shanghai）— 给 #42 中间件 ADR 补 present-but-stripped 其余内容 marker（FastDDS + Cyclone / SCOREBOARD / baseline 回指）删除负向 N16/N17/N18（功能 PR #165，main c6f1e3f）
 
 ### 只读取证（断言质量复查，接续轮次56 下一步第2条）
 
@@ -3948,6 +3948,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-mfo-2026-09-22T20:11:31`（Duration 5s，0 error）。
 
+### 合并后权威回归（功能 PR #165 已 squash-merge）
+
+- 功能 PR #165（分支 test/dcb-adr-content-marker-negatives，commit 95fc051，4 files）required 三检 + CodeQL + Cursor Approval(1m24s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `c6f1e3fb8ab173e21c712f4afef55771caea1328`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `c6f1e3f`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-ZFS-2026-09-22T20:16:26`（Duration 4s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3960,7 +3966,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #165 已合并（main `c6f1e3f`），合并后权威回归 42/42、0 error（eval `eval-ZFS-2026-09-22T20:16:26`），本回填 PR 即补登。
 2. 给 #42 补 baseline 元组诚实词 Not Feishu field proof / 派生自 present-but-stripped 删除负向（探针已证 code1），先复核独有边界。
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–57 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
