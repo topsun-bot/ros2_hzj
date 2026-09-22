@@ -4077,3 +4077,51 @@
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–59 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 60 — 2026-09-23 07:12（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped blocked/契约边界词（cross-host / three-chain / CYCLONEDDS_URI）删除负向 N25–N27（功能 PR TBD）
+
+### 只读取证（接续轮次59 下一步第2条，评估其余指针/范围词）
+
+- 对 baseline 元组中尚未加 present-but-stripped 负向的词逐个 /tmp 探针（出现次数：CYCLONEDDS_URI 3、cross-host 4、three-chain 10、《3》5/《4》2/《5》2/《6》5、drop-in FAIL 5/0.10.2 5/11.0.1 6、chain_a.sh 7/chain_b.sh 7、fastdds.xml 11、SCOREBOARD 21、§13 8）：所有词删除均 code1、只点名 baseline、ok file 8、无其他 trip（物理上都能独立触发）。
+- 按安全权重取舍：**cross-host（跨机 UDP blocked 诚实词）、three-chain（三链复现 blocked 诚实词）、CYCLONEDDS_URI（Chain B 必须 unset 的配置契约词）** 直接对应「哪些实验 blocked / 哪个变量必须 unset」的安全边界，权重最高；《3》–《6》为范围边界、drop-in FAIL/0.10.2/11.0.1 在 baseline 是 swap 结论的重复（swap 文档 N10–N12 已覆盖）、chain_a.sh/chain_b.sh/fastdds.xml/SCOREBOARD/§13 为指针/锚点，权重低，本轮不凑。
+- 真实盲区：N21–N24 只覆盖 baseline 删双链 RMW/domain 身份；baseline 保留却删 blocked 范围诚实词或 Chain B unset-URI 契约词 **零负向**，会让 blocked 诚实记录 / Chain B unset 契约在文档面失效，而既有 N1–N24 全绿。
+- /tmp 探针：文件保留、各删该词全部分出现处 → code1，逐字 `FAIL markers: docs/architecture/feishu-dual-chain-baseline.md (need cross-host)` / `(need three-chain)` / `(need CYCLONEDDS_URI)`，ok file 8（只 baseline 不 ok、ADR 不连带），不触发 chain A/B（chain 检查读 chain_a.sh/chain_b.sh 而非 baseline），不触发 paused/percentile/missing/map/rewrite；pristine code0。
+- 三个场景同文件、同型、同安全逻辑（blocked/契约边界词删除必 fail markers、只点名 baseline、不连带 chain），作为同项一次完成。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`（#42）：新增参数化 **N25/N26/N27**（baseline 保留删 cross-host / three-chain / CYCLONEDDS_URI，要求 code1 + FAIL markers 点名 `need <词>` + ADR 不连带 + 不触发 chain 及其余检查），negative 24→27，计数扩为 **`27 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（twenty-four→twenty-seven、补 blocked/契约边界词）。
+2. `evals/promptfooconfig.yaml`：#42 description 补 blocked/契约边界词 stripped、计数 value 24→27；cases=42、scripts=42。
+3. `evals/README.md`：#42 文件表行、明细表行（整行计数）、专节（24→27 negative 并补 N25–N27）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N25–N27 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + ok file 8 + 不连带 chain/ADR）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言不连带 chain、不误触 paused/percentile/missing/map/rewrite；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #42 对 baseline blocked/契约边界词 present-but-weakened 的负向判别；既有 N1–N24、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 07:12 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-Ol8-2026-09-22T23:12:46`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- baseline 元组剩余未加负向的词（《3》–《6》范围、chain_a.sh/chain_b.sh/fastdds.xml/SCOREBOARD/§13 指针、baseline 内 swap 结论重复）安全权重低，多数与其他文件/检查重复；继续加会偏向凑数。后续若再扩 #42，应先论证独有安全价值。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. #42 baseline 安全关键身份/诚实/Hold/blocked/契约词已系统补齐，继续加低权重词价值有限；转向类推审计其余复制真实文件型 selftest（如 #20/#27/#41）的 marker 元组是否仍有安全关键独有边界。
+3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–60 持续 0 error）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+

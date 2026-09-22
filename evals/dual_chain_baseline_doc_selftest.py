@@ -38,7 +38,9 @@ Why this exists
   N19/N20 cover the baseline losing Not Feishu field proof / 派生自 while
   present.
   N21-N24 cover the baseline losing Chain A/B rmw / domain identity
-  while present. The map /
+  while present.
+  N25-N27 cover the baseline losing cross-host / three-chain blocked
+  honesty words or the Chain B unset-URI contract word while present. The map /
   rewrite / pointer phrase checks reuse strings already in the marker tuple
   and so are always accompanied by a FAIL markers line (they cannot fire
   independently like the paused phrase); they get no separate negative.
@@ -47,7 +49,7 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs twenty-four negative scenarios, three non-flag (existence-only /
+result. It then runs twenty-seven negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -435,6 +437,46 @@ def main() -> int:
               and "- **FAIL rewrite:**" not in out,
               f"{label} must trip only the marker scan")
 
+    # N25-N27: the baseline doc stays present but loses a blocked /
+    # contract boundary marker -- cross-host (4 occurrences) or
+    # three-chain (10), which honestly mark the cross-host UDP and
+    # three-chain reproduce experiments as blocked, or CYCLONEDDS_URI
+    # (3), the Chain B variable that must stay unset. N21-N24 covered
+    # the baseline losing the rmw / domain identity only; they did not
+    # cover the baseline losing its blocked-scope honesty words or the
+    # Chain B unset-URI contract word while present, so keeping the
+    # baseline shell while deleting one would strip a blocked/contract
+    # boundary while the existing negatives stayed green. The chain B
+    # unset check reads chain_b.sh, not the baseline, so stripping the
+    # baseline copy must fail markers and name it against the baseline
+    # only, trip no chain or other check, and leave the ADR healthy.
+    # Probed on the real guard in a temp tree.
+    for label, word in (
+        ("N25 baseline drops cross-host blocked word", "cross-host"),
+        ("N26 baseline drops three-chain blocked word", "three-chain"),
+        ("N27 baseline drops Chain B unset-URI word", "CYCLONEDDS_URI"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                g.BASELINE_REL: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and "feishu-dual-chain-baseline.md" in out
+              and f"need {word}" in out,
+              f"{label} must report the baseline missing {word}")
+        check("feishu-middleware-adr.md` (need" not in out,
+              f"{label} must not flag the healthy ADR")
+        check("- **FAIL chain A:**" not in out
+              and "- **FAIL chain B:**" not in out
+              and "- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL missing:**" not in out
+              and "- **FAIL map:**" not in out
+              and "- **FAIL rewrite:**" not in out,
+              f"{label} must trip only the marker scan")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -502,7 +544,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("24 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("27 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
