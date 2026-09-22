@@ -3441,3 +3441,50 @@
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope（ci.yml 接线 + 把纯 python 指纹/selftest 纳入 CI）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 48 — 2026-09-22 19:18（Asia/Shanghai）— 加强 #42 百分位反伪造断言：CJK 紧邻 / p95 / 政策词放行（功能 PR TBD）
+
+### 只读取证（断言质量复查，不新增 case）
+
+- 接续轮次47 下一步第 2 条，本轮转向**断言质量**而非铺新用例。先对 25 个 `evals/*_selftest.py` 做模式 inventory（行数 / tempfile / 是否复制真实文件 / render 注入 / seed helper）。
+- **公共 helper 抽取判定**：完整复制真实 required 文件集 + edits/drop 变异的 seed 模式只有 #41 `risk_matrix_guard`（复制 8 文件）与 #42 `dual_chain_baseline_doc`（复制 11 文件）两处，其余 guard 的 seed 多为各自合成内容、结构差异大。按轮次47 自定的“出现第三处重复再抽 helper、避免过早抽象”，本轮**不抽**公共 helper。
+- **真实盲区**：复查 #42 的百分位反伪造分支发现 3 个未钉边界——轮次47 的 N2 只测了英文带 ASCII 空格的 `measured p99`，未验证：(a) guard 注释明确声称的“中文紧邻 token（如 `链A的p99`，lookbehind 前是 CJK 字符）经 ASCII 字符类 lookaround 仍命中”；(b) 字符类覆盖 p50/p90/p95/p99 而非只 p99（若正则被收窄成 p99-only，p95 漏报无人捕获）；(c) 双向契约的放行侧——政策词“分位数”不带裸 pNN 数字时必须绿（若未来正则被过度收紧到禁“分位数”，无人捕获）。
+- /tmp 探针（只变异 baseline、其余 10 文件原样复制）：追加 `链A的p99约1.2ms` → code1 仅 `FAIL percentiles`；追加 `measured p95 = 0.4 ms` → code1 仅 `FAIL percentiles`；追加纯政策词句（无 pNN 数字）→ code0 无 FAIL；纯复制树 code0。（首次探针误把变异文本追加到全部文件、污染 load.py 引出 `FAIL env truth`，修正为只对 baseline 变异后结论干净，记录为夹具教训。）
+
+### 改动（行为不变，3 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`（#42）：新增 **N5**（中文紧邻 `链A的p99约1.2ms` → `FAIL percentiles` 且不连带 paused/markers，钉 CJK lookaround）、**N6**（裸 `p95` → `FAIL percentiles`，钉字符类非 p99-only）、**NF3**（仅含政策词“分位数”、无裸 pNN 的句子 → exit0 无 FAIL，钉放行侧双向契约）；计数 **4→6 negative、2→3 non-flag**（2 healthy、1 mutation 不变），同步 docstring 与末行计数串 `6 negative, 3 non-flag, 2 healthy, 1 mutation`。
+2. `evals/promptfooconfig.yaml`：更新 #42 的 description（补 CJK 紧邻 / p95 / 政策词）与计数 value；cases=42、scripts=42 不变。
+3. `evals/README.md`：#42 专节 negative/non-flag bullet、明细表 #42 行、文件表行同步新边界（两处标题计数仍 42，因未增减 case）。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- 三条新边界先在真实 guard 上 /tmp 探针逐字取证（N5/N6 code1 且仅 `FAIL percentiles`、NF3 code0），再写进自测；脚本运行 PASS 且计数串更新；
+- 该族断言非恒真由轮次47 的 mutation（盲 `_PERCENTILE_RE` 漏报 N2）已证；本轮 N5/N6/NF3 与 N2 同构、探针直接取自真实 guard 输出；
+- 不新增 case、不改 gate 代码 / fixtures / runner，纯加强既有 #42 的判别宽度。
+
+### 实测（本机 macOS，2026-09-22 19:18 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-qt2-2026-09-22T11:17:51`（Duration 4s，高负载窗口 0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / gate 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），runner/gate/公共 API/fixtures 零改动；case 数不变（42）。
+- 断言质量复查为渐进工作：本轮只深化了 #42；其余 selftest 的 non-flag/healthy 盲区待后续逐轮用同样“先探针证盲区、再加强”的方式推进，不为凑数改断言。
+- `prove_rmw` 维持合理空缺；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 断言质量复查继续：下一轮按 inventory 挑第二个 selftest（候选 `unitree_swap_guard` / `three_chain_repro_guard` 的 non-flag 放行侧）做盲区探针，证据成立才加强；公共 tempdir 复制 helper 仍等第三处重复。
+3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+

@@ -30,8 +30,8 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs four negative scenarios, two non-flag (existence-only)
-scenarios, two healthy scenarios, and one memory-only mutation. Standard
+result. It then runs six negative scenarios, three non-flag (existence-only /
+policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
 """
@@ -179,6 +179,34 @@ def main() -> int:
               and "unitree-sdk2-dds-swap.md" in out,
               "N4 must report the swap doc missing")
 
+    # N5: a bare p99 placed directly next to a CJK character (no ASCII
+    # whitespace boundary) must still trip the regex -- the ASCII character
+    # class lookaround is deliberately designed so a phrase like 链A的p99
+    # cannot slip past the booked-percentile ban.
+    with tempfile.TemporaryDirectory() as td:
+        _seed_tree(Path(td), edits={
+            g.BASELINE_REL: lambda t: t + "\n链A的p99约1.2ms，仅占位。\n",
+        })
+        out, code = _render(Path(td))
+        check(code == 1, "N5 CJK-adjacent p99 must exit 1")
+        check("- **FAIL percentiles:**" in out,
+              "N5 ASCII lookaround must catch p99 next to a CJK character")
+        check("- **FAIL paused:**" not in out and "- **FAIL markers:**" not in out,
+              "N5 must trip only the percentile check")
+
+    # N6: a different booked quantile (p95, not p99) must trip the same regex,
+    # proving the character class covers p50/p90/p95/p99 rather than p99 alone.
+    with tempfile.TemporaryDirectory() as td:
+        _seed_tree(Path(td), edits={
+            g.BASELINE_REL: lambda t: t + "\nmeasured p95 = 0.4 ms\n",
+        })
+        out, code = _render(Path(td))
+        check(code == 1, "N6 bare p95 must exit 1")
+        check("- **FAIL percentiles:**" in out,
+              "N6 the regex must cover p95, not only p99")
+        check("- **FAIL paused:**" not in out and "- **FAIL markers:**" not in out,
+              "N6 must trip only the percentile check")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -197,6 +225,20 @@ def main() -> int:
         out, code = _render(Path(td))
         check(code == 0, "NF2 arbitrary XML must stay exit 0 (existence-only)")
         check(not _has_fail_line(out), "NF2 existence-only XML must not FAIL")
+
+    # NF3: the policy word for quantiles (分位数) with no bare pNN digit token
+    # must stay green. The ban targets fabricated p50/p90/p95/p99 numbers, not
+    # the Chinese policy term; this pins the two-way contract so tightening the
+    # regex to forbid 分位数 would be caught.
+    with tempfile.TemporaryDirectory() as td:
+        _seed_tree(Path(td), edits={
+            g.BASELINE_REL: lambda t: t
+            + "\n预订链路分位数待 Humble 主机实测后回填，本文不写预订数字。\n",
+        })
+        out, code = _render(Path(td))
+        check(code == 0, "NF3 policy word 分位数 without pNN must stay exit 0")
+        check("- **FAIL percentiles:**" not in out and not _has_fail_line(out),
+              "NF3 the policy word 分位数 must not trip the percentile ban")
 
     # ---- mutation ------------------------------------------------------
     # A percentile detector that never matches must let N2's invented p99 go
@@ -232,7 +274,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("4 negative, 2 non-flag, 2 healthy, 1 mutation")
+    print("6 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
