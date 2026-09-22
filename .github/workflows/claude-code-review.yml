@@ -1,0 +1,94 @@
+name: claude-code-review
+
+# Advisory Claude review on every non-draft pull request.
+# Not a required status check: structure / contracts / boundary (ci.yml) stay
+# the merge gates. This job only reads the checkout and posts PR comments;
+# it never pushes, never edits files, never labels the PR.
+# Skips cleanly (green, with a notice) when ANTHROPIC_API_KEY is not configured.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: claude review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Check ANTHROPIC_API_KEY is configured
+        id: key
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          set -euo pipefail
+          echo "present=${HAS_KEY}" >> "$GITHUB_OUTPUT"
+          if [ "${HAS_KEY}" != "true" ]; then
+            echo "::notice::ANTHROPIC_API_KEY secret is not set; skipping Claude review."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          fetch-depth: 1
+
+      - name: Claude code review
+        if: steps.key.outputs.present == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are the code reviewer for this pull request. The PR branch is
+            already checked out in the current working directory. Read AGENTS.md
+            and docs/architecture/ci-cd-gates.md first; they define the rules
+            below.
+
+            Review the diff (`gh pr diff`) for:
+            - Correctness bugs and behavior changes not described in the PR body.
+            - Hold boundary: any edit to config/fastdds.xml or
+              docs/artifacts/bench/SCOREBOARD.md; any path containing agnocast or
+              zenoh; any change to dimos_bridge DDS behavior, vendor/ sources, or
+              Bridge runtime; any Cega integration. Flag these as blocking.
+            - Honesty markers: measurements, percentiles, PASS/PROVEN claims, SHAs
+              or eval IDs that the diff does not actually produce or that
+              contradict `STATUS: blocked` / `DoD: unmet` in the docs. Fabricated
+              numbers are blocking.
+            - Evals under evals/: new negatives must be able to fail (paired with
+              a healthy case), counts in promptfooconfig.yaml / README.md /
+              selftest docstrings must agree, and case totals stated in the PR
+              body must match the diff.
+            - Docs: in-repo relative markdown links must resolve; gate scripts
+              listed in ci-cd-gates.md must exist.
+            - Only if the diff touches Python: scripts must stay standard-library
+              only, must not write os.environ on import, and must not require a
+              ROS runtime to exit 0.
+
+            Do not edit files, do not push, do not add labels, and do not
+            approve or request changes as a formal review.
+
+            Output:
+            - Use `mcp__github_inline_comment__create_inline_comment` (with
+              `confirmed: true`) for each specific issue, anchored to the line.
+            - Post exactly one summary comment with
+              `gh pr comment <number> --edit-last --create-if-none --body ...`
+              so re-pushes update the same comment instead of adding new ones.
+              Start it with one of: "Blocking:", "Non-blocking:", or
+              "No findings." Keep it short; list Hold or honesty violations
+              first. Do not restate the PR description.
+            - Only post GitHub comments; do not return review text as a message.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
