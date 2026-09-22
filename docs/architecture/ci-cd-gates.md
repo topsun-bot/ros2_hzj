@@ -86,6 +86,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（`anthropics/claude-code-action@v1`）。每个非 draft PR 在 `opened / synchronize / reopened / ready_for_review` 时自动跑一次 Claude 审查，按 [AGENTS.md](../../AGENTS.md) 的 Hold 规则找正确性 bug、Hold 越界、诚实标记（`STATUS: blocked` / `DoD: unmet`）与 eval 断言质量问题，结果以 PR 评论 + 行内评论发回（sticky comment，重跑覆盖同一条）。
 
 - **只评论、不改文件、不合入**；`structure` / `contracts` / `boundary` 仍是唯一必绿闸门，本 job **不要**设为 required status check。
+- **供应链 / 权限**：action 钉到 release commit SHA（不是可变 tag）；用 job 自身的短期 `GITHUB_TOKEN`（`contents: read` / `pull-requests: write` / `issues: write`，无 `id-token`）；Claude 只有只读工具（`gh pr view/diff/comment`、`git diff/log`、行内评论），**不能执行仓库代码**。安全审计基线的变化见 [2026-09-vendor-cve-audit.md §2.2](../security/2026-09-vendor-cve-audit.md)。
 - 需要仓库 secret `ANTHROPIC_API_KEY`（Settings → Secrets and variables → Actions）；未配置时 job 失败但不阻塞合入。
 - 审查语言跟随 PR 描述（中文描述 → 简体中文）。
 
