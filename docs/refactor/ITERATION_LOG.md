@@ -3602,7 +3602,7 @@
 
 ---
 
-## 轮次 51 — 2026-09-22 22:21（Asia/Shanghai）— 给 #20 unitree guard 补合法 external 路径 marker 删除负向场景（功能 PR TBD）
+## 轮次 51 — 2026-09-22 22:21（Asia/Shanghai）— 给 #20 unitree guard 补合法 external 路径 marker 删除负向场景（功能 PR #150，main 13c6323）
 
 ### 只读取证（断言质量复查，接续轮次50 下一步候选 a）
 
@@ -3629,6 +3629,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-0Jy-2026-09-22T14:21:36`（Duration 5s，0 error）。
 
+### 合并后权威回归（功能 PR #150 已 squash-merge）
+
+- 功能 PR #150（分支 test/unitree-legal-path-marker-negatives，commit c68188c，4 files +113/−10）required 三检 + CodeQL + Cursor Approval(1m9s) 全 pass，squash-merge 到 main，mergeCommit `13c63234191d5d3ef67393ea72893ae6c8b66690`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `13c6323`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-BW2-2026-09-22T14:28:38`（Duration 6s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（vendor 文件仅复制进 tempdir 读取，未写）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3641,7 +3647,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #150 已合并（main `13c6323`），合并后权威回归 42/42、0 error（eval `eval-BW2-2026-09-22T14:28:38`），本回填 PR 即补登。
 2. 断言质量复查继续：对 #41 risk_matrix_guard（复制 8 真实文件型）做 existence-only/放行侧盲区探针；或复查其余复制真实文件型 selftest 是否还有「关键 marker 走通用元组却无删除负向场景」的同类缺口；均先探针证盲区再加强。
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
