@@ -27,7 +27,7 @@ five real files the guard reads** into a temp tree and mutating one at a time
 (the swap doc carries 18 contiguous markers, so hand-writing a minimal healthy
 doc would be brittle and drift from the real record). The guard's injectable
 ``render(root=...)`` is then driven against each mutated tree. It asserts:
-  1. five negative scenarios ARE caught (exit 1, no success marker, the right
+  1. seven negative scenarios ARE caught (exit 1, no success marker, the right
      FAIL family), and the independent checks still report ``ok`` (a swap-doc
      mutation must not spuriously fail VERSIONS/CMake and vice versa):
        N1 verdict flipped FAIL/UNPROVEN -> PASS/PROVEN (FAIL verdict);
@@ -35,6 +35,10 @@ doc would be brittle and drift from the real record). The guard's injectable
        N3 vendored CycloneDDS SHA row tampered (FAIL VERSIONS row);
        N4 CMake project() VERSION 11.0.1 tampered (FAIL CMake project());
        N5 swap doc deleted (FAIL missing);
+       N6 legal-path env marker UNITREE_DDS_PROVIDER=external dropped
+          (FAIL markers, names it);
+       N7 legal-path workspace marker unitree_sdk2_hzj dropped
+          (FAIL markers, names it);
   2. two non-flag (existence-only) scenarios stay green: an empty SCOREBOARD
      and an arbitrary fastdds.xml (even a bogus domainId) both exit 0 with the
      success marker, since this guard opens those two files but never reads
@@ -177,6 +181,42 @@ def _check_negatives(failures: list[str]) -> int:
         ("ok VERSIONS row:", "ok CMake project():"),
     )
 
+    # The only legal replace path is unitree_sdk2_hzj + the opt-in
+    # UNITREE_DDS_PROVIDER=external. Both markers ride the generic swap-doc
+    # marker tuple, so dropping either one from the doc must fail the marker
+    # check and name it, while every independent check (quoted 0.10.2, verdict,
+    # VERSIONS row, CMake project) still reports ok. Without these two cases a
+    # future "simplification" that removes the legal-path markers from the tuple
+    # would let the safety-critical replace-path contract vanish silently.
+    def _drop(marker: str):
+        return lambda t: _mutate(t, g.SWAP_REL, marker, "")
+
+    # N6: drop the opt-in env marker.
+    expect(
+        "external env marker dropped",
+        _drop("UNITREE_DDS_PROVIDER=external"),
+        ("FAIL markers", "need UNITREE_DDS_PROVIDER=external"),
+        (
+            "ok quoted 0.10.2:",
+            "ok verdict phrase:",
+            "ok VERSIONS row:",
+            "ok CMake project():",
+        ),
+    )
+
+    # N7: drop the legal external workspace marker.
+    expect(
+        "legal workspace marker dropped",
+        _drop("unitree_sdk2_hzj"),
+        ("FAIL markers", "need unitree_sdk2_hzj"),
+        (
+            "ok quoted 0.10.2:",
+            "ok verdict phrase:",
+            "ok VERSIONS row:",
+            "ok CMake project():",
+        ),
+    )
+
     return caught
 
 
@@ -295,7 +335,7 @@ def main() -> int:
 
     print("# Unitree Cyclone-swap honesty guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/5; "
+        f"- negative scenarios caught: {negative}/7; "
         f"non-flag existence-only green: {nonflags}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -312,7 +352,7 @@ def main() -> int:
         return 1
 
     print(
-        f"- **{SUCCESS_MARKER}** (5 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        f"- **{SUCCESS_MARKER}** (7 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard catches a flipped drop-in/wire verdict, a tampered quoted"
