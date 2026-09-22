@@ -3707,7 +3707,7 @@
 
 ---
 
-## 轮次 53 — 2026-09-23 00:15（Asia/Shanghai）— 给 #41 四个单 marker 文件补「文件保留、内容丢 marker」删除负向 N7/N8/N9/N10（功能 PR TBD）
+## 轮次 53 — 2026-09-23 00:15（Asia/Shanghai）— 给 #41 四个单 marker 文件补「文件保留、内容丢 marker」删除负向 N7/N8/N9/N10（功能 PR #156，main eb5d91e）
 
 ### 只读取证（断言质量复查，接续轮次52 下一步第2条）
 
@@ -3735,6 +3735,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-cO4-2026-09-22T16:15:15`（Duration 4s，0 error）。
 
+### 合并后权威回归（功能 PR #156 已 squash-merge）
+
+- 功能 PR #156（分支 test/risk-matrix-singlefile-marker-negatives，commit 1b458ab，4 files）required 三检 + CodeQL + Cursor Approval(1m15s) 全 pass（mergeStateStatus CLEAN），squash-merge 到 main，mergeCommit `eb5d91e76e0d174690307bf3b3c53ff99d1c1804`（远端分支已删；#155 被他人占用，本功能 PR 号为 #156）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `eb5d91e`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-CiQ-2026-09-22T16:20:28`（Duration 4s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3747,7 +3753,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #156 已合并（main `eb5d91e`），合并后权威回归 42/42、0 error（eval `eval-CiQ-2026-09-22T16:20:28`），本回填 PR 即补登。
 2. 断言质量复查转向 #42 dual_chain_baseline_doc selftest：读 guard 复制的 11 个文件 marker/指针元组，定位安全关键项（Hold 指针、SCOREBOARD/XML 只读锚点、blocked 标注等）是否都有删除负向，先探针证独有未覆盖边界再补。
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
