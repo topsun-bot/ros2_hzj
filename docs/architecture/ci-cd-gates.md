@@ -37,7 +37,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 只在 PR 上留一条 sticky 评论，**不是** required status check，不进 branch protection，不改 `ci.yml` 的三个 job。
 
 - 触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）；draft 跳过，标记 ready 后审。
-- 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`。工具白名单只有只读 `gh pr view` / `gh pr diff` / `git log|diff|show` 加 `gh pr comment`；**不能**推提交、合并、贴标签（机器人不得自己贴 `allow-hold-bypass`）。
+- 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`。评论**不是**用工作流自带的 `GITHUB_TOKEN` 写的：action 用 OIDC 换 Claude GitHub App 的短期 installation token 跑 `gh`，写权限来自 App 安装配置；工作流 token 刻意只读，App 未安装则 job 直接红、不升权。工具白名单只有只读 `gh pr view` / `gh pr diff` / `git log|diff|show` 加 `gh pr comment`；**不能**推提交、合并、贴标签（机器人不得自己贴 `allow-hold-bypass`）。
 - 审查提示词钉本仓契约：先读 [AGENTS.md](../../AGENTS.md)；点名 Hold 边界（`fastdds.xml` / SCOREBOARD / Agnocast·zenoh 路径 / `dimos_bridge` / Cega）；点名诚实标记（不发明分位数、PASS / PROVEN、不删 `STATUS: blocked` / `DoD: unmet`）；eval 负向必须能 fail、计数与 promptfooconfig / README 一致。
 - 仓库设置（代码之外）：secret `ANTHROPIC_API_KEY`；仓库已安装 Claude GitHub App（OIDC 换 token 发评论）。缺任一项该 job 红，但它不是 required check，不阻塞合入。
 

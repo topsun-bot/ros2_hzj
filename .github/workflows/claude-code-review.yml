@@ -9,6 +9,13 @@ name: claude-code-review
 #   - secret ANTHROPIC_API_KEY
 #   - Claude GitHub App installed on the repository (OIDC token exchange)
 # See docs/architecture/ci-cd-gates.md §1.1.
+#
+# Auth model: the action exchanges the OIDC token (id-token: write) for a
+# short-lived Claude GitHub App installation token and runs `gh` with that
+# token. The workflow's own GITHUB_TOKEN stays read-only on purpose; the
+# comment write comes from the App's permissions, not from these scopes.
+# Do not add pull-requests/issues: write here; if the App is not installed
+# the job fails instead of silently escalating the default token.
 
 on:
   pull_request:
