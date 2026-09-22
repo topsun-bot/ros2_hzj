@@ -4079,7 +4079,7 @@
 
 ---
 
-## 轮次 60 — 2026-09-23 07:12（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped blocked/契约边界词（cross-host / three-chain / CYCLONEDDS_URI）删除负向 N25–N27（功能 PR TBD）
+## 轮次 60 — 2026-09-23 07:12（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped blocked/契约边界词（cross-host / three-chain / CYCLONEDDS_URI）删除负向 N25–N27（功能 PR #173，main 355e907）
 
 ### 只读取证（接续轮次59 下一步第2条，评估其余指针/范围词）
 
@@ -4108,6 +4108,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-Ol8-2026-09-22T23:12:46`（Duration 5s，0 error）。
 
+### 合并后权威回归（功能 PR #173 已 squash-merge）
+
+- 功能 PR #173（分支 test/dcb-blocked-boundary-marker-negatives，commit b80b68d，4 files）required 三检 + CodeQL + Cursor Approval(1m8s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `355e9070fd373c3211a8662b4398cb5970ae942b`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `355e907`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-1WQ-2026-09-22T23:17:52`（Duration 4s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -4120,7 +4126,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #173 已合并（main `355e907`），合并后权威回归 42/42、0 error（eval `eval-1WQ-2026-09-22T23:17:52`），本回填 PR 即补登。
 2. #42 baseline 安全关键身份/诚实/Hold/blocked/契约词已系统补齐，继续加低权重词价值有限；转向类推审计其余复制真实文件型 selftest（如 #20/#27/#41）的 marker 元组是否仍有安全关键独有边界。
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–60 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
