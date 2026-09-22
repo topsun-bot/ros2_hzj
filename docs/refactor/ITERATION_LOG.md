@@ -3550,7 +3550,7 @@
 
 ---
 
-## 轮次 50 — 2026-09-22 21:11（Asia/Shanghai）— 给 #27 three-chain repro guard 补 existence-only non-flag 放行断言（功能 PR TBD）
+## 轮次 50 — 2026-09-22 21:11（Asia/Shanghai）— 给 #27 three-chain repro guard 补 existence-only non-flag 放行断言（功能 PR #148，main 6d2ca0f）
 
 ### 只读取证（断言质量复查第三个 selftest）
 
@@ -3577,6 +3577,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-Ma1-2026-09-22T13:11:28`（Duration 4s，0 error）。
 
+### 合并后权威回归（功能 PR #148 已 squash-merge）
+
+- 功能 PR #148（分支 test/three-chain-existence-nonflag，commit 8f9b071，4 files +109/−10）required 三检 + CodeQL + Cursor Approval(1m28s) 全 pass，squash-merge 到 main，mergeCommit `6d2ca0fd08223ba43a747ccf5d483804fb22616f`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `6d2ca0f`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-mJb-2026-09-22T13:19:47`（Duration 5s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（4 个内容文档 + vendor 文件仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3589,7 +3595,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #148 已合并（main `6d2ca0f`），合并后权威回归 42/42、0 error（eval `eval-mJb-2026-09-22T13:19:47`），本回填 PR 即补登。
 2. 断言质量复查继续：候选给 #20 补 external 合法路径 marker 的专门负向场景（删其一应 FAIL markers 且独立检查仍 ok），或对其余复制真实文件型 selftest（#41 risk_matrix）做 existence-only/放行侧盲区探针；均先探针证盲区再加强。
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
