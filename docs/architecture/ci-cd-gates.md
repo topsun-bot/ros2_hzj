@@ -33,10 +33,11 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 ### 1.1 Claude 代码审查（advisory，不是闸门）
 
-工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，job `claude review`（`anthropics/claude-code-action@v1`）。
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，job `claude review`（`anthropics/claude-code-action`，钉到 release commit SHA，不用可移动的 `v1` tag）。
 
-- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened`），**draft PR 跳过**。同 PR 进行中 run 会被取消。
-- 权限：`contents: read` + `pull-requests: write` + `id-token: write`。只读 checkout、只发 PR 评论（inline + 一条可覆盖的汇总评论）；**不** push、不改文件、不贴标签、不提交正式 approve / request-changes。
+- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened`），**draft PR 跳过**，**fork PR 跳过**（fork 本来拿不到 secret）。同 PR 进行中 run 会被取消。
+- 权限：`contents: read` + `pull-requests: write` + `id-token: write`。checkout `persist-credentials: false`。
+- 信任边界：审查模型**没有 shell、没有网络、没有写工具**，只能 Read / Grep / Glob 检出树和可信步骤用 GitHub API 抓好的 PR diff（`.claude-review/pr.diff`，未跟踪）；`/proc`、`/dev`、`/sys`、`~/.claude`、runner `_temp` 被 deny。inline 评论走 action 的结构化 MCP 工具；汇总评论是模型的最终消息，由**可信后处理步骤**发（一条带 marker 的评论，re-push 覆盖），并在正文匹配到疑似凭证时拒发。模型从不执行 `gh`，环境里的 API key 没有进 PR 评论的通路。
 - 审查面：Hold 边界（冻结文件、Agnocast / zenoh 路径、`dimos_bridge` / `vendor` / Bridge runtime / Cega）、诚实标记（不得凭空出现分位数 / PASS / PROVEN / eval ID）、`evals/` 计数一致性、文档相对链接、Python 脚本标准库 / 不写 `os.environ` / 无 ROS 仍 exit 0。规则来源仍是 [AGENTS.md](../../AGENTS.md) 与本文。
 - 凭证：仓库 secret `ANTHROPIC_API_KEY`。未配置时 job 打印 notice 后**绿色跳过**，不会把 PR 弄红。
 - **不要**把它设为 required status check：合并闸门仍只有 `structure` / `contracts` / `boundary`（§5）。审查结论是给人看的建议，人类仍负责 merge。
