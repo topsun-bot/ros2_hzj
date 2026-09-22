@@ -3758,3 +3758,57 @@
 3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 54 — 2026-09-23 01:12（Asia/Shanghai）— 给 #42 baseline 文档 marker 元组补三个核心安全词（Hold / STATUS: blocked / 只读）删除负向 N7/N8/N9（功能 PR #159，main 99f9282）
+
+### 只读取证（断言质量复查，接续轮次53 下一步第2条）
+
+- 读 guard `scripts/check_dual_chain_baseline.py`（475 行）required 表与 `_BASELINE_MARKERS`（27 个 marker）。baseline 文档面此前的负向：N1 删 paused 短语（该串**不在** marker 元组，故只 FAIL paused）、N2/N5/N6 追加 p99/CJK-p99/p95（FAIL percentiles）；**没有任何删除 marker 元组成员的负向**（ADR 仅 N3 覆盖一个串）。
+- 排除伪盲区：docstring 提到的四个独立短语中，map verdict / no-rewrite / pointer-only 三个串同时是 marker 元组成员（行72/73/77），render 里它们的独立 FAIL 分支（FAIL map/rewrite/pointer）删词时**必然伴随** FAIL markers（与 paused 不同，物理上无法独立触发），属冗余分支，不单独造负向（脚本 docstring 已钉此结论）。
+- 真实盲区：marker 元组里三个核心安全词——`Hold`（Hold 边界，真实出现 6 次）、`STATUS: blocked`（blocked 诚实性，7 次）、`只读`（fastdds.xml 只读契约，5 次）——文件保留却删词会让 baseline 文档面的 Hold/诚实/只读强制失效，而既有 N1–N6 全绿。
+- /tmp 探针（复制 11 真实文件）：各删该词全部分出现处 → code1，逐字 `FAIL markers: docs/architecture/feishu-dual-chain-baseline.md (need Hold)` / `(need STATUS: blocked)` / `(need 只读)`，ok file 数 8（只 baseline 自己不 ok，其余 8 文件 ok，ADR 在内不连带），且不触发 paused/percentile/map/rewrite/pointer 任一独立检查；pristine code0。
+- 三个场景同文件、同型、同安全逻辑（核心安全 marker 删除必 fail markers、不连带），作为同一项一次补齐；swap 文档 present-but-stripped（drop-in FAIL/0.10.2/11.0.1 探针亦 code1）留下一轮。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`（#42）：新增参数化 **N7/N8/N9**（文件保留、各删 Hold / STATUS: blocked / 只读，要求 code1 + FAIL markers 点名 `need <词>` + 不触发 paused/percentile/map/rewrite/pointer + ADR 仍 ok 不连带），negative 6→9，计数扩为 **`9 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（six→nine、补核心 marker 与冗余短语结论）。
+2. `evals/promptfooconfig.yaml`：#42 description 补核心 marker stripped、计数 value 6→9；cases=42、scripts=42。
+3. `evals/README.md`：#42 文件表行、明细表行（整行计数）、专节（6→9 negative 并补 N7–N9）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N7–N9 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + ok file 8 + 不触发任何独立检查）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言不连带兄弟文件、不误触独立短语；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #42 对 baseline 核心安全 marker 的删除负向；既有 N1–N6、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 01:12 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-yu3-2026-09-22T17:12:11`（Duration 4s，0 error）。
+
+### 合并后权威回归（功能 PR #159 已 squash-merge）
+
+- 功能 PR #159（分支 test/dcb-baseline-core-marker-negatives，commit b132b5a，4 files）required 三检 + CodeQL + Cursor Approval(1m16s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `99f92823d424b88ada154071eaf762b9f1e59b26`（远端分支已删；#158 被他人占用，本功能 PR 号为 #159）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `99f9282`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-ohj-2026-09-22T17:19:06`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- #42 仍未覆盖：swap 文档 present-but-stripped（N4 只覆盖整文件缺失；drop-in FAIL/0.10.2/11.0.1 内容 marker 删除探针已证 code1，待补）；R0（Hold）、MAP（vendor/不是复现）内容 marker 删除负向；baseline 元组其余诚实性词（Not Feishu field proof 等）。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. [x] 功能 PR #159 已合并（main `99f9282`），合并后权威回归 42/42、0 error（eval `eval-ohj-2026-09-22T17:19:06`），本回填 PR 即补登。
+2. 给 #42 补 swap 文档 present-but-stripped 内容 marker（drop-in FAIL 等）删除负向（N4 只覆盖缺失），先探针证独有边界；R0/MAP 内容 marker 类推。
+3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–54 持续 0 error）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
