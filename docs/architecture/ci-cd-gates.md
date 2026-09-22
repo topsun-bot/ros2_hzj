@@ -81,6 +81,14 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - Agent 可以做到 **merge / production 闸门之前**（开 PR、推提交、等 CI、修红）。
 - **人类批准 merge**。本仓不自动合入。
 
+### 5.1 Claude code review（advisory，不是 required check）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（`anthropics/claude-code-action@v1`）。每个非 draft PR 在 `opened / synchronize / reopened / ready_for_review` 时自动跑一次 Claude 审查，按 [AGENTS.md](../../AGENTS.md) 的 Hold 规则找正确性 bug、Hold 越界、诚实标记（`STATUS: blocked` / `DoD: unmet`）与 eval 断言质量问题，结果以 PR 评论 + 行内评论发回（sticky comment，重跑覆盖同一条）。
+
+- **只评论、不改文件、不合入**；`structure` / `contracts` / `boundary` 仍是唯一必绿闸门，本 job **不要**设为 required status check。
+- 需要仓库 secret `ANTHROPIC_API_KEY`（Settings → Secrets and variables → Actions）；未配置时 job 失败但不阻塞合入。
+- 审查语言跟随 PR 描述（中文描述 → 简体中文）。
+
 ---
 
 ## 6. 本地核对

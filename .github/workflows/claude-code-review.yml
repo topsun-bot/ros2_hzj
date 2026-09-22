@@ -1,0 +1,83 @@
+name: claude-code-review
+
+# Automated Claude code review on every pull request.
+#
+# Advisory only: this workflow posts review comments, it is NOT a required
+# status check. Hold gates (structure / contracts / boundary) stay in ci.yml.
+#
+# Setup (one-time, repo Settings -> Secrets and variables -> Actions):
+#   ANTHROPIC_API_KEY  - Anthropic API key used by anthropics/claude-code-action
+#
+# Docs: https://github.com/anthropics/claude-code-action
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: review
+    # Skip drafts; they are reviewed once marked ready_for_review.
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request in ros2_hzj, TOPSUN / 桦之坚's
+            ROS 2 / DDS dual-chain workspace. Read AGENTS.md first: it defines
+            the Hold rules and the local gate commands.
+
+            Review the PR diff (the PR branch is checked out in the working
+            directory) with a focus on:
+            - Correctness bugs and behavioral regressions in scripts/, evals/,
+              config/ and dimos_bridge/.
+            - Hold violations: edits to config/fastdds.xml or
+              docs/artifacts/bench/SCOREBOARD.md, any Agnocast / zenoh
+              introduction, changes to dimos_bridge DDS behavior or vendor
+              sources, Cega integration or Bridge runtime rewrites.
+            - Honesty of claims: docs or evals must not assert measured
+              latency, PASS / PROVEN, or reproduced runs that the repo cannot
+              back with evidence (STATUS: blocked / DoD: unmet stay honest).
+            - Eval assertion quality: new selftests should fail on the
+              mutation they claim to catch and must not be vacuously true.
+            - Doc / code consistency: README, evals/README.md,
+              promptfooconfig.yaml and ITERATION_LOG counts must match the
+              code they describe.
+
+            Do not run or modify anything under vendor/. Do not edit files.
+
+            Write the review in the same language as the PR description
+            (简体中文 when the description is Chinese). Be concise: list
+            concrete findings with file paths and line references, state
+            severity, and skip praise. If there are no findings, say so in
+            one short comment.
+
+            Use `gh pr comment` for the summary comment.
+            Use `mcp__github_inline_comment__create_inline_comment` (with
+            `confirmed: true`) for line-specific issues.
+            Only post GitHub comments - do not return the review as a plain
+            message.
+          claude_args: |
+            --model claude-opus-5
+            --max-turns 30
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*),Bash(python3 scripts/*),Bash(python3 evals/*)"
