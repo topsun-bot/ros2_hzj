@@ -3380,7 +3380,7 @@
 
 ---
 
-## 轮次 47 — 2026-09-22 18:28（Asia/Shanghai）— dual-chain baseline 文档/指针面负向自测 #42（功能 PR TBD）
+## 轮次 47 — 2026-09-22 18:28（Asia/Shanghai）— dual-chain baseline 文档/指针面负向自测 #42（功能 PR #141，main aa43c78）
 
 ### 只读取证（先判重复、不为凑数造测试）
 
@@ -3418,6 +3418,12 @@
 - eval-only 自测：**25 个 fail=0**（24→25，新增 #42）；#35 注册面 PASS（磁盘 25 selftest ↔ yaml 42 script ↔ 42 case ↔ README 42 一致）；#36 doc_link PASS（README 新增锚点/专节无断链）；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-FOo-2026-09-22T10:28:01`（Duration 4s，高负载窗口 0 error，轮次43 provider 预算硬化继续有效）。
 
+### 合并后权威回归（main aa43c78，功能 PR #141）
+
+- required checks `structure` / `contracts` / `boundary` 均 success（gh api 核实合并 commit aa43c78 的 check-runs），CodeQL（actions / python / javascript-typescript + 聚合）pass，Cursor Approval pass（1m21s）；squash merge main `aa43c787a7df40e5496598c34c132fa24de1aba5`，远端分支已删。
+- 回 main 重跑：compileall OK、`run_all_gates.py` 13/13 all gates green、`fingerprint_check.py` 15/15 stable、25 个 eval-only selftest fail=0。
+- promptfoo 合并后权威回归：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-Isu-2026-09-22T10:41:35`（Duration 4s，concurrency 4）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml（仅在 tempdir 放内容副本并改成 domainId 99 验证 existence-only，原文件只读未改）、未改 SCOREBOARD 数字（tempdir 副本清空）；未启用 Agnocast/zenoh；未改 dimos_bridge DDS 行为/vendor/shell 包装（wrapper 与 load.py 仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / 任何 gate 代码 / 15 个指纹 fixtures；新 eval 纯标准库 + tempdir/内存变异，不新增运行时依赖、不在树内建 fixture、不跑不受信代码；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -3430,7 +3436,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] ~~本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。~~ 已完成：#141 merged→main aa43c78，合并后 42/42 eval-Isu-2026-09-22T10:41:35，本回填 PR 即收尾。
 2. 13 gate 的负向自测覆盖已基本闭合（仅 prove_rmw 维持合理空缺）；后续深化方向转向**断言质量**：复查各 selftest 的 non-flag/healthy 是否仍有盲区、跨 guard 共享 fixture（tempdir 复制真实文件）是否值得抽公共 helper（仅在出现第三处重复时再抽，避免过早抽象）。
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope（ci.yml 接线 + 把纯 python 指纹/selftest 纳入 CI）、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
