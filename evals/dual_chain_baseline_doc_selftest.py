@@ -32,7 +32,9 @@ Why this exists
   record keeps N4 for the whole file missing and adds N10/N11/N12 for a
   present-but-stripped swap doc (drop-in FAIL / bundled 0.10.2 / vendor
   11.0.1). N13 covers the R0 freeze doc losing Hold while present, and
-  N14/N15 cover the source map losing vendor / 不是复现 while present. The map /
+  N14/N15 cover the source map losing vendor / 不是复现 while present.
+  N16/N17/N18 cover the ADR losing FastDDS + Cyclone / SCOREBOARD / the
+  baseline back-pointer while present. The map /
   rewrite / pointer phrase checks reuse strings already in the marker tuple
   and so are always accompanied by a FAIL markers line (they cannot fire
   independently like the paused phrase); they get no separate negative.
@@ -41,7 +43,7 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs fifteen negative scenarios, three non-flag (existence-only /
+result. It then runs eighteen negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -321,6 +323,40 @@ def main() -> int:
               and "- **FAIL map:**" not in out,
               f"{label} must trip only the marker scan")
 
+    # N16/N17/N18: the middleware ADR stays present but loses one of its
+    # remaining content markers -- FastDDS + Cyclone (the dual-chain scope,
+    # 2 occurrences), SCOREBOARD (4), or the back-pointer to the baseline
+    # doc feishu-dual-chain-baseline.md (6). N3 covered the ADR losing 不重写
+    # XML only; it did not cover the ADR losing its dual-chain scope, its
+    # SCOREBOARD pointer, or its baseline back-pointer while present, so
+    # keeping the ADR shell while deleting one would weaken the ADR record
+    # while the existing negatives stayed green. Stripping one word must
+    # fail markers and name it against the ADR only, trip no other check,
+    # and leave the baseline doc healthy. Probed on the real guard in a
+    # temp tree.
+    for label, word in (
+        ("N16 ADR drops FastDDS + Cyclone scope", "FastDDS + Cyclone"),
+        ("N17 ADR drops SCOREBOARD pointer", "SCOREBOARD"),
+        ("N18 ADR drops baseline back-pointer", "feishu-dual-chain-baseline.md"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                g.ADR_REL: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and "feishu-middleware-adr.md" in out
+              and f"need {word}" in out,
+              f"{label} must report the ADR missing {word}")
+        check("feishu-dual-chain-baseline.md` (need" not in out,
+              f"{label} must not flag the healthy baseline doc")
+        check("- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL missing:**" not in out
+              and "- **FAIL rewrite:**" not in out,
+              f"{label} must trip only the marker scan")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -388,7 +424,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("15 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("18 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
