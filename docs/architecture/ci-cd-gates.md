@@ -34,7 +34,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 ### 1.1 Claude 代码审查（顾问，不是闸门）
 
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。与 Codex 审查并列，都是**顾问**：
-每次运行只在 PR 上留一条评论（唯一写路径 `gh pr comment`，不叠加 action 自维护的 sticky 评论），**不是** required status check，不进 branch protection，不改 `ci.yml` 的三个 job。
+每个 PR 只维护一条评论（唯一写路径 `gh pr comment`，后续 push 用 `--edit-last` 原地改写同一条；不叠加 action 自维护的 sticky 评论），**不是** required status check，不进 branch protection，不改 `ci.yml` 的三个 job。
 
 - 触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）；draft 跳过，标记 ready 后审；fork PR 显式跳过（`pull_request` 下 fork 本就拿不到 secret 与 OIDC 换 token，跳过而不是红）。刻意**不用** `pull_request_target`：那会让带 secret 的特权 run 面对 fork 内容，是 GitHub 官方点名的反模式。同仓 PR 的作者本身已有仓库写权限。
 - 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`。评论**不是**用工作流自带的 `GITHUB_TOKEN` 写的：action 用 OIDC 换 Claude GitHub App 的短期 installation token 跑 `gh`，写权限来自 App 安装配置；工作流 token 刻意只读，App 未安装则 job 直接红、不升权。工具白名单只有只读 `gh pr view` / `gh pr diff` / `git log|diff|show` 加 `gh pr comment`；**不能**推提交、合并、贴标签（机器人不得自己贴 `allow-hold-bypass`）。

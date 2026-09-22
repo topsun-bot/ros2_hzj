@@ -2,8 +2,9 @@ name: claude-code-review
 
 # Advisory PR review by Claude. Separate from ci.yml on purpose: the three
 # gate jobs (structure / contracts / boundary) stay untouched and remain the
-# only required checks. This workflow only leaves one review comment per run;
-# it cannot push, merge, or label (no allow-hold-bypass from a bot).
+# only required checks. This workflow only maintains one review comment per
+# PR (edited in place on later pushes); it cannot push, merge, or label (no
+# allow-hold-bypass from a bot).
 #
 # Requirements (repo settings, not code):
 #   - secret ANTHROPIC_API_KEY
@@ -54,8 +55,10 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # One write path only: Claude posts its findings with `gh pr comment`
-          # (one comment per run). use_sticky_comment is deliberately not set so
-          # the action does not also maintain its own comment.
+          # and edits that same comment on later runs (--edit-last), so a PR
+          # carries one review comment instead of one per push.
+          # use_sticky_comment is deliberately not set so the action does not
+          # also maintain a second comment of its own.
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -83,12 +86,20 @@ jobs:
             Be concrete: cite file paths and line ranges, and say why each finding
             matters. Do not restate the PR description. If you find nothing blocking,
             say so in one short paragraph. Do not approve or request changes as a
-            review event; leave your findings as a single PR comment using
-            `gh pr comment` with your Bash tool.
+            review event.
+
+            Publish exactly one PR comment and reuse it on later runs, using your
+            Bash tool. Start the comment with the line `## Claude code review` and
+            then edit your previous comment in place:
+              gh pr comment <PR NUMBER> --edit-last --create-if-none --body "<review>"
+            If the installed gh rejects `--create-if-none`, run the same command
+            without that flag; only if that fails because you have no earlier
+            comment on this PR, create one with `gh pr comment <PR NUMBER> --body`.
+            Never leave more than one comment per run.
 
           # Read-only gh access plus the one comment command. No push, no merge,
           # no label. Reference:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           claude_args: |
             --model claude-opus-5
-            --allowed-tools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
