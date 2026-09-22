@@ -27,6 +27,12 @@ file-existence shape already covered elsewhere:
     ``FAIL missing`` naming the path;
   * N3 strips ``§9.4`` from the ADR -- exit 1, ``FAIL markers`` naming it
     (proves markers are enforced per file, not only on the matrix);
+  * N4/N5/N6 strip one core Hold-ban word each (``Agnocast`` / ``zenoh`` /
+    ``Cega``) from the matrix -- exit 1, ``FAIL markers`` naming the dropped
+    word, while the other seven files still print ``ok file`` (no collateral
+    failure). The three bans ride the generic matrix marker tuple, and each is
+    asserted on its own so dropping just one from the guard's tuple cannot hide
+    behind the other two, mirroring the per-token 《3》..《6》 contract;
   * NF1/NF2 are the bidirectional, anti-false-positive half: the two Hold
     -frozen files are checked at a **minimal anchor only** -- SCOREBOARD needs
     just ``STATUS`` (its numbers are never read) and fastdds.xml needs just the
@@ -111,19 +117,24 @@ def _seed_tree(
 def _check_negatives(failures: list[str]) -> int:
     caught = 0
 
-    def expect(label: str, must: str, **seed) -> None:
+    def expect(label: str, must: str, also_ok: tuple[str, ...] = (), **seed) -> None:
         nonlocal caught
         with tempfile.TemporaryDirectory(prefix="risk_neg_") as d:
             tmp = Path(d)
             _seed_tree(tmp, **seed)
             out, code = g.render(root=tmp)
-        ok = code == 1 and GATE_HEALTHY not in out and must in out
+        ok = (
+            code == 1
+            and GATE_HEALTHY not in out
+            and must in out
+            and all(s in out for s in also_ok)
+        )
         if ok:
             caught += 1
         else:
             failures.append(
                 f"negative '{label}': not caught as expected "
-                f"(code={code}, need {must!r})"
+                f"(code={code}, need {must!r}, also_ok={also_ok!r})"
             )
 
     # N1: drop the standalone 《4》 token; the 《3》–《6》 range remains and must
@@ -140,6 +151,32 @@ def _check_negatives(failures: list[str]) -> int:
         "ADR loses §9.4",
         "§9.4",
         adr_text=_real_text(g.ADR_REL).replace("§9.4", ""),
+    )
+    # N4/N5/N6: the three core Hold-ban words (Agnocast / zenoh / Cega) ride
+    # the generic matrix marker tuple. Dropping any one from the matrix must
+    # fail markers and name it, while the other seven files still report ok
+    # (a matrix marker miss must not collaterally fail a sibling file). Each
+    # word gets its own case so removing just one from the guard's marker
+    # tuple cannot hide behind the other two -- same per-token logic as the
+    # 《3》/《4》/《5》/《6》 anti-abbreviation contract.
+    sibling_ok = ("ok file:", "feishu-middleware-adr.md")
+    expect(
+        "matrix drops Hold-ban marker Agnocast",
+        "need Agnocast",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("Agnocast", ""),
+    )
+    expect(
+        "matrix drops Hold-ban marker zenoh",
+        "need zenoh",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("zenoh", ""),
+    )
+    expect(
+        "matrix drops Hold-ban marker Cega",
+        "need Cega",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("Cega", ""),
     )
     return caught
 
@@ -243,7 +280,7 @@ def main() -> int:
 
     print("# Risk-matrix §9.4 Hold guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/3; "
+        f"- negative scenarios caught: {negative}/6; "
         f"non-flag scenarios green: {non_flag}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -261,16 +298,17 @@ def main() -> int:
 
     print(
         f"- **{SUCCESS_MARKER}** "
-        "(3 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        "(6 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard fails closed when a standalone 《3》/《4》/《5》/《6》 Hold "
         "token is replaced by a bare 《3》–《6》 range, when a required file is "
-        "missing, or when the ADR loses §9.4; the frozen SCOREBOARD (STATUS "
-        "only) and fastdds.xml (domainId anchor only) stay green at their "
-        "minimal anchors; a healthy tree stays green; and a reader that hides "
-        "the tampered matrix demonstrably silences the check. Read-only, "
-        "tempdir-only. Exit 0."
+        "missing, when the ADR loses §9.4, or when one of the Agnocast / "
+        "zenoh / Cega Hold-ban words is dropped from the matrix; the frozen "
+        "SCOREBOARD (STATUS only) and fastdds.xml (domainId anchor only) stay "
+        "green at their minimal anchors; a healthy tree stays green; and a "
+        "reader that hides the tampered matrix demonstrably silences the "
+        "check. Read-only, tempdir-only. Exit 0."
     )
     return 0
 
