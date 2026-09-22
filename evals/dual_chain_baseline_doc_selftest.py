@@ -28,7 +28,10 @@ Why this exists
   baseline marker tuple, its three core safety words -- ``Hold``,
   ``STATUS: blocked`` (blocked honesty), ``只读`` (the fastdds.xml read-only
   contract) -- now have removal negatives N7/N8/N9 too, since N1 only covers
-  the paused phrase and N2/N5/N6 only add percentile tokens. The map /
+  the paused phrase and N2/N5/N6 only add percentile tokens. The Unitree swap
+  record keeps N4 for the whole file missing and adds N10/N11/N12 for a
+  present-but-stripped swap doc (drop-in FAIL / bundled 0.10.2 / vendor
+  11.0.1). The map /
   rewrite / pointer phrase checks reuse strings already in the marker tuple
   and so are always accompanied by a FAIL markers line (they cannot fire
   independently like the paused phrase); they get no separate negative.
@@ -37,7 +40,7 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs nine negative scenarios, three non-flag (existence-only /
+result. It then runs twelve negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -248,6 +251,38 @@ def main() -> int:
         check("feishu-middleware-adr.md" in out,
               f"{label} must not collaterally fail a sibling file")
 
+    # N10/N11/N12: the Unitree swap doc stays present but loses one of its
+    # three content markers -- drop-in FAIL (the drop-in failure verdict,
+    # 3 occurrences), bundled 0.10.2 (23), or vendor 11.0.1 (24). N4 only
+    # covered the whole swap file vanishing (FAIL missing); it did not cover
+    # a present-but-weakened swap record, so an edit that kept the file shell
+    # while deleting a version/verdict marker would weaken the Unitree
+    # 0.10.2-vs-11.0.1 evidence while the existing negatives stayed green.
+    # Stripping one word must fail markers and name it against the swap file
+    # only, trip no other check, and leave the baseline doc healthy. Probed
+    # on the real guard in a temp tree.
+    for label, word in (
+        ("N10 swap doc drops drop-in FAIL verdict", "drop-in FAIL"),
+        ("N11 swap doc drops bundled 0.10.2", "0.10.2"),
+        ("N12 swap doc drops vendor 11.0.1", "11.0.1"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                g.SWAP_REL: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and "unitree-sdk2-dds-swap.md" in out
+              and f"need {word}" in out,
+              f"{label} must report the swap doc missing {word}")
+        check("feishu-dual-chain-baseline.md` (need" not in out,
+              f"{label} must not flag the healthy baseline doc")
+        check("- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL missing:**" not in out,
+              f"{label} must trip only the marker scan")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -315,7 +350,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("9 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("12 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
