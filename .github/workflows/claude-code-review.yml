@@ -329,9 +329,13 @@ jobs:
           with open(tmp, "w", encoding="utf-8") as fh:
               fh.write(body)
 
+          # Only ever update a comment this workflow's token authored
+          # (github-actions[bot]); a participant cannot hijack the marker to
+          # have their own comment overwritten.
           existing = gh(
               "--paginate", f"repos/{repo}/issues/{pr}/comments",
-              "--jq", f'.[] | select(.body | startswith("{marker}")) | .id',
+              "--jq",
+              f'.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("{marker}"))) | .id',
           ).split()
           if existing:
               gh("-X", "PATCH", f"repos/{repo}/issues/comments/{existing[0]}", "-F", f"body=@{tmp}")
