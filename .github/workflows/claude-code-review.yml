@@ -12,7 +12,10 @@ name: claude-code-review
 #   - the action is pinned to a release commit SHA, not a mutable tag;
 #   - it authenticates to GitHub with the job's own short-lived GITHUB_TOKEN
 #     (no id-token / OIDC exchange, no GitHub App);
-#   - Claude gets read-only tools only: it cannot execute repository code.
+#   - Claude has read-only repository access (Read/Glob/Grep, git diff/log,
+#     gh pr view/diff) plus comment-writing access (the action's tracking
+#     comment and inline review comments). It cannot execute repository
+#     code, edit files, or run gh pr comment (no --body-file upload path).
 #
 # Docs: https://github.com/anthropics/claude-code-action
 
@@ -46,6 +49,9 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           use_sticky_comment: true
+          # Tag mode with a tracking comment: the summary is written through the
+          # action's own comment tool, so no `gh pr comment` shell access is needed.
+          track_progress: true
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -71,9 +77,9 @@ jobs:
               promptfooconfig.yaml and ITERATION_LOG counts must match the
               code they describe.
 
-            You have read-only tools: review by reading the checkout and the
-            diff. You cannot and must not execute repository code or edit
-            files.
+            You have read-only repository access plus comment-writing access.
+            Review by reading the checkout and the diff. You cannot and must
+            not execute repository code or edit files.
 
             Write the review in the same language as the PR description
             (简体中文 when the description is Chinese). Be concise: list
@@ -81,7 +87,8 @@ jobs:
             severity, and skip praise. If there are no findings, say so in
             one short comment.
 
-            Use `gh pr comment` for the summary comment.
+            Put the summary in your tracking comment
+            (`mcp__github_comment__update_claude_comment`).
             Use `mcp__github_inline_comment__create_inline_comment` (with
             `confirmed: true`) for line-specific issues.
             Only post GitHub comments - do not return the review as a plain
@@ -89,4 +96,5 @@ jobs:
           claude_args: |
             --model claude-opus-5
             --max-turns 30
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*)"
+            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit"
