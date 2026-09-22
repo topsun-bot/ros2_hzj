@@ -68,7 +68,14 @@ jobs:
             dual-chain workspace). Read AGENTS.md first: it is the one-page contract
             for this repo, including the Hold list. There is no CLAUDE.md.
 
-            Review the diff (use `gh pr diff` and `gh pr view`) and report:
+            Read the PR with exactly these commands (no other gh invocation is
+            permitted; local `git log` / `git diff` / `git show` on the checkout are
+            also fine):
+              gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+              gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json title,body,baseRefName,headRefName,files,commits
+              gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+              gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --name-only
+            Then report:
             - Correctness bugs and behavior regressions in changed scripts, evals, and
               config (Python is standard-library only; no ROS runtime is available in CI).
             - Hold boundary violations: any edit to config/fastdds.xml or
@@ -103,14 +110,16 @@ jobs:
                  gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md
             Never leave more than one comment per run.
 
-          # Read-only gh/git access, plus Write scoped to the single temp file the
-          # comment body is read from (--body-file), so the review text never
-          # passes through a shell command line. The comment command is not a
-          # prefix pattern: only the three exact invocations below are allowed,
-          # each bound to this event's PR number and repository, so a prompt
-          # injection in the diff cannot make the App token write to any other
-          # PR. No push, no merge, no label. Reference:
+          # Every gh invocation, read or write, is an exact-match rule (no `:*`
+          # prefix) bound to this event's PR number and repository, so a prompt
+          # injection in the diff cannot point the App token at any other PR,
+          # issue, or repository. Prefix rules would not do: gh takes the last
+          # `--repo` given, so an appended flag could retarget a prefix-matched
+          # command. Local git reads on the checkout are read-only. Write is
+          # scoped to the single temp file the comment body is read from
+          # (--body-file), so the review text never passes through a shell
+          # command line. No push, no merge, no label. Reference:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           claude_args: |
             --model claude-opus-5
-            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Write(//tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md)"
+            --allowedTools "Bash(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }}),Bash(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json title,body,baseRefName,headRefName,files,commits),Bash(gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }}),Bash(gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --name-only),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Write(//tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md)"
