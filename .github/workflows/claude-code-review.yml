@@ -17,7 +17,9 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  issues: read
+  # PR conversation comments are issue comments: the tracked review comment
+  # is created and updated through the issue-comment API.
+  issues: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
