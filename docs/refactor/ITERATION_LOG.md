@@ -3971,3 +3971,50 @@
 3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–57 持续 0 error）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 58 — 2026-09-23 05:09（Asia/Shanghai）— 给 #42 baseline 文档补 present-but-stripped 诚实词 marker（Not Feishu field proof / 派生自）删除负向 N19/N20（功能 PR TBD）
+
+### 只读取证（断言质量复查，接续轮次57 下一步第2条）
+
+- guard required 表：baseline 文档 `feishu-dual-chain-baseline.md` 的 `_BASELINE_MARKERS` 含两个诚实性词 `Not Feishu field proof`（明确声明 baseline 不是飞书现场证据，1 次）、`派生自`（派生关系措辞，3 次）。
+- 真实盲区：#42 的 N7–N9 只覆盖 baseline 删 `Hold` / `STATUS: blocked` / `只读`；baseline **保留**却删掉非飞书现场证据声明 / 派生措辞（present-but-weakened）这两个形态**零负向**。保留 baseline 外壳却删掉其中一个，会让 baseline 的诚实性记录在文档面失效，而既有 N1–N18 全绿。
+- /tmp 探针（复制 11 真实文件）：文件保留、各删该词全部分出现处 → code1，逐字 `FAIL markers: docs/architecture/feishu-dual-chain-baseline.md (need Not Feishu field proof)` / `(need 派生自)`，ok file 数 8（只 baseline 不 ok、ADR 不连带），且不触发 paused/percentile/missing/map/rewrite/pointer 任一检查；pristine code0。
+- 两个场景同文件、同型、同安全逻辑（baseline 诚实词删除必 fail markers、只点名 baseline、不连带），作为同项一次完成。至此 #42 对 baseline 文档的核心安全/诚实词（Hold / STATUS: blocked / 只读 / Not Feishu field proof / 派生自）present-but-stripped 负向补齐。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`（#42）：新增参数化 **N19/N20**（baseline 保留删 Not Feishu field proof / 派生自，要求 code1 + FAIL markers 点名 `need <词>` + ADR 不连带 + 不触发 paused/percentile/missing/map/rewrite），negative 18→20，计数扩为 **`20 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（eighteen→twenty、补 baseline 诚实词）。
+2. `evals/promptfooconfig.yaml`：#42 description 补 baseline 诚实词 stripped、计数 value 18→20；cases=42、scripts=42。
+3. `evals/README.md`：#42 文件表行、明细表行（整行计数）、专节（18→20 negative 并补 N19–N20）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N19/N20 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + ok file 8 + ADR 不连带）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言不连带 ADR、不误触 paused/percentile/missing/map/rewrite；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #42 对 baseline present-but-weakened 的负向判别；既有 N1–N18、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 05:09 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-Crd-2026-09-22T21:09:20`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- #42 对 baseline/ADR/R0/MAP/SWAP 五个 marker 文件的 present-but-stripped 核心词已基本补齐；后续若再扩，应先系统比对 guard 各 per-file marker 元组与现有 N 场景，确认仍有独有未覆盖边界，不为凑数。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 系统复查 #42 各 per-file marker 元组（尤其 CHAIN_A/CHAIN_B export 之外、SWAP/R0 已覆盖词之外）是否仍有安全关键 present-but-stripped 独有边界，先探针再决定是否加。
+3. existence-only 放行 helper 等签名趋同再抽；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本（轮次44–58 持续 0 error）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
