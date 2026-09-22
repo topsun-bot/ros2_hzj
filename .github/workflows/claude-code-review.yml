@@ -41,10 +41,15 @@ jobs:
         if: steps.key.outputs.present == 'true'
         with:
           fetch-depth: 1
+          # Review-only job: never leave the job token in .git/config where
+          # prompt-injected PR content could read it.
+          persist-credentials: false
 
       - name: Claude code review
         if: steps.key.outputs.present == 'true'
-        uses: anthropics/claude-code-action@v1
+        # Pinned to the v1.0.231 release commit (mutable v1 tag not used);
+        # bump deliberately after reviewing the release.
+        uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
