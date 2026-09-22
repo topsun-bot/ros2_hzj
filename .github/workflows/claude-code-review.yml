@@ -54,9 +54,10 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # One write path only: Claude posts its findings with `gh pr comment`
-          # and edits that same comment on later runs (--edit-last), so a PR
-          # carries one review comment instead of one per push.
+          # One write path only: Claude writes its findings to a temp file and
+          # posts them with `gh pr comment --body-file`, editing that same
+          # comment on later runs (--edit-last), so a PR carries one review
+          # comment instead of one per push and no review text hits the shell.
           # use_sticky_comment is deliberately not set so the action does not
           # also maintain a second comment of its own.
           prompt: |
@@ -88,18 +89,24 @@ jobs:
             say so in one short paragraph. Do not approve or request changes as a
             review event.
 
-            Publish exactly one PR comment and reuse it on later runs, using your
-            Bash tool. Start the comment with the line `## Claude code review` and
-            then edit your previous comment in place:
-              gh pr comment <PR NUMBER> --edit-last --create-if-none --body "<review>"
-            If the installed gh rejects `--create-if-none`, run the same command
-            without that flag; only if that fails because you have no earlier
-            comment on this PR, create one with `gh pr comment <PR NUMBER> --body`.
+            Publish exactly one PR comment and reuse it on later runs. Never put
+            the review text on a shell command line: diff excerpts contain
+            backticks and `$(...)`, which the shell would execute. Instead:
+            1. Write the full review, starting with the line `## Claude code review`,
+               to /tmp/claude-review.md with your Write tool.
+            2. Edit your previous comment in place with your Bash tool:
+                 gh pr comment <PR NUMBER> --edit-last --create-if-none --body-file /tmp/claude-review.md
+               If the installed gh rejects `--create-if-none`, run the same command
+               without that flag; only if that fails because you have no earlier
+               comment on this PR, create one with
+                 gh pr comment <PR NUMBER> --body-file /tmp/claude-review.md
             Never leave more than one comment per run.
 
-          # Read-only gh access plus the one comment command. No push, no merge,
-          # no label. Reference:
+          # Read-only gh access, the one comment command, and Write scoped to the
+          # single temp file the comment body is read from (--body-file), so the
+          # review text never passes through a shell command line. No push, no
+          # merge, no label. Reference:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           claude_args: |
             --model claude-opus-5
-            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*)"
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(git log:*),Bash(git diff:*),Bash(git show:*),Write(//tmp/claude-review.md)"
