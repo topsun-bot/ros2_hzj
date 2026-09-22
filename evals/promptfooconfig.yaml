@@ -647,3 +647,20 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '3 negative, 2 non-flag, 2 healthy, 1 mutation'
+
+  # #42 check_dual_chain_baseline document/pointer face negative self-test.
+  # #19 already owns this guard's env/shell/wrapper cross-check face (and
+  # deliberately omits the docs). This case owns the document face: the nine
+  # required files and per-file markers, the paused phrase that is checked
+  # independently of the marker tuple, the booked-percentile (p50/p90/p95/p99)
+  # anti-fabrication regex, and the existence-only treatment of fastdds.xml /
+  # SCOREBOARD (their content freeze is the boundary job, not this gate).
+  - description: 'dual_chain_baseline_doc_selftest.py: the dual-chain baseline document guard must exit 1 when the contiguous paused phrase is dropped independently of the marker tuple, when an invented p99 token appears, when the ADR §13(3) loses a marker, or when a required doc vanishes; empty SCOREBOARD and arbitrary fastdds.xml must stay green as existence-only; a blind percentile regex must hide then re-catch the invented p99'
+    vars:
+      script: evals/dual_chain_baseline_doc_selftest.py
+    assert:
+      - type: contains
+        value: 'dual-chain baseline doc guard selftest: PASS'
+      - type: contains
+        # Locks the fixture counts so weakening/removing a negative case fails.
+        value: '4 negative, 2 non-flag, 2 healthy, 1 mutation'
