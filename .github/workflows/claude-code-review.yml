@@ -53,7 +53,8 @@ jobs:
             echo "::notice::ANTHROPIC_API_KEY secret is not set; skipping Claude review."
           fi
 
-      - uses: actions/checkout@v4
+      # Pinned to the v4.4.0 release commit; bump deliberately.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: steps.key.outputs.present == 'true'
         with:
           fetch-depth: 1
@@ -69,7 +70,12 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          mkdir -p .claude-review
+          # The checkout is PR-controlled: a tracked .claude-review (or pr.diff)
+          # could be a symlink, so remove whatever is there and create a fresh
+          # real directory before writing into it.
+          rm -rf .claude-review
+          mkdir .claude-review
+          test -d .claude-review && test ! -L .claude-review
           if ! gh api -H "Accept: application/vnd.github.diff" "repos/${REPO}/pulls/${PR}" > .claude-review/pr.diff; then
             echo "diff unavailable from the GitHub API (too large or API error); review the checkout directly." > .claude-review/pr.diff
             echo "::warning::could not fetch the PR diff"
