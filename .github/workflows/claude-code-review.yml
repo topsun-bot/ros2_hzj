@@ -121,7 +121,9 @@ jobs:
           # the single temp file the comment body is read from (--body-file), so
           # the review text never passes through a shell command line. Reads of
           # /proc are denied so process environments cannot be copied into that
-          # file. No push, no merge, no label. Reference:
+          # file; a Read(...) rule governs every built-in file-reading tool
+          # (Read, Grep, Glob, LS), not only Read itself. No push, no merge, no
+          # label. Reference:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           claude_args: |
             --model claude-opus-5
