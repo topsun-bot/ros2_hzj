@@ -1,0 +1,69 @@
+name: claude-code-review
+
+# Claude as an additional PR code reviewer. Advisory only: it posts a review
+# comment and never approves, merges, or edits the branch. The three required
+# gates (structure / contracts / boundary in ci.yml) remain the merge gate.
+#
+# Requires the repository secret ANTHROPIC_API_KEY.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: claude-review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request as a code reviewer. Read AGENTS.md and
+            docs/architecture/ci-cd-gates.md first: they define the Hold
+            boundary for this repository.
+
+            Focus on, in this order:
+            1. Correctness bugs and behaviour changes in scripts/, config/env/,
+               evals/ and dimos_bridge/ (Python: check for exceptions on the
+               happy path, wrong paths, broken string contracts).
+            2. Hold-boundary violations: any edit to config/fastdds.xml or
+               docs/artifacts/bench/SCOREBOARD.md, any path containing
+               agnocast or zenoh, any change to dimos_bridge DDS behaviour or
+               vendor/ sources, any Cega integration or Bridge runtime rewrite.
+            3. Fabricated measurements: new latency numbers, percentiles,
+               PASS / PROVEN claims, or SHAs that are not backed by an
+               artifact in the diff.
+            4. Docs: broken relative links, and claims that contradict the
+               scripts they describe.
+
+            Be concise. Report only findings you are confident in, with
+            file:line references. Say explicitly when you found nothing
+            blocking. Do not approve or merge; do not push commits.
+
+            Use `gh pr comment` with your Bash tool to post the review as a
+            single comment on the PR.
+          claude_args: |
+            --model claude-opus-5
+            --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
