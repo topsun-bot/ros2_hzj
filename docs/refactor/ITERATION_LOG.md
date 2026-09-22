@@ -3548,3 +3548,49 @@
 3. 继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 50 — 2026-09-22 21:11（Asia/Shanghai）— 给 #27 three-chain repro guard 补 existence-only non-flag 放行断言（功能 PR TBD）
+
+### 只读取证（断言质量复查第三个 selftest）
+
+- 接续轮次49 下一步，本轮复查 `three_chain_repro_guard_selftest.py`（#27）。读 `scripts/check_three_chain_repro.py`（217 行）逐分支对照：#27 已有 2 negative（N1 追加裸 `map = reproduce`、N2 追加 `three-chain repro: PROVEN`）、1 non-flag（同行禁止句「不要把 map = reproduce…」豁免）、2 healthy、1 mutation（map=reproduce 正则 neuter 即漏报）。
+- 真实盲区（与轮次49 unitree 对称）：guard 把 `config/fastdds.xml`、`docs/artifacts/bench/SCOREBOARD.md` 列为 required 但 markers 为空（行 127–128，docstring 明示 existence-only、内容冻结归 boundary）。#27 复制了这 6 个真实文件，却只钉了 repro 文档的禁止句豁免，**没有任何场景证明这两个 existence-only 文件内容被任意改写时 guard 仍绿**——若未来在该 guard 越界加 XML/SCOREBOARD 内容校验，现有断言全绿却无人捕获。
+- /tmp 探针（复制 6 个真实文件进 tempdir）：SCOREBOARD 副本清空 → code0、无 FAIL 行；fastdds.xml 副本改成 `<domainId>99</domainId>` → code0、无 FAIL；控制组删除 XML → code1 `FAIL missing`（证明 existence 仍被检查，non-flag 只放行内容、不放行缺失）。
+
+### 改动（行为不变，3 文件，eval-only，case 数不变仍 42）
+
+1. `evals/three_chain_repro_guard_selftest.py`（#27）：新增 `_check_existence_nonflags()` 与 **NF1**（SCOREBOARD 副本清空 → exit0 + marker + 无 FAIL 行）、**NF2**（fastdds.xml 副本改成 domainId 99 的任意内容 → exit0 + marker + 无 FAIL 行）；原禁止句豁免 non-flag 保留为 1 个，non-flag 合计 1→3，计数由 `2 negative, 1 non-flag, 2 healthy, 1 mutation` 扩为 **`2 negative, 3 non-flag, 2 healthy, 1 mutation`**；汇总行新增 `existence-only content green: 2/2`；同步 docstring 断言枚举第 2 点（1 豁免 + 2 existence-only）。
+2. `evals/promptfooconfig.yaml`：更新 #27 description（补 existence-only 放行）与计数 value；该计数串在 yaml 出现 3 次（#27/#28/#29 同形），按 #27 块整段上下文精确替换、#28/#29 保持不变；cases=42、scripts=42。
+3. `evals/README.md`：#27 文件表行、明细表行、专节（原「1 个 non-flag（豁免契约）」扩为「3 个 non-flag：①豁免 ②③existence-only」）同步；两处标题计数仍 42。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- NF1/NF2 先在真实 guard 上 /tmp 探针逐字取证（空 SCOREBOARD / bogus XML 均 code0、删文件 code1），再写进自测；
+- existence non-flag 断言要求 code0 + success marker + 无 `- **FAIL` 行，与 #20/#42 的 existence-only NF 同构；控制组（删 XML FAIL missing）证明放行的是“内容”而非“缺失”，非恒真；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #27 的放行侧判别；至此 #20/#27/#42 三个“复制真实文件 + existence-only XML/SCOREBOARD”的 selftest 都钉了同一放行契约（公共 tempdir 复制 helper 仍因 seed 签名不同而不抽）。
+
+### 实测（本机 macOS，2026-09-22 21:11 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-Ma1-2026-09-22T13:11:28`（Duration 4s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh；未改 dimos_bridge/vendor/shell/load.py（4 个内容文档 + vendor 文件仅复制进 tempdir 读取）；未集成 Cega、未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- existence-only non-flag 模式现已在 #20/#27/#42 三处重复（各 guard 的 required 文件集与 seed 签名仍不同）；是否抽公共“existence-only 放行”小 helper 可在第四处出现或签名趋同后再评估，本轮不抽（避免过早抽象）。
+- #20 的合法 external 路径 marker（`unitree_sdk2_hzj`、`UNITREE_DDS_PROVIDER=external`）仍只走通用 marker 检查、无专门负向场景，留作候选；`prove_rmw` 维持合理空缺；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 断言质量复查继续：候选给 #20 补 external 合法路径 marker 的专门负向场景（删其一应 FAIL markers 且独立检查仍 ok），或对其余复制真实文件型 selftest（#41 risk_matrix）做 existence-only/放行侧盲区探针；均先探针证盲区再加强。
+3. existence-only 放行 helper 等第四处或签名趋同；继续高负载窗口收集 provider 预算硬化后 fingerprint 0-error 样本。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+

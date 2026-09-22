@@ -392,15 +392,15 @@ tests:
   # and Cega docs is already pinned by #23/#24, and the marker-co-occurrence
   # chain check is the guard's stated marker-only boundary. A same-line
   # prohibition stays exempt; neutralising the map=reproduce regex silences N1.
-  - description: 'three_chain_repro_guard_selftest.py: the map=reproduce / repro-PROVEN fabricate regexes actually fire on an extra contradictory sentence (negative regression, tempdir-only)'
+  - description: 'three_chain_repro_guard_selftest.py: the map=reproduce / repro-PROVEN fabricate regexes actually fire on an extra contradictory sentence; a same-line prohibition stays exempt; an empty SCOREBOARD and an arbitrary fastdds.xml stay green as existence-only; neutralising the map=reproduce regex demonstrably silences the check (negative + non-flag regression, tempdir-only)'
     vars:
       script: evals/three_chain_repro_guard_selftest.py
     assert:
       - type: contains
         value: 'three-chain repro guard selftest: PASS'
       - type: contains
-        # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '2 negative, 1 non-flag, 2 healthy, 1 mutation'
+        # Locks the fixture counts so weakening/removing a negative or non-flag case fails.
+        value: '2 negative, 3 non-flag, 2 healthy, 1 mutation'
 
   # #28 bench-gates guard negative self-test: the positive bench-gates case
   # (#3) and #17 fingerprint only prove the healthy tree renders green; they

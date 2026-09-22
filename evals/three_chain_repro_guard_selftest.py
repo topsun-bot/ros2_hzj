@@ -50,8 +50,11 @@ the reproduce doc, and driving the injectable ``render(root=...)``. It asserts:
   1. two negative scenarios ARE caught (exit 1, no success marker,
      ``FAIL fabricate`` naming the fabricated string, and no collateral
      FAIL missing/markers/phrase/status/chains — the healthy markers survive);
-  2. one non-flag scenario: a same-line prohibition sentence
-     ("不要把 map = reproduce …") is exempt and the tree stays green;
+  2. three non-flag scenarios stay green: one same-line prohibition sentence
+     ("不要把 map = reproduce …") is exempt by the prohibition regex, and the
+     two existence-only files — an empty SCOREBOARD and an arbitrary
+     fastdds.xml with a bogus domainId — are content-ignored (the content
+     freeze is the boundary job, not this guard);
   3. two healthy cases: the real repo ``render()`` and a pristine copied tree
      both exit 0 with the success marker;
   4. one mutation: neutralising the ``\bmap\s*=\s*reproduce\b`` regex (to a
@@ -161,6 +164,51 @@ def _check_nonflag(failures: list[str]) -> int:
     return 0
 
 
+def _check_existence_nonflags(failures: list[str]) -> int:
+    """The existence-only XML / SCOREBOARD must be content-ignored here.
+
+    The guard opens both files with an empty marker tuple (the content freeze
+    is the boundary job). An empty SCOREBOARD or an arbitrary fastdds.xml (even
+    a bogus domainId) must therefore stay exit 0 with the success marker and no
+    rendered FAIL line. This pins the allow side of that existence-only
+    contract, symmetric with the NF cases of the unitree/dcb guards, so a
+    future change that starts validating their contents here would be caught.
+    """
+    allowed = 0
+
+    def expect_ok(label: str, rewrite) -> None:
+        nonlocal allowed
+        with tempfile.TemporaryDirectory(prefix="tc_exnf_") as d:
+            tmp = Path(d)
+            _seed_tree(tmp)
+            rewrite(tmp)
+            out, code = g.render(root=tmp)
+        has_fail = any(line.startswith("- **FAIL") for line in out.splitlines())
+        if code == 0 and g.SUCCESS_MARKER in out and not has_fail:
+            allowed += 1
+        else:
+            failures.append(
+                f"existence non-flag '{label}': expected exit 0 + success "
+                f"marker + no FAIL line (code={code}, has_fail={has_fail})"
+            )
+
+    # NF-existence 1: an empty SCOREBOARD stays green.
+    expect_ok(
+        "empty SCOREBOARD",
+        lambda t: (t / g.SCOREBOARD_REL).write_text("", encoding="utf-8"),
+    )
+
+    # NF-existence 2: arbitrary fastdds.xml content (bogus domainId) stays green.
+    expect_ok(
+        "bogus fastdds.xml",
+        lambda t: (t / g.XML_REL).write_text(
+            "<profiles><domainId>99</domainId></profiles>\n", encoding="utf-8"
+        ),
+    )
+
+    return allowed
+
+
 def _check_healthy(failures: list[str]) -> int:
     healthy = 0
 
@@ -219,6 +267,7 @@ def main() -> int:
 
     negative = _check_negatives(failures)
     nonflag = _check_nonflag(failures)
+    existence = _check_existence_nonflags(failures)
     healthy = _check_healthy(failures)
     mutation = _check_mutation(failures)
 
@@ -226,6 +275,7 @@ def main() -> int:
     print(
         f"- negative scenarios caught: {negative}/2; "
         f"prohibition lines exempt: {nonflag}/1; "
+        f"existence-only content green: {existence}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
     )
@@ -240,7 +290,7 @@ def main() -> int:
         )
         return 1
 
-    print(f"- **{SUCCESS_MARKER}** (2 negative, 1 non-flag, 2 healthy, 1 mutation)")
+    print(f"- **{SUCCESS_MARKER}** (2 negative, 3 non-flag, 2 healthy, 1 mutation)")
     print(
         "\nThe guard catches an extra contradictory 'map = reproduce' and a "
         "fabricated 'three-chain repro: PROVEN' even while map ≠ reproduce / "
