@@ -49,6 +49,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          # The job never runs git (Bash(git:*) is denied below), so do not
+          # leave the workflow GITHUB_TOKEN in .git/config where a file read
+          # could pick it up.
+          persist-credentials: false
 
       - name: Claude code review
         uses: anthropics/claude-code-action@v1
