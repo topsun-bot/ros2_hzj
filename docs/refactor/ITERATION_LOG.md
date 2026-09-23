@@ -4189,7 +4189,7 @@
 
 ---
 
-## 轮次 62 — 2026-09-23 09:17（Asia/Shanghai）— 继续类推：给 #27 three-chain repro 文档补 present-but-stripped Hold 禁令词（Agnocast / zenoh）删除负向 N3/N4（功能 PR TBD）
+## 轮次 62 — 2026-09-23 09:17（Asia/Shanghai）— 继续类推：给 #27 three-chain repro 文档补 present-but-stripped Hold 禁令词（Agnocast / zenoh）删除负向 N3/N4（功能 PR #177，main 47162d6）
 
 ### 只读取证（接续轮次61 下一步第2条）
 
@@ -4217,6 +4217,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-ltn-2026-09-23T01:17:33`（Duration 4s，0 error）。
 
+### 合并后权威回归（功能 PR #177 已 squash-merge）
+
+- 功能 PR #177（分支 test/three-chain-holdban-marker-negatives，commit 17c221e，4 files）required 三检 + CodeQL + Cursor Approval(1m18s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `47162d6b8ded5a70eb85501a5a8ad9ea8c4520a3`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `47162d6`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-Ujb-2026-09-23T01:26:08`（Duration 4s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -4229,7 +4235,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #177 已合并（main `47162d6`），合并后权威回归 42/42、0 error（eval `eval-Ujb-2026-09-23T01:26:08`），本回填 PR 即补登。
 2. 评估 #27 repro 文档其余 marker（Not Feishu field proof 诚实词、not-run-here、Humble、指针）present-but-stripped：先探针 + 论证独有安全价值再决定是否加，不凑数。
 3. #20 STATUS: blocked 扩前先论证独有价值；existence-only helper 签名趋同再抽。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
