@@ -4240,3 +4240,51 @@
 3. #20 STATUS: blocked 扩前先论证独有价值；existence-only helper 签名趋同再抽。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 63 — 2026-09-23 10:20（Asia/Shanghai）— 给 #27 three-chain repro 文档补 present-but-stripped 独有诚实词（not-run-here / Humble）删除负向 N5/N6（功能 PR TBD）
+
+### 只读取证（接续轮次62 下一步第2条）
+
+- 对 repro 文档全部候选 marker 探针（出现次数：not-run-here 3、Not Feishu field proof 1、Humble 10、fastdds.xml 3、SCOREBOARD 5、ros2-source-map.md 12、feishu-executor-waitset.md 9）：删光任一词 → code1 `FAIL markers ... (need <词>)`，phrase/status/chains/honesty 独立检查读其他内容仍报 ok（不连带）。
+- 先排除冗余：MAP_NE_REPRODUCE / STATUS_BLOCKED 已由 phrase/status 独立检查覆盖，publish/History/wait→callback/WaitSet/callback 已由 chains 覆盖——删它们会 FAIL phrase/status/chains，不需要额外 marker 负向。
+- 按安全权重取舍本轮做两个 repro 文档**独有诚实词**：**not-run-here（本机未实际运行链）+ Humble（无 ROS Humble runtime、三链复现 blocked）**，直接钉死 not-run / no-runtime 两条 blocked 诚实边界。
+- 有意不加（不凑数）：Not Feishu field proof 与 baseline #42 轮次58 N19 同名同模式（重复）；ros2-source-map.md / feishu-executor-waitset.md / fastdds.xml / SCOREBOARD 是交叉引用/指针锚点、权重低（同轮次60 对 §13 指针的判断）。
+- 真实盲区：repro 文档保留 shell、删 not-run-here 或 Humble，会让"本机未运行 / 无 Humble runtime"诚实契约在该文档面失效，而既有 N1–N4 全绿。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/three_chain_repro_guard_selftest.py`（#27）：复用 repro_drop 通道，新增 **N5/N6**（文档保留删 not-run-here/Humble，要求 code1 + FAIL markers 点名 need 词 + phrase/status/chains/honesty 仍 ok），negative 4→6，计数扩为 **`6 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（补 N5/N6）与进度分母 /4→/6。
+2. `evals/promptfooconfig.yaml`：#27 description 补 honesty 词 stripped、计数 value 4→6；cases=42、scripts=42。
+3. `evals/README.md`：#27 文件表行、明细表行（整行计数）、专节（4→6 negative 并补 N5/N6 与取舍说明）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N5/N6 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + phrase/status/chains/honesty 仍 ok）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言独立检查不连带；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #27 对 repro 文档独有诚实词 present-but-weakened 的负向判别；既有 N1–N4、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 10:20 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-0JE-2026-09-23T02:20:01`（Duration 11s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- repro 文档的 Not Feishu field proof（与 baseline 重复）与四个指针锚点 present-but-stripped 仍零负向，已论证权重低、有意不加；#20 STATUS: blocked 诚实词未加（与 baseline 模式重复，价值待论证）。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. #27 repro 文档 marker 已按安全权重覆盖到位（Hold 禁令 + 独有诚实词；重复诚实词/指针有意不加）。转去复查其他复制真实文件型 selftest（如 #20 STATUS: blocked、#41 其余 per-file marker）是否仍有独有未覆盖边界，先探针论证、不凑数。
+3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
