@@ -4296,7 +4296,7 @@
 
 ---
 
-## 轮次 64 — 2026-09-23 11:38（Asia/Shanghai）— 给 #20 unitree swap 文档补 present-but-stripped Hold 环境隔离路径（/opt/ros/humble）删除负向 N11（功能 PR TBD）
+## 轮次 64 — 2026-09-23 11:38（Asia/Shanghai）— 给 #20 unitree swap 文档补 present-but-stripped Hold 环境隔离路径（/opt/ros/humble）删除负向 N11（功能 PR #181，main 1b308f2）
 
 ### 只读取证（接续轮次63 下一步第2条）
 
@@ -4324,6 +4324,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-oK5-2026-09-23T03:38:33`（Duration 7s，0 error）。
 
+### 合并后权威回归（功能 PR #181 已 squash-merge）
+
+- 功能 PR #181（分支 test/unitree-humble-path-marker-negative，commit dcbfd21，4 files）required 三检 + CodeQL + Cursor Approval(1m29s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `1b308f283bd8bc728ad54e305b518680bf9a6735`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `1b308f2`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-fmG-2026-09-23T03:44:33`（Duration 8s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -4336,7 +4342,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #181 已合并（main `1b308f2`），合并后权威回归 42/42、0 error（eval `eval-fmG-2026-09-23T03:44:33`），本回填 PR 即补登。
 2. #20 swap 文档 marker 已按安全权重覆盖到位（裁决/引文/合法路径/Hold 禁令/CVE 版本/Humble 隔离；重复诚实词/库名/指针/版本有意不加）。转去复查 #41/#42 是否仍有独有未覆盖 per-file marker，先探针论证、不凑数。
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
