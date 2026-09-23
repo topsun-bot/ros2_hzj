@@ -50,6 +50,14 @@ file-existence shape already covered elsewhere:
     N4/N5/N6 cover the three concrete Hold-ban words and N7 covers ``Hold``
     on the R0 file, but the matrix keeping its file while losing its own
     ``Hold`` stance or its cross-host ``blocked`` verdict had no negative;
+  * N14/N15 strip the version-honesty pair ``Humble`` / ``Rolling`` from the
+    matrix -- exit 1, ``FAIL markers`` naming the dropped word, while the
+    other seven files still print ``ok file`` and the order check is
+    unaffected. The matrix must keep the "Rolling != Humble" verdict (the
+    vendor tree is a rolling/master snapshot while the runtime target is
+    Humble; rolling vendor files must never overwrite a distro tree);
+    removing either word while the matrix file stays present had no
+    negative;
   * N7/N8/N9/N10 keep a required single-marker file present but strip its
     sole marker -- the R0 freeze loses ``Hold``, the source map loses
     ``vendor``, the latency method doc loses ``wiki``, the CI gates doc loses
@@ -245,6 +253,25 @@ def _check_negatives(failures: list[str]) -> int:
         also_ok=sibling_ok,
         matrix_text=_real_text(g.MATRIX_REL).replace("blocked", ""),
     )
+    # N14/N15: the version-honesty pair. The matrix must keep the
+    # "Rolling != Humble" verdict -- the vendor tree is a rolling/master
+    # snapshot while the runtime target is Humble, and rolling vendor files
+    # must never overwrite a distro tree. The matrix file staying present
+    # while losing either word had no negative; stripping either must fail
+    # markers and name it, with the other seven files ok and the order check
+    # unaffected.
+    expect(
+        "matrix present but drops Humble version-honesty word",
+        "need Humble",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("Humble", ""),
+    )
+    expect(
+        "matrix present but drops Rolling version-honesty word",
+        "need Rolling",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("Rolling", ""),
+    )
     # N7/N8/N9/N10: four required files each carry a single marker distinct
     # from the matrix tuple -- R0 needs "Hold", the source map needs "vendor",
     # the latency method doc needs "wiki", the CI gates doc needs "structure".
@@ -379,7 +406,7 @@ def main() -> int:
 
     print("# Risk-matrix §9.4 Hold guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/13; "
+        f"- negative scenarios caught: {negative}/15; "
         f"non-flag scenarios green: {non_flag}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -397,7 +424,7 @@ def main() -> int:
 
     print(
         f"- **{SUCCESS_MARKER}** "
-        "(13 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        "(15 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard fails closed when a standalone 《3》/《4》/《5》/《6》 Hold "
@@ -406,7 +433,8 @@ def main() -> int:
         "missing, when the ADR loses §9.4, when one of the Agnocast / "
         "zenoh / Cega Hold-ban words is dropped from the matrix, when the matrix "
         "loses its own overarching Hold stance or its cross-host blocked "
-        "verdict, or when a "
+        "verdict, when it loses either word of the Rolling != Humble "
+        "version-honesty pair, or when a "
         "present R0 / source-map / latency-method / CI-gates file loses its "
         "single Hold / vendor / wiki / structure marker; the frozen "
         "SCOREBOARD (STATUS only) and fastdds.xml (domainId anchor only) stay "
