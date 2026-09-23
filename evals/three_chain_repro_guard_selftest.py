@@ -38,6 +38,11 @@ existence checks pass; only the fabrication regex can catch it:
     word (``Agnocast`` / ``zenoh``) is removed, which the marker scan must
     catch as ``FAIL markers`` (need the word); the independent phrase/status/
     chains/honesty checks read other content and stay ok.
+  * N5/N6 also keep the doc present but strip an honesty word unique to this
+    record: ``not-run-here`` (this host did not actually run the chains) and
+    ``Humble`` (no ROS Humble runtime, so the three-chain reproduce stays
+    blocked). Neither rides phrase/status/chains/fabricate, so the marker
+    scan must name it while the independent checks stay ok.
 
 The ordinary chain markers and ``_has_three_chains`` are intentionally not
 re-tested: they are direct ``token in text`` / marker-co-occurrence checks
@@ -60,7 +65,8 @@ the reproduce doc, and driving the injectable ``render(root=...)``. It asserts:
      pin ``FAIL fabricate`` naming the fabricated string with no collateral
      FAIL missing/markers/phrase/status/chains (the healthy markers survive);
      N3/N4 pin ``FAIL markers`` naming a stripped Hold ban word
-     (Agnocast/zenoh) while phrase/status/chains/honesty still report ok;
+     (Agnocast/zenoh) and N5/N6 pin a stripped honesty word (not-run-here /
+     Humble), all while phrase/status/chains/honesty still report ok;
   2. three non-flag scenarios stay green: one same-line prohibition sentence
      ("不要把 map = reproduce …") is exempt by the prohibition regex, and the
      two existence-only files — an empty SCOREBOARD and an arbitrary
@@ -197,6 +203,17 @@ def _check_negatives(failures: list[str]) -> int:
 
     expect_drop("N3 Hold ban Agnocast dropped", "Agnocast")
     expect_drop("N4 Hold ban zenoh dropped",zenoh_drop := "zenoh")
+
+    # N5/N6: present-but-stripped honesty words unique to this record.
+    # not-run-here (3) marks that this host never actually ran the chains;
+    # Humble (10) marks the missing ROS Humble runtime that keeps the
+    # three-chain reproduce blocked. N1-N4 did not cover either (N1/N2
+    # append, N3/N4 cover Hold ban words); a future "trim" that removes
+    # them would weaken the not-run / no-runtime honesty while the existing
+    # negatives stayed green. Probed on the real guard (all occurrences
+    # removed -> FAIL markers need the word, independent checks ok).
+    expect_drop("N5 not-run-here honesty dropped", "not-run-here")
+    expect_drop("N6 Humble runtime honesty dropped", "Humble")
     return caught
 
 
@@ -321,7 +338,7 @@ def main() -> int:
 
     print("# Three-chain-reproduce guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/4; "
+        f"- negative scenarios caught: {negative}/6; "
         f"prohibition lines exempt: {nonflag}/1; "
         f"existence-only content green: {existence}/2; "
         f"healthy trees green: {healthy}/2; "
@@ -338,7 +355,7 @@ def main() -> int:
         )
         return 1
 
-    print(f"- **{SUCCESS_MARKER}** (4 negative, 3 non-flag, 2 healthy, 1 mutation)")
+    print(f"- **{SUCCESS_MARKER}** (6 negative, 3 non-flag, 2 healthy, 1 mutation)")
     print(
         "\nThe guard catches an extra contradictory 'map = reproduce' and a "
         "fabricated 'three-chain repro: PROVEN' even while map ≠ reproduce / "
