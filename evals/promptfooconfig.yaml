@@ -638,7 +638,7 @@ tests:
   # required-file and per-file marker enforcement, and the minimal-anchor
   # treatment of the frozen SCOREBOARD (STATUS only) and fastdds.xml
   # (domainId>42 only, content never read).
-  - description: 'risk_matrix_guard_selftest.py: the risk-matrix guard must exit 1 when a standalone 《4》 token is dropped while the 《3》–《6》 range remains, when a required file is missing, when the ADR loses §9.4, or when one of the Agnocast / zenoh / Cega Hold-ban words is dropped from the matrix, or when a present R0 / source-map / latency-method / CI-gates file loses its single Hold / vendor / wiki / structure marker (other files still ok); minimal-anchor SCOREBOARD (STATUS only) and fastdds.xml (domainId>42 only) must stay green; a reader that hides the tampered matrix must silence then re-catch the failure'
+  - description: 'risk_matrix_guard_selftest.py: the risk-matrix guard must exit 1 when a standalone range-middle 《4》 or 《5》 token is dropped while the 《3》–《6》 range remains (the range endpoints 《3》/《6》 are satisfied by the range itself and cannot be distinguished, so they are intentionally not cases), when a required file is missing, when the ADR loses §9.4, or when one of the Agnocast / zenoh / Cega Hold-ban words is dropped from the matrix, or when a present R0 / source-map / latency-method / CI-gates file loses its single Hold / vendor / wiki / structure marker (other files still ok); minimal-anchor SCOREBOARD (STATUS only) and fastdds.xml (domainId>42 only) must stay green; a reader that hides the tampered matrix must silence then re-catch the failure'
     vars:
       script: evals/risk_matrix_guard_selftest.py
     assert:
@@ -646,7 +646,7 @@ tests:
         value: 'risk matrix guard selftest: PASS'
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '10 negative, 2 non-flag, 2 healthy, 1 mutation'
+        value: '11 negative, 2 non-flag, 2 healthy, 1 mutation'
 
   # #42 check_dual_chain_baseline document/pointer face negative self-test.
   # #19 already owns this guard's env/shell/wrapper cross-check face (and

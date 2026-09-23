@@ -4347,3 +4347,53 @@
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 65 — 2026-09-23 12:34（Asia/Shanghai）— 给 #41 risk_matrix 反缩写契约补 range 中间项《5》删除负向 N11（功能 PR TBD）
+
+### 只读取证（接续轮次64 下一步第2条）
+
+- Read guard `check_risk_matrix.py`（139 行）：required 8 项，matrix 走 19-marker `_MATRIX_MARKERS`（含反缩写契约要求的 《3》《4》《5》《6》 各自 token）。原 selftest N1 只覆盖删 standalone 《4》，《3》《5》《6》 三个 token 的 standalone 被删、range 保留时零断言。
+- 矩阵实际结构（grep 取证）：行21 是区间句 `《3》–《6》仍 Hold`（字面含端点 《3》《6》），行73 表格行 `《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE`（四个 standalone token）。count：《3》2、《4》1、《5》1、《6》2。
+- 探针（只删表格 standalone、保留完整区间）：
+  - 删 standalone **《5》**（range 中间项、区间字面不含）→ **code1** 逐字 `FAIL markers ... (need 《5》)`，其余 7 文件 ok、FAIL order False（不连带）；
+  - 删 standalone 《3》 / 《6》（区间**端点**、被区间《3》–《6》字面满足）→ **code0**（substring 检测无法区分 standalone 与区间里的同名词）。
+- 真实盲区＝**《5》**：与 N1《4》完全同模式（都是 range 中间项、区间字面不含、必须靠 standalone），此前漏网。
+- 《3》/《6》 物理上无法用 substring 独立触发（删表格 token 区间仍满足），属与轮次54 map/rewrite/pointer 同类的不可触发冗余分支；收紧需改 guard 检测逻辑（属行为变更、非 eval-only），且区间本身已声明《3》/《6》 Hold，有意不造负向，仅在 docstring 钉明边界。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/risk_matrix_guard_selftest.py`（#41）：新增 **N11**（只删表格 `《5》Promptfoo`→`Promptfoo`、区间完整保留，要求 code1 + need 《5》 + sibling ok），negative 10→11，计数扩为 **`11 negative, 2 non-flag, 2 healthy, 1 mutation`**；同步 docstring（N11 + 《3》/《6》端点边界）、进度分母 /10→/11、收尾散文；把 `sibling_ok` 定义前移到 N1 之前（N11 早于原位）。
+2. `evals/promptfooconfig.yaml`：#41 description 补 range 中间项《4》/《5》与端点不可区分说明、计数 value 10→11；cases=42、scripts=42。
+3. `evals/README.md`：#41 文件表行、长描述行、明细表行（整行计数）、专节（10→11 negative 并补 N11 与端点边界）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N11 先在真实 guard 上 /tmp 探针逐字取证（need 《5》 + 其余 7 文件 ok + order 不连带）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式 also_ok 断言兄弟文件不连带；
+- 不新增 case、不改 guard/fixtures/runner，纯补 #41 反缩写契约 range 中间项《5》present-but-weakened 判别；既有 N1–N10、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 12:34 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-Jjm-2026-09-23T04:34:57`（Duration 4s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- matrix 反缩写契约对端点《3》/《6》无法用 substring 区分 standalone 与区间（探针 code0），已在 docstring 钉明、有意不改 guard；matrix 其余 Hold/Humble/Rolling/blocked/指针 marker present-but-stripped 仍零负向，待下一轮按权重评估。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. #41 反缩写中间项已补齐；继续评估 matrix 其余安全词（Hold / Humble·Rolling / blocked）present-but-stripped 是否独有未覆盖，先探针论证、不凑数；或转 #42 per-file marker 复查。
+3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
