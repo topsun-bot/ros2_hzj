@@ -27,7 +27,7 @@ five real files the guard reads** into a temp tree and mutating one at a time
 (the swap doc carries 18 contiguous markers, so hand-writing a minimal healthy
 doc would be brittle and drift from the real record). The guard's injectable
 ``render(root=...)`` is then driven against each mutated tree. It asserts:
-  1. seven negative scenarios ARE caught (exit 1, no success marker, the right
+  1. ten negative scenarios ARE caught (exit 1, no success marker, the right
      FAIL family), and the independent checks still report ``ok`` (a swap-doc
      mutation must not spuriously fail VERSIONS/CMake and vice versa):
        N1 verdict flipped FAIL/UNPROVEN -> PASS/PROVEN (FAIL verdict);
@@ -39,6 +39,10 @@ doc would be brittle and drift from the real record). The guard's injectable
           (FAIL markers, names it);
        N7 legal-path workspace marker unitree_sdk2_hzj dropped
           (FAIL markers, names it);
+       N8 Hold ban word Agnocast dropped from the swap doc (FAIL markers);
+       N9 Hold ban word zenoh dropped from the swap doc (FAIL markers);
+       N10 CVE-fix version contract cyclonedds>=0.10.5 dropped
+           (FAIL markers, names it);
   2. two non-flag (existence-only) scenarios stay green: an empty SCOREBOARD
      and an arbitrary fastdds.xml (even a bogus domainId) both exit 0 with the
      success marker, since this guard opens those two files but never reads
@@ -217,6 +221,50 @@ def _check_negatives(failures: list[str]) -> int:
         ),
     )
 
+    # N8-N10: the swap doc stays present but loses a safety-contract marker
+    # that rides the generic tuple. N6/N7 covered only the legal external
+    # replace-path markers; they did not cover the two Hold ban words
+    # Agnocast (1) / zenoh (2) or the CVE-fix version contract
+    # cyclonedds>=0.10.5 (5), which pins the minimum external Cyclone that
+    # fixes CVE-2024-10838. Keeping the doc shell while deleting one would
+    # strip a Hold ban / CVE-fix contract while the existing negatives
+    # stayed green. The independent verdict / quote / VERSIONS / CMake
+    # checks read other content and must still report ok. Probed on the
+    # real guard in a temp tree.
+    expect(
+        "Hold ban Agnocast dropped",
+        _drop("Agnocast"),
+        ("FAIL markers", "need Agnocast"),
+        (
+            "ok quoted 0.10.2:",
+            "ok verdict phrase:",
+            "ok VERSIONS row:",
+            "ok CMake project():",
+        ),
+    )
+    expect(
+        "Hold ban zenoh dropped",
+        _drop("zenoh"),
+        ("FAIL markers", "need zenoh"),
+        (
+            "ok quoted 0.10.2:",
+            "ok verdict phrase:",
+            "ok VERSIONS row:",
+            "ok CMake project():",
+        ),
+    )
+    expect(
+        "CVE-fix version contract dropped",
+        _drop("cyclonedds>=0.10.5"),
+        ("FAIL markers", "need cyclonedds>=0.10.5"),
+        (
+            "ok quoted 0.10.2:",
+            "ok verdict phrase:",
+            "ok VERSIONS row:",
+            "ok CMake project():",
+        ),
+    )
+
     return caught
 
 
@@ -335,7 +383,7 @@ def main() -> int:
 
     print("# Unitree Cyclone-swap honesty guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/7; "
+        f"- negative scenarios caught: {negative}/10; "
         f"non-flag existence-only green: {nonflags}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -352,7 +400,7 @@ def main() -> int:
         return 1
 
     print(
-        f"- **{SUCCESS_MARKER}** (7 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        f"- **{SUCCESS_MARKER}** (10 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard catches a flipped drop-in/wire verdict, a tampered quoted"
