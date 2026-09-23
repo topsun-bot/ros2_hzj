@@ -4403,3 +4403,54 @@
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 66 — 2026-09-23 13:28（Asia/Shanghai）— 给 #41 risk_matrix 补 matrix 自身总 Hold 立场 / 跨机 blocked 诚实词删除负向 N12/N13（功能 PR TBD）
+
+### 只读取证（接续轮次65 下一步第2条）
+
+- Read guard `check_risk_matrix.py`（139 行）：matrix 走 19-marker `_MATRIX_MARKERS`。原 selftest 对 matrix 文档本身 present-but-stripped 只覆盖三个具体 Hold 禁令词（N4/N5/N6 Agnocast/zenoh/Cega）与反缩写中间项（N1/N11 《4》/《5》）；matrix 文件保留却删其**总立场/诚实词**零负向。
+- grep 出现次数：Hold 14、Humble 5、Rolling 3、blocked 4、§9.4 8、fastdds.xml 8、SCOREBOARD 11。
+- 探针（matrix 文件保留、replace 删词，其余 7 文件不动）：
+  - 删总 **Hold** 立场 → code1 逐字 `FAIL markers ... (need Hold)`，okfile 7、FAIL order False（不连带）；
+  - 删跨机 **blocked** 诚实词 → code1 逐字 `FAIL markers ... (need blocked)`，okfile 7、FAIL order False；
+  - 删 Humble / Rolling 同样 code1 点名、不连带（本轮先不取，见下）。
+- 真实盲区＝matrix 自身的 **Hold（总立场）** 与 **blocked（跨机诚实）**：N4–N6 是具体禁令词、N7 的 Hold 在 R0 文件，matrix 丢自己的总 Hold 立场或跨机 blocked 判决此前无断言。
+- Humble/Rolling 是「Rolling ≠ Humble」版本诚实**一对**，更适合作为独立主题下一轮成对补（本轮有意只取 Hold/blocked，不堆叠）；fastdds.xml/SCOREBOARD/§9.4 是指针/锚点、权重低，有意不加。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/risk_matrix_guard_selftest.py`（#41）：新增 **N12**（matrix 保留、删总 Hold）、**N13**（matrix 保留、删跨机 blocked），均要求 code1 + need 词 + sibling ok（其余 7 文件 ok、order 不连带）；negative 11→13，计数扩为 **`13 negative, 2 non-flag, 2 healthy, 1 mutation`**；同步 docstring（N12/N13 段）、进度分母 /11→/13、收尾散文。
+2. `evals/promptfooconfig.yaml`：#41 description 补 matrix 丢总 Hold/blocked、计数 value 11→13；cases=42、scripts=42。
+3. `evals/README.md`：#41 文件表行、长描述行、明细表行（整行计数）、专节（11→13 negative 并补 N12/N13）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N12/N13 先在真实 guard 上 /tmp 探针逐字取证（need Hold/blocked + okfile 7 + order 不连带）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式 also_ok 断言兄弟文件不连带、order 不触发；
+- 不新增 case、不改 guard/fixtures/runner，纯补 matrix 自身总立场/跨机诚实 present-but-weakened；既有 N1–N11、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 13:28 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-3DJ-2026-09-23T05:28:11`（Duration 7s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- matrix 的 Humble/Rolling 版本诚实对 present-but-stripped 仍零负向（探针 code1），留下一轮成对补；fastdds.xml/SCOREBOARD/§9.4 指针锚点权重低有意不加。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 给 #41 matrix 补 **Humble/Rolling 版本诚实对**（成对、先探针），或转 #42 per-file marker 复查。
+3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
