@@ -4294,3 +4294,50 @@
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 64 — 2026-09-23 11:38（Asia/Shanghai）— 给 #20 unitree swap 文档补 present-but-stripped Hold 环境隔离路径（/opt/ros/humble）删除负向 N11（功能 PR TBD）
+
+### 只读取证（接续轮次63 下一步第2条）
+
+- 对 swap 文档全部候选 marker 探针（出现次数：STATUS: blocked 3、/opt/ros/humble 4、bundled 13、in-place overwrite 4、libddsc 15、libddscxx 7、Unitree 12、0.10.2 23、11.0.1 24、fastdds.xml 4、SCOREBOARD 6、vendor/VERSIONS.md 10）：删光任一词 → code1 `FAIL markers ... (need <词>)`，quote/verdict/VERSIONS/CMake 独立检查读其他内容仍报 ok（不连带；仅删 0.10.2 会连带 quote，因引文含 0.10.2，属冗余）。
+- 按安全权重取舍本轮做 swap 文档**独有 Hold 环境隔离路径**：**/opt/ros/humble（guard 末尾明确 "Do not copy rolling vendor onto a robot or /opt/ros/humble"）**，承载"不把 vendor rolling 污染到机器人 / Humble 安装目录"契约；该路径为 swap 文档独有，baseline/repro 无此 marker，且只走通用 marker 元组、不在四个独立检查。
+- 有意不加（不凑数）：STATUS: blocked 与 baseline 轮次58 N8、repro status 同模式（重复）；bundled/in-place overwrite 与 DOC_VERDICT/默认 bundled 语义重叠；libddsc/libddscxx 为库名技术内容；fastdds.xml/SCOREBOARD/vendor/VERSIONS.md 是指针锚点；11.0.1/Unitree 版本/主体名已由 VERSIONS/CMake 实际 pin 覆盖。
+- 真实盲区：swap 文档保留 shell、删 /opt/ros/humble，会让"不得污染 Humble 安装"的环境隔离契约在该文档面失效，而既有 N1–N10 全绿。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/unitree_swap_guard_selftest.py`（#20）：复用 `_drop` 通道，新增 **N11**（文档保留删 /opt/ros/humble，要求 code1 + FAIL markers 点名 need 路径 + quote/verdict/VERSIONS/CMake 仍 ok），negative 10→11，计数扩为 **`11 negative, 2 non-flag, 2 healthy, 1 mutation`**；同步 docstring（补 N11）与进度分母 /10→/11。
+2. `evals/promptfooconfig.yaml`：#20 description 补 Hold 环境隔离路径 stripped、计数 value 10→11；cases=42、scripts=42。
+3. `evals/README.md`：#20 文件表行、明细表行（整行计数）、专节（10→11 negative 并补 N11 与取舍说明）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N11 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need /opt/ros/humble + 四个独立检查仍 ok）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言独立检查不连带；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #20 对 swap 文档独有 Hold 环境隔离路径 present-but-weakened 的负向判别；既有 N1–N10、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 11:38 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-oK5-2026-09-23T03:38:33`（Duration 7s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- swap 文档的 STATUS: blocked（重复）、bundled/in-place/libddsc/指针/版本号 present-but-stripped 仍零负向，已论证权重低/重复/语义重叠、有意不加。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. #20 swap 文档 marker 已按安全权重覆盖到位（裁决/引文/合法路径/Hold 禁令/CVE 版本/Humble 隔离；重复诚实词/库名/指针/版本有意不加）。转去复查 #41/#42 是否仍有独有未覆盖 per-file marker，先探针论证、不凑数。
+3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+

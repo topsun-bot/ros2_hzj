@@ -27,9 +27,10 @@ five real files the guard reads** into a temp tree and mutating one at a time
 (the swap doc carries 18 contiguous markers, so hand-writing a minimal healthy
 doc would be brittle and drift from the real record). The guard's injectable
 ``render(root=...)`` is then driven against each mutated tree. It asserts:
-  1. ten negative scenarios ARE caught (exit 1, no success marker, the right
-     FAIL family), and the independent checks still report ``ok`` (a swap-doc
-     mutation must not spuriously fail VERSIONS/CMake and vice versa):
+  1. eleven negative scenarios ARE caught (exit 1, no success marker, the
+     right FAIL family), and the independent checks still report ``ok`` (a
+     swap-doc mutation must not spuriously fail VERSIONS/CMake and vice
+     versa):
        N1 verdict flipped FAIL/UNPROVEN -> PASS/PROVEN (FAIL verdict);
        N2 quoted DDS_VERSION "0.10.2" tampered, bare 0.10.2 kept (FAIL quote);
        N3 vendored CycloneDDS SHA row tampered (FAIL VERSIONS row);
@@ -42,6 +43,8 @@ doc would be brittle and drift from the real record). The guard's injectable
        N8 Hold ban word Agnocast dropped from the swap doc (FAIL markers);
        N9 Hold ban word zenoh dropped from the swap doc (FAIL markers);
        N10 CVE-fix version contract cyclonedds>=0.10.5 dropped
+           (FAIL markers, names it);
+       N11 Hold environment-isolation path /opt/ros/humble dropped
            (FAIL markers, names it);
   2. two non-flag (existence-only) scenarios stay green: an empty SCOREBOARD
      and an arbitrary fastdds.xml (even a bogus domainId) both exit 0 with the
@@ -265,6 +268,29 @@ def _check_negatives(failures: list[str]) -> int:
         ),
     )
 
+    # N11: the swap doc stays present but loses the Hold environment-
+    # isolation path /opt/ros/humble (4 occurrences). The guard's closing
+    # text forbids copying rolling vendor onto a robot or /opt/ros/humble;
+    # this path marker is unique to the swap record (the baseline/repro
+    # docs do not carry it) and rides only the generic marker tuple, not the
+    # verdict/quote/VERSIONS/CMake independent checks. N1-N10 did not cover
+    # it (N8/N9 cover Agnocast/zenoh, N10 the CVE-fix version), so a future
+    # "trim" that removes it would weaken the do-not-pollute-Humble contract
+    # while the existing negatives stayed green. Probed on the real guard
+    # (all occurrences removed -> FAIL markers need /opt/ros/humble, the
+    # four independent checks still report ok).
+    expect(
+        "Hold /opt/ros/humble path dropped",
+        _drop("/opt/ros/humble"),
+        ("FAIL markers", "need /opt/ros/humble"),
+        (
+            "ok quoted 0.10.2:",
+            "ok verdict phrase:",
+            "ok VERSIONS row:",
+            "ok CMake project():",
+        ),
+    )
+
     return caught
 
 
@@ -383,7 +409,7 @@ def main() -> int:
 
     print("# Unitree Cyclone-swap honesty guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/10; "
+        f"- negative scenarios caught: {negative}/11; "
         f"non-flag existence-only green: {nonflags}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -400,7 +426,7 @@ def main() -> int:
         return 1
 
     print(
-        f"- **{SUCCESS_MARKER}** (10 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        f"- **{SUCCESS_MARKER}** (11 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard catches a flipped drop-in/wire verdict, a tampered quoted"
