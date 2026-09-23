@@ -23,6 +23,16 @@ file-existence shape already covered elsewhere:
   * N1 strips the standalone ``《4》`` token while leaving the ``《3》–《6》``
     range in place -- the range must NOT satisfy the per-token requirement
     (exit 1, ``FAIL markers`` naming ``《4》``);
+  * N11 does the same for the standalone ``《5》`` token. ``《4》`` and
+    ``《5》`` are the *middle* subtasks and do not appear literally inside the
+    ``《3》–《6》`` range string, so the range cannot satisfy them; only ``《4》``
+    had a negative. The two range *endpoints* behave differently and are
+    intentionally not given negatives: ``《3》`` and ``《6》`` appear literally
+    inside the range, so a substring check cannot tell the standalone table
+    token from the range -- deleting the table token while keeping the range
+    still exits 0 (probed). Tightening that would require changing the
+    guard's detection logic, not an eval-only addition, and the range itself
+    already declares 《3》/《6》 Hold;
   * N2 drops a required file (the R0 interface freeze) -- exit 1,
     ``FAIL missing`` naming the path;
   * N3 strips ``§9.4`` from the ADR -- exit 1, ``FAIL markers`` naming it
@@ -153,12 +163,28 @@ def _check_negatives(failures: list[str]) -> int:
                 f"(code={code}, need {must!r}, also_ok={also_ok!r})"
             )
 
+    # Sibling files must still print ok file when the matrix alone misses a
+    # marker (a matrix miss must not collaterally fail another required file).
+    sibling_ok = ("ok file:", "feishu-middleware-adr.md")
+
     # N1: drop the standalone 《4》 token; the 《3》–《6》 range remains and must
     # not satisfy the per-token Hold contract.
     expect(
         "matrix drops standalone 《4》, keeps range",
         "《4》",
         matrix_text=_real_text(g.MATRIX_REL).replace("《4》", ""),
+    )
+    # N11: same anti-abbreviation contract for the other range-middle token
+    # 《5》. Only the standalone table token ("《5》Promptfoo") is removed while
+    # the 《3》–《6》 range stays intact; the range contains no literal 《5》, so
+    # this must fail markers and name it. (The range endpoints 《3》/《6》 are
+    # satisfied by the range itself and cannot be distinguished -- see the
+    # module docstring -- so they are intentionally not added.)
+    expect(
+        "matrix drops standalone 《5》, keeps range",
+        "need 《5》",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("《5》Promptfoo", "Promptfoo"),
     )
     # N2: a required file is gone.
     expect("missing R0 freeze file", "FAIL missing", drop=(g.R0_REL,))
@@ -175,7 +201,6 @@ def _check_negatives(failures: list[str]) -> int:
     # word gets its own case so removing just one from the guard's marker
     # tuple cannot hide behind the other two -- same per-token logic as the
     # 《3》/《4》/《5》/《6》 anti-abbreviation contract.
-    sibling_ok = ("ok file:", "feishu-middleware-adr.md")
     expect(
         "matrix drops Hold-ban marker Agnocast",
         "need Agnocast",
@@ -328,7 +353,7 @@ def main() -> int:
 
     print("# Risk-matrix §9.4 Hold guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/10; "
+        f"- negative scenarios caught: {negative}/11; "
         f"non-flag scenarios green: {non_flag}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -346,11 +371,12 @@ def main() -> int:
 
     print(
         f"- **{SUCCESS_MARKER}** "
-        "(10 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        "(11 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard fails closed when a standalone 《3》/《4》/《5》/《6》 Hold "
-        "token is replaced by a bare 《3》–《6》 range, when a required file is "
+        "token (the middle subtasks 《4》/《5》) is dropped while the 《3》–《6》 "
+        "range stays in place, when a required file is "
         "missing, when the ADR loses §9.4, when one of the Agnocast / "
         "zenoh / Cega Hold-ban words is dropped from the matrix, or when a "
         "present R0 / source-map / latency-method / CI-gates file loses its "
