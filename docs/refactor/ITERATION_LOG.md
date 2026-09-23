@@ -4460,3 +4460,53 @@
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 67 — 2026-09-23 15:17（Asia/Shanghai）— 给 #41 risk_matrix 补 Rolling ≠ Humble 版本诚实对删除负向 N14/N15（功能 PR TBD）
+
+### 只读取证（接续轮次66 下一步第2条）
+
+- Read guard `check_risk_matrix.py`（139 行）：matrix 走 19-marker `_MATRIX_MARKERS`，含版本诚实词 Humble、Rolling。原 selftest 对 matrix 文档 present-but-stripped 已覆盖具体禁令词（N4–6）、反缩写中间项（N1/11）、总 Hold/跨机 blocked（N12/13）；matrix 文件保留却删 **Rolling ≠ Humble 版本诚实对**任一词零负向。
+- 语义取证（matrix 行19/行71）：「**Rolling ≠ Humble。** vendor 树是 rolling/master 快照，运行时目标是 Humble，严禁把 vendor 文件直接覆盖发行版树」、表格「Rolling ≠ Humble **严禁** 覆盖」。count：Humble 5、Rolling 3。
+- 探针（matrix 文件保留、replace 删词，其余 7 文件不动）：
+  - 删 **Humble** → code1 逐字 `FAIL markers ... (need Humble)`，okfile 7、FAIL order False；
+  - 删 **Rolling** → code1 逐字 `FAIL markers ... (need Rolling)`，okfile 7、FAIL order False。
+- 真实盲区＝版本诚实对两个词：matrix 保留却删任一会让「rolling vendor 不得覆盖 Humble 发行版」契约失去字面锚点，此前无断言；两词成对、各占一个 case（同 N4–6 逐 token 逻辑），防止只删其一时被另一个掩盖。
+- fastdds.xml/SCOREBOARD/§9.4 仍是指针/锚点、权重低，有意不加。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/risk_matrix_guard_selftest.py`（#41）：新增 **N14**（matrix 保留、删 Humble）、**N15**（matrix 保留、删 Rolling），均要求 code1 + need 词 + sibling ok（其余 7 文件 ok、order 不连带）；negative 13→15，计数扩为 **`15 negative, 2 non-flag, 2 healthy, 1 mutation`**；同步 docstring（N14/N15 段）、进度分母 /13→/15、收尾散文。
+2. `evals/promptfooconfig.yaml`：#41 description 补版本诚实对、计数 value 13→15；cases=42、scripts=42。
+3. `evals/README.md`：#41 文件表行、长描述行、明细表行（整行计数）、专节（13→15 negative 并补 N14/N15）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N14/N15 先在真实 guard 上 /tmp 探针逐字取证（need Humble/Rolling + okfile 7 + order 不连带）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式 also_ok 断言兄弟文件不连带、order 不触发；
+- 不新增 case、不改 guard/fixtures/runner，纯补版本诚实对 present-but-weakened；既有 N1–N13、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 15:17 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-t8X-2026-09-23T07:17:30`（Duration 6s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- matrix 19 marker 中安全权重高的立场/诚实/版本词已全部覆盖（禁令 N4–6、反缩写 N1/11、总 Hold/blocked N12/13、版本对 N14/15）；仅剩 fastdds.xml/SCOREBOARD/§9.4 指针锚点（权重低、有意不加）。#41 matrix 面负向深化基本到顶，下一轮宜转 #42 per-file marker 复查或其他 guard。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. #41 matrix 面负向已到顶；转 **#42 dual_chain_baseline per-file marker 复查**（27 negative 基础上找独有 present-but-stripped，先探针），或复查其他 guard。
+3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
