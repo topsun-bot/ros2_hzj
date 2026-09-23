@@ -4187,3 +4187,50 @@
 3. #20 STATUS: blocked、#27 其余 marker 扩前先论证独有安全价值；existence-only helper 签名趋同再抽。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
 
+---
+
+## 轮次 62 — 2026-09-23 09:17（Asia/Shanghai）— 继续类推：给 #27 three-chain repro 文档补 present-but-stripped Hold 禁令词（Agnocast / zenoh）删除负向 N3/N4（功能 PR TBD）
+
+### 只读取证（接续轮次61 下一步第2条）
+
+- Read #27 guard（check_three_chain_repro.py）确认：`Agnocast`/`zenoh` 在 `_REPRO_MARKERS` 元组（行58/59），走通用 marker 扫描（行139–144）；**不在** phrase（只查 MAP_NE_REPRODUCE）、status（只查 STATUS_BLOCKED）、chains（publish/History/wait→callback 或 WaitSet/callback）、fabricate（PASS/PROVEN）四个独立检查里。
+- repro 文档出现次数：Agnocast 1、zenoh 1（另有 Not Feishu field proof 1、not-run-here 3、ros2-source-map.md 12、feishu-executor-waitset.md 9 等）。
+- /tmp 探针：文档保留、各删该词 → code1，逐字 `FAIL markers: docs/architecture/feishu-three-chain-repro.md (need Agnocast)` / `(need zenoh)`；phrase/status/chains/honesty 独立检查读其他内容仍报 ok（不连带、不触发 fabricate）。
+- 真实盲区：repro 文档保留 shell、删任一 Hold 禁令词，会让 Hold 禁令在该文档面失效，而既有 N1/N2（只追加伪造句、从不删 marker）、non-flag、healthy、mutation 全绿。本轮只做这两个 Hold 禁令词（与 #41 轮次52、#20 轮次61 同型，把三处复制真实文件型 selftest 的 Hold 禁令词负向补齐）；其余 marker（Not Feishu field proof、not-run-here、指针等）留下轮并需先论证独有安全价值。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/three_chain_repro_guard_selftest.py`（#27）：`_seed_tree`/`_render` 加 `repro_drop` 参数；新增 **N3/N4**（文档保留删 Agnocast/zenoh，要求 code1 + FAIL markers 点名 need 词 + phrase/status/chains/honesty 仍 ok + 不触发 fabricate），negative 2→4，计数扩为 **`4 negative, 3 non-flag, 2 healthy, 1 mutation`**；同步 docstring（普通链词仍不重测、补 Hold ban 例外与 N3/N4）与进度分母 /2→/4。
+2. `evals/promptfooconfig.yaml`：#27 description 补 Hold ban stripped、计数 value 2→4；cases=42、scripts=42。
+3. `evals/README.md`：#27 文件表行、明细表行（整行计数）、专节（2→4 negative 并补 N3/N4）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N3/N4 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers 点名 need 行 + phrase/status/chains/honesty 仍 ok）再写进自测；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言独立检查不连带、不触发 fabricate；
+- 不新增 case、不改 guard 代码 / fixtures / runner，纯补 #27 对 repro 文档 Hold 禁令词 present-but-weakened 的负向判别；既有 N1/N2、non-flag、healthy、mutation 全保持。
+
+### 实测（本机 macOS，2026-09-23 09:17 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-ltn-2026-09-23T01:17:33`（Duration 4s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- repro 文档其余 marker（Not Feishu field proof、not-run-here、Humble、指针 ros2-source-map.md/feishu-executor-waitset.md 等）present-but-stripped 仍零负向，扩前先探针 + 论证独有安全价值；#20 STATUS: blocked 诚实词未加（与 baseline 模式重复，价值待论证）。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·双链 pub/sub/p99/跨机 UDP/三链实际复现仍 `STATUS: blocked`（无 Humble runtime），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 评估 #27 repro 文档其余 marker（Not Feishu field proof 诚实词、not-run-here、Humble、指针）present-but-stripped：先探针 + 论证独有安全价值再决定是否加，不凑数。
+3. #20 STATUS: blocked 扩前先论证独有价值；existence-only helper 签名趋同再抽。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+
