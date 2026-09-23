@@ -34,11 +34,20 @@ existence checks pass; only the fabrication regex can catch it:
   * N2 appends ``three-chain repro: PROVEN``, caught by the
     ``(three-chain repro|三条链复现) : (PASS|PROVEN|OK)`` regex (the sibling
     ``reproduce:`` regex deliberately does not match the short word ``repro``).
+  * N3/N4 do not append; the repro doc shell stays present while one Hold ban
+    word (``Agnocast`` / ``zenoh``) is removed, which the marker scan must
+    catch as ``FAIL markers`` (need the word); the independent phrase/status/
+    chains/honesty checks read other content and stay ok.
 
-The marker-substring file checks and ``_has_three_chains`` are intentionally
-not re-tested: they are direct ``token in text`` / marker-co-occurrence checks
+The ordinary chain markers and ``_has_three_chains`` are intentionally not
+re-tested: they are direct ``token in text`` / marker-co-occurrence checks
 whose stated design boundary is "filesystem + honesty markers only" (the guard
-makes no claim of semantic chain validation). The same-line prohibition
+makes no claim of semantic chain validation). The two Hold **ban** words in
+the marker tuple, ``Agnocast`` / ``zenoh`` (one occurrence each), are the
+exception and are pinned by N3/N4: the doc stays present but loses one ban
+word, which must fail the marker scan and name it (symmetric with the #20 /
+#41 Hold-ban negatives) while the phrase/status/chains/honesty checks still
+report ok. The same-line prohibition
 exemption (``_PROHIBITION_RE`` + ``line_at``) is pinned here on this guard's
 own Chinese/English prohibition vocabulary, so a future tightening that
 flagged a legitimate "do not write …" instruction would also go red.
@@ -47,9 +56,11 @@ Fixtures are built by **copying the six real files the guard reads** (the
 reproduce status doc, source-map, WaitSet map, ADR, plus the existence-only
 fastdds.xml / SCOREBOARD) into a temp tree, appending one sentence at a time to
 the reproduce doc, and driving the injectable ``render(root=...)``. It asserts:
-  1. two negative scenarios ARE caught (exit 1, no success marker,
-     ``FAIL fabricate`` naming the fabricated string, and no collateral
-     FAIL missing/markers/phrase/status/chains — the healthy markers survive);
+  1. four negative scenarios ARE caught (exit 1, no success marker). N1/N2
+     pin ``FAIL fabricate`` naming the fabricated string with no collateral
+     FAIL missing/markers/phrase/status/chains (the healthy markers survive);
+     N3/N4 pin ``FAIL markers`` naming a stripped Hold ban word
+     (Agnocast/zenoh) while phrase/status/chains/honesty still report ok;
   2. three non-flag scenarios stay green: one same-line prohibition sentence
      ("不要把 map = reproduce …") is exempt by the prohibition regex, and the
      two existence-only files — an empty SCOREBOARD and an arbitrary
@@ -104,21 +115,25 @@ _NO_COLLATERAL = (
 )
 
 
-def _seed_tree(tmp: Path, repro_append: str = "") -> None:
-    """Copy the six real files into the temp tree; append one repro-doc line."""
+def _seed_tree(tmp: Path, repro_append: str = "",
+               repro_drop: str = "") -> None:
+    """Copy the six real files into the temp tree; append / drop repro text."""
     for rel in CONTENT_RELS:
         dst = tmp / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         text = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
-        if rel == g.REPRO_REL and repro_append:
-            text = text.rstrip("\n") + "\n" + repro_append + "\n"
+        if rel == g.REPRO_REL:
+            if repro_drop:
+                text = text.replace(repro_drop, "")
+            if repro_append:
+                text = text.rstrip("\n") + "\n" + repro_append + "\n"
         dst.write_text(text, encoding="utf-8")
 
 
-def _render(repro_append: str = ""):
+def _render(repro_append: str = "", repro_drop: str = ""):
     with tempfile.TemporaryDirectory(prefix="tc_neg_") as d:
         tmp = Path(d)
-        _seed_tree(tmp, repro_append)
+        _seed_tree(tmp, repro_append, repro_drop)
         return g.render(root=tmp)
 
 
@@ -149,6 +164,39 @@ def _check_negatives(failures: list[str]) -> int:
     expect("extra 'map = reproduce' contradiction", "map = reproduce", "map = reproduce")
     # N2: a fabricated three-chain repro PROVEN claim.
     expect("extra 'three-chain repro: PROVEN'", "three-chain repro: PROVEN", "PROVEN")
+
+    # N3/N4: present-but-stripped Hold ban words. The repro doc stays present
+    # but loses Agnocast (1) / zenoh (1), which ride the generic marker tuple.
+    # N1/N2 only appended extra sentences and never removed a marker, so the
+    # doc losing a Hold ban word while present had zero coverage; a future
+    # "simplification" that drops a ban word would let the Hold contract
+    # vanish while the existing negatives stayed green. The phrase/status/
+    # chains/honesty checks read other content and must still report ok, and
+    # no fabrication must be implied. Probed on the real guard.
+    def expect_drop(label: str, word: str) -> None:
+        nonlocal caught
+        out, code = _render(repro_drop=word)
+        ok = (
+            code == 1
+            and g.SUCCESS_MARKER not in out
+            and "FAIL markers" in out
+            and f"(need {word})" in out
+            and "ok phrase" in out
+            and "ok status" in out
+            and "ok chains" in out
+            and "ok honesty" in out
+            and "FAIL fabricate" not in out
+        )
+        if ok:
+            caught += 1
+        else:
+            failures.append(
+                f"negative '{label}': not caught as expected (code={code}, "
+                f"FAIL markers={'FAIL markers' in out}, need={word in out})"
+            )
+
+    expect_drop("N3 Hold ban Agnocast dropped", "Agnocast")
+    expect_drop("N4 Hold ban zenoh dropped",zenoh_drop := "zenoh")
     return caught
 
 
@@ -273,7 +321,7 @@ def main() -> int:
 
     print("# Three-chain-reproduce guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/2; "
+        f"- negative scenarios caught: {negative}/4; "
         f"prohibition lines exempt: {nonflag}/1; "
         f"existence-only content green: {existence}/2; "
         f"healthy trees green: {healthy}/2; "
@@ -290,7 +338,7 @@ def main() -> int:
         )
         return 1
 
-    print(f"- **{SUCCESS_MARKER}** (2 negative, 3 non-flag, 2 healthy, 1 mutation)")
+    print(f"- **{SUCCESS_MARKER}** (4 negative, 3 non-flag, 2 healthy, 1 mutation)")
     print(
         "\nThe guard catches an extra contradictory 'map = reproduce' and a "
         "fabricated 'three-chain repro: PROVEN' even while map ≠ reproduce / "
