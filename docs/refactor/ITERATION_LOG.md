@@ -4405,7 +4405,7 @@
 
 ---
 
-## 轮次 66 — 2026-09-23 13:28（Asia/Shanghai）— 给 #41 risk_matrix 补 matrix 自身总 Hold 立场 / 跨机 blocked 诚实词删除负向 N12/N13（功能 PR TBD）
+## 轮次 66 — 2026-09-23 13:28（Asia/Shanghai）— 给 #41 risk_matrix 补 matrix 自身总 Hold 立场 / 跨机 blocked 诚实词删除负向 N12/N13（功能 PR #185，main fb1ada1）
 
 ### 只读取证（接续轮次65 下一步第2条）
 
@@ -4437,6 +4437,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-3DJ-2026-09-23T05:28:11`（Duration 7s，0 error）。
 
+### 合并后权威回归（功能 PR #185 已 squash-merge）
+
+- 功能 PR #185（分支 test/risk-matrix-hold-blocked-negatives，commit 26ded20，4 files）required 三检 + CodeQL + Cursor Approval(1m16s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `fb1ada1920c12bb020cf6061b8bd8295db360d21`（远端分支已删）；`gh api` 核实合并 commit：structure: success、boundary: success、contracts: success。
+- 回 main（=origin/main `fb1ada1`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-sPB-2026-09-23T05:33:14`（Duration 8s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -4449,7 +4455,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #185 已合并（main `fb1ada1`），合并后权威回归 42/42、0 error（eval `eval-sPB-2026-09-23T05:33:14`），本回填 PR 即补登。
 2. 给 #41 matrix 补 **Humble/Rolling 版本诚实对**（成对、先探针），或转 #42 per-file marker 复查。
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
