@@ -43,6 +43,13 @@ file-existence shape already covered elsewhere:
     failure). The three bans ride the generic matrix marker tuple, and each is
     asserted on its own so dropping just one from the guard's tuple cannot hide
     behind the other two, mirroring the per-token 《3》..《6》 contract;
+  * N12/N13 strip the matrix's own core stance/veracity words -- the
+    overarching ``Hold`` stance and the cross-host ``blocked`` honesty word
+    -- exit 1, ``FAIL markers`` naming the dropped word, while the other
+    seven files still print ``ok file`` and the order check is unaffected.
+    N4/N5/N6 cover the three concrete Hold-ban words and N7 covers ``Hold``
+    on the R0 file, but the matrix keeping its file while losing its own
+    ``Hold`` stance or its cross-host ``blocked`` verdict had no negative;
   * N7/N8/N9/N10 keep a required single-marker file present but strip its
     sole marker -- the R0 freeze loses ``Hold``, the source map loses
     ``vendor``, the latency method doc loses ``wiki``, the CI gates doc loses
@@ -219,6 +226,25 @@ def _check_negatives(failures: list[str]) -> int:
         also_ok=sibling_ok,
         matrix_text=_real_text(g.MATRIX_REL).replace("Cega", ""),
     )
+    # N12/N13: the matrix's own core stance/veracity words ride the generic
+    # matrix marker tuple. N4/N5/N6 cover the concrete Hold-ban words and N7
+    # covers "Hold" on the R0 file, but the matrix staying present while
+    # losing its own overarching "Hold" stance, or its cross-host "blocked"
+    # honesty verdict (cross-host UDP must stay marked blocked on this host),
+    # had no negative. Stripping either must fail markers and name it, with
+    # the other seven files still ok and the order check unaffected.
+    expect(
+        "matrix present but drops overarching Hold stance",
+        "need Hold",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("Hold", ""),
+    )
+    expect(
+        "matrix present but drops cross-host blocked verdict",
+        "need blocked",
+        also_ok=sibling_ok,
+        matrix_text=_real_text(g.MATRIX_REL).replace("blocked", ""),
+    )
     # N7/N8/N9/N10: four required files each carry a single marker distinct
     # from the matrix tuple -- R0 needs "Hold", the source map needs "vendor",
     # the latency method doc needs "wiki", the CI gates doc needs "structure".
@@ -353,7 +379,7 @@ def main() -> int:
 
     print("# Risk-matrix §9.4 Hold guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/11; "
+        f"- negative scenarios caught: {negative}/13; "
         f"non-flag scenarios green: {non_flag}/2; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
@@ -371,14 +397,16 @@ def main() -> int:
 
     print(
         f"- **{SUCCESS_MARKER}** "
-        "(11 negative, 2 non-flag, 2 healthy, 1 mutation)"
+        "(13 negative, 2 non-flag, 2 healthy, 1 mutation)"
     )
     print(
         "\nThe guard fails closed when a standalone 《3》/《4》/《5》/《6》 Hold "
         "token (the middle subtasks 《4》/《5》) is dropped while the 《3》–《6》 "
         "range stays in place, when a required file is "
         "missing, when the ADR loses §9.4, when one of the Agnocast / "
-        "zenoh / Cega Hold-ban words is dropped from the matrix, or when a "
+        "zenoh / Cega Hold-ban words is dropped from the matrix, when the matrix "
+        "loses its own overarching Hold stance or its cross-host blocked "
+        "verdict, or when a "
         "present R0 / source-map / latency-method / CI-gates file loses its "
         "single Hold / vendor / wiki / structure marker; the frozen "
         "SCOREBOARD (STATUS only) and fastdds.xml (domainId anchor only) stay "
