@@ -4133,7 +4133,7 @@
 
 ---
 
-## 轮次 61 — 2026-09-23 08:11（Asia/Shanghai）— 类推审计：给 #20 unitree swap 文档补 present-but-stripped Hold 禁令词（Agnocast / zenoh）与 CVE 修复版本契约（cyclonedds>=0.10.5）删除负向 N8–N10（功能 PR TBD）
+## 轮次 61 — 2026-09-23 08:11（Asia/Shanghai）— 类推审计：给 #20 unitree swap 文档补 present-but-stripped Hold 禁令词（Agnocast / zenoh）与 CVE 修复版本契约（cyclonedds>=0.10.5）删除负向 N8–N10（功能 PR #175，main 91f98bf）
 
 ### 只读取证（接续轮次60 下一步第2条，类推审计复制真实文件型 selftest）
 
@@ -4164,6 +4164,12 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-9Ak-2026-09-23T00:11:20`（Duration 4s，0 error）。
 
+### 合并后权威回归（功能 PR #175 已 squash-merge）
+
+- 功能 PR #175（分支 test/unitree-swap-holdban-marker-negatives，commit 6a70fc9，4 files）required 三检 + CodeQL + Cursor Approval(1m25s) 全 pass（reviewDecision APPROVED；mergeStateStatus UNSTABLE 仅因非 required 的 Security Reviewer pending），squash-merge 到 main，mergeCommit `91f98bfc2e3b9752dca4a7e86fc60cde035e09f2`（远端分支已删）；`gh api` 核实合并 commit：structure: success、contracts: success、boundary: success。
+- 回 main（=origin/main `91f98bf`）重跑：compileall OK；`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- `npx promptfoo@0.123.1 eval` 合并后权威结果：**42/42 passed (100%)、0 failed、0 errors**，eval `eval-0Hm-2026-09-23T00:16:26`（Duration 4s，0 error）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。《6》CVE 审计保持只读：本轮只断言文档已记录的修复版本契约，未安装/升级任何被审计依赖。
@@ -4176,7 +4182,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #175 已合并（main `91f98bf`），合并后权威回归 42/42、0 error（eval `eval-0Hm-2026-09-23T00:16:26`），本回填 PR 即补登。
 2. 继续类推：给 #27 three_chain repro 文档补 Hold 禁令词（Agnocast/zenoh）present-but-stripped 负向（先探针、确认走 marker 扫描而非 phrase/status/chains 独立检查）。
 3. #20 STATUS: blocked、#27 其余 marker 扩前先论证独有安全价值；existence-only helper 签名趋同再抽。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
