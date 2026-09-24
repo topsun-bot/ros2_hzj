@@ -2,6 +2,7 @@ name: claude-code-review
 
 # Advisory Claude Code review on pull requests. This is NOT a Hold gate:
 # the structure / contracts / boundary jobs in ci.yml stay the required checks.
+# Actions are pinned to reviewed commit SHAs (tag in trailing comment).
 # Requires one repository secret: ANTHROPIC_API_KEY (or swap the input below for
 # claude_code_oauth_token + CLAUDE_CODE_OAUTH_TOKEN) and the Claude GitHub App
 # installed on the repository (https://github.com/apps/claude).
@@ -13,7 +14,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  issues: read
+  issues: write
   id-token: write
   actions: read
 
@@ -24,14 +25,18 @@ concurrency:
 jobs:
   review:
     name: claude review
-    if: github.event.pull_request.draft == false
+    # Non-draft, same-repository PRs only. Fork PRs get no secrets on
+    # pull_request anyway; skipping them avoids a red job with no key.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@8cf3482550831fb35a4fc3fbf7ca139cf8028b4c # v1.0.233
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           use_sticky_comment: true
