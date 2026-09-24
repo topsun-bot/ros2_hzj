@@ -24,7 +24,7 @@
 | `dod_evidence_guard_selftest.py` | 产品 DoD 诚实性 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD 仅占位），只覆盖其独有的反伪造逻辑——伪造的 `STATUS: PASS`/`DoD: met`/this-host measured-delta/“Humble 在此跑过”声明与虚构的 booked p99 分位必报；同行禁止句（do not write STATUS: PASS）与政策词“分位数”不得误报；STATUS 伪造正则被改宽即漏报 |
 | `cega_bridge_hold_guard_selftest.py` | Cega / Bridge Hold guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 Hold 文档与 ADR 两个真实内容文件复制进 `tempfile`（fastdds.xml/SCOREBOARD/9 个只读 runtime 路径仅占位），只覆盖其独有解析——ADR §13(4) 表格 cell 必须以 `**Hold**` 开头且不含 PASS/已接 Cega/integrate Cega（cell 翻 PASS、Hold cell 夹带裸 PASS、删行必报）、guard 内置内存行自检生效、首行 `Status:` 翻转与独立“已接 Cega”声明必报；同行禁止句在两份文档中均不得误报；“已接 Cega”正则被改宽即漏报（通用 STATUS:-PASS+禁止句机制与 #23 同形，不重复） |
 | `runtime_provenance_guard_selftest.py` | runtime-provenance guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 5 个真实文件（MANIFEST/VERSIONS/Dockerfile/provenance 文档/prove_rmw.py）复制进 `tempfile` 再逐个变异，只覆盖其两个独有解析器——`_dockerfile_pins_humble` 对 rolling 钉版/缺失 ENV/有 ENV 无值三种分支必报，`_versions_rows` 要求 vendor 树名与 40 位 SHA 在**同一行**（删 SHA、SHA 挪到别的行必报）；健康树不误报；SHA 正则被改宽为任意单词即漏报（直白 marker substring 检查不重复） |
-| `sink_layers_guard_selftest.py` | sink-layers guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实文件（sink/ADR/source-map/executor/swap 文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进 `tempfile`，只覆盖其唯一独有解析器 `_LAYER_ROW_RE`——六层表格行首粗体标签锚定：把 `\| **rcl** \|`/`\| **DDS** \|` 行标签置空但保留整行正文（app 行本就含 `rclpy`、executor 行含 `rclcpp`、散文满是 DDS）必须报 FAIL layers 且不连带 FAIL markers/policy；sink 文档保留却删两个独有 Hold 策略句 `AUTO ≠ 已开零拷` / `没有 vendor/iceoryx` 必同时 FAIL markers + FAIL policy、六层行仍 ok；健康六行树不误报；正则被改宽为裸词扫描即漏报（其余直白 marker substring 与 absent-vendor-tree 机制分别由其他正向用例/#22 覆盖，不重复；总立场 Hold vs allowed 留下一轮） |
+| `sink_layers_guard_selftest.py` | sink-layers guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 7 个真实文件（sink/ADR/source-map/executor/swap 文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进 `tempfile`，只覆盖其唯一独有解析器 `_LAYER_ROW_RE`——六层表格行首粗体标签锚定：把 `\| **rcl** \|`/`\| **DDS** \|` 行标签置空但保留整行正文（app 行本就含 `rclpy`、executor 行含 `rclcpp`、散文满是 DDS）必须报 FAIL layers 且不连带 FAIL markers/policy；sink 文档保留却删两个独有 Hold 策略句 `AUTO ≠ 已开零拷` / `没有 vendor/iceoryx` 必同时 FAIL markers + FAIL policy、六层行仍 ok；sink 保留却全删总立场短语 Hold vs allowed（6 处）必 FAIL markers + 独立 FAIL Hold vs allowed、六层行/policy 仍 ok；健康六行树不误报；正则被改宽为裸词扫描即漏报（其余直白 marker substring 与 absent-vendor-tree 机制分别由其他正向用例/#22 覆盖，不重复） |
 | `three_chain_repro_guard_selftest.py` | three-chain 复现 guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 6 个真实文件（repro/source-map/executor/ADR 文档 + 仅验存在的 fastdds.xml/SCOREBOARD）复制进 `tempfile`，只覆盖其独有的两条 `_FABRICATE_RES` 伪造正则——在健康文档（仍含 `map ≠ reproduce`、`STATUS: blocked` 与全部链名 marker）末尾**追加**矛盾句 `map = reproduce`（ASCII `=`，phrase 存在性检查抓不到，只有正则 `\bmap\s*=\s*reproduce\b` 抓）与 `three-chain repro: PROVEN` 必须报 FAIL fabricate 且不连带 missing/markers/phrase/status/chains；文档保留却删 Hold 禁令词 `Agnocast`/`zenoh` 或独有诚实词 `not-run-here`/`Humble` 必须报 FAIL markers 点名（phrase/status/chains/honesty 不连带）；同行禁止句「不要把 map = reproduce…」必须豁免；空 SCOREBOARD、domainId 99 的任意 fastdds.xml 作为 existence-only（内容冻结归 boundary）必须保持绿；健康树不误报；把 map=reproduce 正则 neuter 为永不匹配即漏报（marker 共现链检查是 guard 自述 marker-only 边界、STATUS 伪造同族机制已由 #23/#24 覆盖，不重复） |
 | `bench_gates_guard_selftest.py` | bench-gates guard 的**负向自测**（eval-only，不是 CI gate、无需 ci.yml 接线）：把 guard 读取的 4 个真实文件（SCOREBOARD / bench README / scripts-bench README / latency 方法文档）与真实跨机占位目录整个复制进 `tempfile`（SCOREBOARD 只复制不原地改），只覆盖其两项独有检查——跨机占位目录 `2026-09-11-cross-host/` 必须存在（删目录必报 FAIL missing 且不连带 cross/markers），`_cross_host_hits` 经独有 `_STATUS_BLOCKED_RE` 必须在 5 个候选中扫到至少一处诚实的 `STATUS: blocked`（全部改写为非 blocked 但保留 STATUS 子串必报 FAIL cross-host 且不连带 markers）；仅 BLOCKED.txt 一处命中即健康（钉 any-hit 语义）；正则放宽为裸 STATUS 即漏报（直白 required-file/marker substring 与 #23 同形；prove_rmw 无 FAIL 路径、risk_matrix 的 order 块与 marker 元组重叠，均不重复） |
 | `gate_registry_selftest.py` | gate-runner **注册表一致性自测**（eval-only，不是 CI gate、无需 ci.yml 接线；对象是 runner 而非某个 guard）：以单一发现规则（`scripts/check_*.py` 加两个固定名 `prove_rmw.py`/`print_bench_gates.py`，排除下划线 helper 与 `run_all_gates.py` 自身）扫描磁盘，与 `run_all_gates.GATES` **双向比对**——磁盘多一个未注册 gate 必报 orphan、GATES 指向缺失脚本必报 missing、helper/runner 不得被误判为 gate、gate 总数钉为 13 且 marker 非空；发现器换成「只信注册表」的桩则孤儿必漏报（恢复后抓回）。补齐「跑绿只证明已注册脚本健康、发现不了新增 gate 忘注册」的盲区（CI structure 仍只枚举 12 个的 ci.yml 接线缺口不在本脚本范围，待 workflow scope） |
@@ -91,7 +91,7 @@
 | 23 | `evals/dod_evidence_guard_selftest.py` | `dod evidence guard selftest: PASS`、`5 negative, 2 non-flag, 2 healthy, 1 mutation`（伪造 STATUS: PASS/DoD: met/measured-delta/Humble-here 声明与虚构 booked p99 必报；同行禁止句与政策词“分位数”不误报；STATUS 伪造正则被改宽即漏报） |
 | 24 | `evals/cega_bridge_hold_guard_selftest.py` | `cega bridge hold guard selftest: PASS`、`5 negative, 2 non-flag, 1 builtin self-check, 2 healthy, 1 mutation`（ADR §13(4) cell 翻 PASS/Hold cell 夹带裸 PASS/删行、首行 Status 翻转、独立“已接 Cega”必报；内置行自检生效；同行禁止句在两文档中不误报；“已接 Cega”正则被改宽即漏报） |
 | 25 | `evals/runtime_provenance_guard_selftest.py` | `runtime provenance guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（Dockerfile 钉 rolling/缺失 ENV/有 ENV 无值三分支必报；VERSIONS 行删 SHA、SHA 挪到别的行必报；健康树不误报；SHA 正则被改宽为任意单词即漏报） |
-| 26 | `evals/sink_layers_guard_selftest.py` | `sink layers guard selftest: PASS`、`4 negative, 2 healthy, 1 mutation`（rcl/DDS 表格行首粗体标签被置空但保留行正文时必报 FAIL layers 且不连带 markers/policy；sink 保留却删独有 Hold 策略句 AUTO ≠ 已开零拷 / 没有 vendor/iceoryx 必同时 FAIL markers + FAIL policy、六层行仍 ok；健康六行树不误报；行锚定正则被改宽为裸词扫描即被 rclpy/DDS 散文救回而漏报） |
+| 26 | `evals/sink_layers_guard_selftest.py` | `sink layers guard selftest: PASS`、`5 negative, 2 healthy, 1 mutation`（rcl/DDS 表格行首粗体标签被置空但保留行正文时必报 FAIL layers 且不连带 markers/policy；sink 保留却删独有 Hold 策略句 AUTO ≠ 已开零拷 / 没有 vendor/iceoryx 必同时 FAIL markers + FAIL policy、六层行仍 ok；全删 6 处总立场 Hold vs allowed 必 FAIL markers + 独立 FAIL Hold vs allowed、六层行/policy 仍 ok；健康六行树不误报；行锚定正则被改宽为裸词扫描即被 rclpy/DDS 散文救回而漏报） |
 | 27 | `evals/three_chain_repro_guard_selftest.py` | `three-chain repro guard selftest: PASS`、`6 negative, 3 non-flag, 2 healthy, 1 mutation`（健康 marker 全在时追加 `map = reproduce` / `three-chain repro: PROVEN` 矛盾句必报 FAIL fabricate 且不连带 phrase/status/chains；文档保留删 Hold 禁令词 Agnocast/zenoh 或独有诚实词 not-run-here/Humble 必报 FAIL markers 点名、phrase/status/chains/honesty 不连带；同行「不要把」禁止句豁免；空 SCOREBOARD、domainId 99 的任意 XML 作为 existence-only 仍 exit0；健康树不误报；map=reproduce 正则被 neuter 为永不匹配即漏报） |
 | 28 | `evals/bench_gates_guard_selftest.py` | `bench gates guard selftest: PASS`、`2 negative, 1 non-flag, 2 healthy, 1 mutation`（删跨机占位目录必报 FAIL missing、所有候选 STATUS:blocked 被改写为非 blocked 必报 FAIL cross-host 且不连带 markers；仅 BLOCKED.txt 命中仍健康；正则放宽为裸 STATUS 即漏报） |
 | 29 | `evals/gate_registry_selftest.py` | `gate registry selftest: PASS`、`2 negative, 1 non-flag, 2 healthy, 1 mutation`（磁盘新增未注册 check_*.py 必报 orphan、GATES 指向缺失脚本必报 missing；下划线 helper 与 run_all_gates.py 不得被当 gate；gate 总数钉 13、marker 非空；发现器只信注册表不扫磁盘即漏报孤儿） |
@@ -331,22 +331,26 @@
   executor 行写着 `rclcpp` / `rclpy`，散文里 `DDS` 更是满屏。若有人把行检查"简化"成裸词扫描，删掉
   `| **rcl** |`（或 `| **DDS** |`）表格行标签、只留周围正文，会让 gate、#9、#17 指纹（比对健康树输出）继续全绿，
   六层 sink 表却已悄悄丢了一行。
-- **覆盖独有解析器 + 两个独有 Hold 策略句**：其余 `_SINK_MARKERS`（eCAL/DPDK/Isaac/Cega/自定义 RMW/
+- **覆盖独有解析器 + 独有 Hold 策略句 + 总立场**：其余 `_SINK_MARKERS`（eCAL/DPDK/Isaac/Cega/自定义 RMW/
   three-chain/Unitree pointer 等）都是直白 `token in text` 检查、与正向用例同形，不重复堆夹具；
   `ABSENT_VENDOR_TREES`（含 iceoryx）的 vendored-tree 缺席机制已由 #22 executor-map 自测覆盖；总立场
-  `Hold vs allowed` 短语留下一轮（与 risk-matrix 总立场同模式）。#26 测两件别处没钉的事：行首标签锚定，以及
-  sink 文档独有的零拷贝状态/iceoryx 策略句——文件保留却删 `AUTO ≠ 已开零拷`（不得把 AUTO 共享内存谎报成零拷贝
-  已开）或 `没有 vendor/iceoryx` 时，guard 必须经 markers 与 policy 两道同时抓住。
+  `Hold vs allowed` 短语由 N5 覆盖（与 risk-matrix 总立场同模式）。#26 测三件别处没钉的事：行首标签锚定、
+  sink 文档独有的零拷贝状态/iceoryx 策略句，以及总立场——文件保留却删 `AUTO ≠ 已开零拷`（不得把 AUTO 共享内存
+  谎报成零拷贝已开）或 `没有 vendor/iceoryx` 时，guard 必须经 markers 与 policy 两道同时抓住；全删 6 处
+  `Hold vs allowed` 时必须经 markers 与独立 stance 检查抓住（单点删除会被其余 5 处救回）。
 - 五个内容文档带大量连续 marker，手写最小健康文档易腐；故 `sink_layers_guard_selftest.py` 把 guard 读取的
   **7 个真实文件**（sink、ADR、source-map、executor、Unitree-swap 文档，加仅验存在的 fastdds.xml / SCOREBOARD）
   复制进 `tempfile`，再每次只把 sink 文档的一个行标签置空（`| **rcl** |`→`|  |`，**整行正文一字不动**，故
   Humble/Rolling/eCAL/0.10.2 等行内 marker 都保留），驱动可注入的 `render(root=...)`，**不改动仓库**、纯标准库：
-  - **4 个负向场景**：N1 置空 `| **rcl** |` 标签（裸词扫描会被 app 行 `rclpy`、executor 行 `rclcpp` 救回）；
+  - **5 个负向场景**：N1 置空 `| **rcl** |` 标签（裸词扫描会被 app 行 `rclpy`、executor 行 `rclcpp` 救回）；
     N2 置空 `| **DDS** |` 标签（裸词扫描会被满屏散文 `DDS` 救回）；两者都必须 exit 1、打印
     `FAIL layers` 并点名对应 `| **<层>** |`，且**不得连带** FAIL markers / FAIL policy（证明只触发行检查）；
     N3 删除 sink 独有策略句 `AUTO ≠ 已开零拷`、N4 删除 `没有 vendor/iceoryx`（文件保留、六层行不动）；两者都必须
     exit 1、**同时**打印 `FAIL markers` 与 `FAIL policy` 并点名该句，且六层行仍 `ok layers`、其余 6 文件仍
     `ok file`（证明策略句在 markers 与 policy 两处都被锚定、不连带行检查）；
+    N5 全删 6 处总立场短语 `Hold vs allowed`（文件保留、六层行与 5 策略句不动）；必须 exit 1、打印 `FAIL markers`
+    与独立 `FAIL Hold vs allowed`，且六层行 `ok layers`、`ok policy`、其余 6 文件仍 `ok file`（单点删除会被其余
+    5 处救回，证明该检查是全文存在性、不保护具体某一处）；
   - **2 个健康对照（双向契约）**：真实仓 `render()` 与完整复制临时树都必须 exit 0 且打印
     `sink layers: mapped (Hold vs allowed)`——同时证明 app/executor 行里丰富的 `rclpy`/`rclcpp`/`DDS`
     散文不会被误判成缺行或多行（防改严误报方向）；

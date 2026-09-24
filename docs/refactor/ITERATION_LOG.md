@@ -4633,3 +4633,46 @@
 3. 继续次薄弱 selftest（bench_gates / gate_registry 各 2 negative）的独有边界复查，先探针。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
 
+## 轮次 71 — 2026-09-24 14:14（Asia/Shanghai）— 给 #26 sink_layers 补总立场短语 Hold vs allowed present-but-stripped 负向 N5（功能 PR TBD）
+
+### 改了什么
+
+- 承接轮次70（#26 已 4 negative），补 sink 文档**总立场裁决短语** `Hold vs allowed` 的 present-but-stripped 负向 **N5**，与 risk-matrix N12（matrix 自身总 Hold 立场）同模式。
+- 只读取证：该短语在 sink 文档出现 **6 处**（行3 Status 副标题、行22 核对指针、行26 章节标题、行32 表头列名、行73 success marker 描述、行77 表格描述）。guard 对它只做**全文 contiguous-phrase 存在检查**（`"Hold vs allowed" in text`，marker + 行183–187 独立检查），**单点删除（如表头列）仍被其余 5 处救回**，故负向变异必须 `text.replace("Hold vs allowed","")` 移除全部 6 处。
+- 新增 `_check_stance_negatives`：全删后探针逐字证实 **code 1**、`FAIL markers (need Hold vs allowed)` + 独立 `FAIL Hold vs allowed`，而六层行 `ok layers`、5 个 policy 策略句 `ok policy`、其余 6 文件 `ok file`（stance 检查独立于 policy，不连带）。
+- negative 4 → **5**，分母 /5，收尾计数 `5 negative, 2 healthy, 1 mutation`（本 selftest 无 non-flag）；同步 yaml #26 description/value、README 四处（文件表/明细表/Scope/负向场景）；case 数不变（42）。
+
+### 分数前后对比
+
+| 项 | 轮次70 | 轮次71 |
+|---|---|---|
+| gate | 13/13 exit 0 | **13/13 exit 0** |
+| fingerprint | 15/15 stable | **15/15 stable**（fixtures 零改动） |
+| promptfoo | 42/42 (100%) | **42/42 (100%)、0 error** |
+| #26 sink negative | 4 | **5** |
+| selftest | 25 fail=0 | **25 fail=0** |
+
+- 合并前 promptfoo `eval-ADt-2026-09-24T06:14:22`，42/42、0 failed、0 errors，Duration 7s。
+
+### 产物检查结果
+
+- compileall OK；#35 eval_registry PASS（42 case/42 script 双向一致、#26 SUCCESS/STABLE 在 yaml 被断言、README 标题计数 42）；#36 doc_link PASS；
+- gates 13/13、fingerprint 15/15、25 selftest fail=0；
+- 纯标准库 eval + tempdir/内存，未新增脚本/fixture/依赖、不在树内建 fixture。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge / vendor / shell / load.py / ci.yml / guard 代码 / 15 个指纹 fixtures；未重写 Bridge runtime；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 保持未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动，case 数不变。
+- 总立场检查本质是**全文存在性**、不保护具体某一处（单点删除被冗余救回）——这是 guard 现状，N5 已如实钉明；若未来要锚定具体位置需改 guard，属独立任务。
+- 真·跨物理机/真实网卡 p99、Humble 认证仍 `STATUS: blocked`（轮次69 仅 Jazzy loopback 代理），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. sink 行锚/策略/总立场已较完整；转向次薄弱 guard（bench_gates / gate_registry 各 2 negative）的独有边界复查，先探针。
+3. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
+

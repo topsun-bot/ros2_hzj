@@ -373,7 +373,7 @@ tests:
   # blanking the | **rcl** | / | **DDS** | row label while keeping the row body
   # must FAIL layers with no collateral FAIL markers/policy; widening the
   # regex to bare words demonstrably silences the missing-rcl-row check.
-  - description: 'sink_layers_guard_selftest.py: the six-layer table-row anchor fires on a blanked label, and the two unique Hold policy clauses AUTO != zero-copy / no-vendor-iceoryx fire via both markers and policy checks when stripped while the six rows stay ok (negative regression, tempdir-only)'
+  - description: 'sink_layers_guard_selftest.py: the six-layer table-row anchor fires on a blanked label, the two unique Hold policy clauses AUTO != zero-copy / no-vendor-iceoryx fire via both markers and policy checks, and fully stripping the overarching Hold vs allowed stance fires markers plus the standalone stance check (negative regression, tempdir-only)'
     vars:
       script: evals/sink_layers_guard_selftest.py
     assert:
@@ -381,7 +381,7 @@ tests:
         value: 'sink layers guard selftest: PASS'
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
-        value: '4 negative, 2 healthy, 1 mutation'
+        value: '5 negative, 2 healthy, 1 mutation'
 
   # Negative self-test for the three-chain-reproduce guard (eval-only, not a
   # CI gate). Covers the two _FABRICATE_RES patterns unique to that record: an

@@ -36,8 +36,8 @@ Hold policy clauses. The other plain marker-substring checks (``eCAL`` /
 ``DPDK`` / ``Isaac`` / ``Cega`` / ``自定义 RMW`` / three-chain / Unitree
 pointers) are direct ``token in text`` checks; the absent-vendor-tree
 mechanism (``ABSENT_VENDOR_TREES``) is covered by the #22 executor-map
-self-test. The overarching ``Hold vs allowed`` phrase is left for a
-dedicated next round (it mirrors the risk-matrix overall-stance case).
+self-test. The overarching ``Hold vs allowed`` stance phrase is covered
+by N5 (it mirrors the risk-matrix overall-stance case).
 
 The two policy clauses are unique to this sink doc and are not asserted by
 any other self-test:
@@ -55,7 +55,7 @@ sink, ADR, source-map, executor, and Unitree-swap docs plus the
 existence-only fastdds.xml / SCOREBOARD) into a temp tree, then blanking one
 table-row label at a time (the row body, with all its markers, is kept) and
 driving the injectable ``render(root=...)``. It asserts:
-  1. four negative scenarios ARE caught (exit 1, no success marker):
+  1. five negative scenarios ARE caught (exit 1, no success marker):
        N1 the ``| **rcl** |`` label is blanked — ``FAIL layers`` naming the
           row, no collateral ``FAIL markers`` / ``FAIL policy`` (the row body
           is preserved); a bare-word scan would be rescued by ``rclpy`` /
@@ -66,6 +66,12 @@ driving the injectable ``render(root=...)``. It asserts:
           markers`` AND ``FAIL policy`` naming it, with ``ok layers`` and the
           other six files still ``ok file``;
        N4 the ``没有 vendor/iceoryx`` policy clause is stripped — same;
+       N5 ALL occurrences of the overarching stance phrase ``Hold vs
+          allowed`` are stripped (the guard only checks it appears
+          somewhere -- it is in 6 places -- so a single-point strip is
+          rescued by the other five) — ``FAIL markers`` AND the standalone
+          ``FAIL Hold vs allowed``, while ``ok layers`` / ``ok policy`` and
+          the other six files stay ``ok file``;
   2. two healthy cases: the real repo ``render()`` and a pristine copied tree
      both exit 0 with the success marker (this also proves the rich app/
      executor prose is NOT mistaken for a missing/extra row — the no-false-
@@ -210,6 +216,38 @@ def _check_policy_negatives(failures: list[str]) -> int:
     return caught
 
 
+def _check_stance_negatives(failures: list[str]) -> int:
+    # The overarching Hold-vs-allowed stance must fail when fully stripped.
+    phrase = "Hold vs allowed"
+
+    def mut(text: str) -> str:
+        return text.replace(phrase, "")
+
+    out, code = _render(mut)
+    ok = (
+        code == 1
+        and g.SUCCESS_MARKER not in out
+        and "FAIL markers" in out
+        and f"need {phrase}" in out
+        and "FAIL Hold vs allowed" in out
+        # Layer rows, the five policy clauses, and the other six files are
+        # untouched; the stance check is separate from the policy check.
+        and "ok layers" in out
+        and "ok policy" in out
+        and out.count("ok file:") == 6
+        and "FAIL layers" not in out
+        and "FAIL policy" not in out
+    )
+    if ok:
+        return 1
+    failures.append(
+        "negative 'strip overall Hold vs allowed stance': not caught "
+        f"cleanly (code={code}, need FAIL markers + FAIL Hold vs allowed, "
+        "ok layers/ok policy, 6 ok files, no FAIL layers/policy)"
+    )
+    return 0
+
+
 def _check_healthy(failures: list[str]) -> int:
     healthy = 0
 
@@ -271,13 +309,14 @@ def main() -> int:
 
     row_negative = _check_negatives(failures)
     policy_negative = _check_policy_negatives(failures)
-    negative = row_negative + policy_negative
+    stance_negative = _check_stance_negatives(failures)
+    negative = row_negative + policy_negative + stance_negative
     healthy = _check_healthy(failures)
     mutation = _check_mutation(failures)
 
     print("# Sink-layers guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/4; "
+        f"- negative scenarios caught: {negative}/5; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
     )
@@ -292,13 +331,15 @@ def main() -> int:
         )
         return 1
 
-    print(f"- **{SUCCESS_MARKER}** (4 negative, 2 healthy, 1 mutation)")
+    print(f"- **{SUCCESS_MARKER}** (5 negative, 2 healthy, 1 mutation)")
     print(
         "\nThe guard catches a blanked rcl/DDS table-row label even though the "
         "app row still mentions rclpy and the prose is full of DDS, and it "
         "catches a stripped AUTO != zero-copy / no-vendor-iceoryx policy "
         "clause via both markers and policy checks while the six rows stay "
-        "ok; a healthy six-row tree stays green; and widening the row regex to a bare-word "
+        "ok, and it catches the fully stripped Hold-vs-allowed stance via "
+        "markers and the standalone stance check; a healthy six-row tree "
+        "stays green; and widening the row regex to a bare-word "
         "scan demonstrably silences the missing-row check. Read-only, "
         "tempdir-only. Exit 0."
     )
