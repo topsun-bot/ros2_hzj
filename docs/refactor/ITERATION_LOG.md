@@ -4683,7 +4683,7 @@
 2. sink 行锚/策略/总立场已较完整；转向次薄弱 guard（bench_gates / gate_registry 各 2 negative）的独有边界复查，先探针。
 3. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
 
-## 轮次 72 — 2026-09-24 15:25（Asia/Shanghai）— 给 #38 md_paths_parser 补「合法前缀 + 中间 ../ 伪装逃逸」负向断言（功能 PR TBD）
+## 轮次 72 — 2026-09-24 15:25（Asia/Shanghai）— 给 #38 md_paths_parser 补「合法前缀 + 中间 ../ 伪装逃逸」负向断言（功能 PR #198，main 14177a7）
 
 ### 改了什么
 
@@ -4710,6 +4710,13 @@
 - gates 13/13、fingerprint 15/15、25 selftest fail=0；
 - 纯标准库 eval + tempdir/内存，未新增脚本/fixture/依赖。
 
+### 合并后权威回归（回填）
+
+- 功能 PR **#198**（分支 test/md-paths-prefixed-escape）required 三检 + CodeQL + Cursor Approval 全 pass、reviewDecision APPROVED，squash-merge 到 main，**mergeCommit `14177a7`**，远端分支已删。
+- 合并 commit `14177a7` 三检经 API 核实全 **success**。
+- 合并后回 main 实测：`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- 合并后 promptfoo `eval-gO1-2026-09-24T07:33:10` **42/42 passed (100%)、0 failed、0 errors**（Duration 4s），为合并后权威结果（无 flaky）。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge / vendor / shell / load.py / ci.yml / guard 代码 / 15 个指纹 fixtures；未重写 Bridge runtime；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 保持未跟踪未提交。
@@ -4722,7 +4729,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #198 已合并（main `14177a7`），合并后 gate 13/13、fingerprint 15/15、25 selftest fail=0、promptfoo 42/42（权威 eval `eval-gO1-2026-09-24T07:33:10`）；本回填 PR 即补登。
 2. 继续在解析器/helper（repo_helper、md_paths_cited、dual_chain_env load/wrapper）找真实未覆盖分支，先探针；不与现有断言同形。
 3. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
 
