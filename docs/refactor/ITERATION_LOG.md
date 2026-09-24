@@ -4573,7 +4573,7 @@
 
 ---
 
-## 轮次 70 — 2026-09-24 13:18（Asia/Shanghai）— 给 #26 sink_layers 补两个独有 Hold 策略句删除负向 N3/N4（功能 PR TBD）
+## 轮次 70 — 2026-09-24 13:18（Asia/Shanghai）— 给 #26 sink_layers 补两个独有 Hold 策略句删除负向 N3/N4（功能 PR #193，main ffbc30d）
 
 ### 只读取证（接续轮次69 下一步，选全仓最薄弱 selftest）
 
@@ -4609,6 +4609,13 @@
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
 - `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-dAz-2026-09-24T05:18:34`（Duration 5s，0 error）。
 
+### 合并后权威回归（回填）
+
+- 功能 PR **#193**（分支 test/sink-policy-clause-negatives）required 三检 + CodeQL + Cursor Approval 全 pass、reviewDecision APPROVED，squash-merge 到 main，**mergeCommit `ffbc30d`**，远端分支已删。
+- 合并 commit `ffbc30d` 三检经 API 核实最终全 **success**（structure 首轮 conclusion=null、重试后 success）。
+- 合并后回 main 实测：`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- 合并后 promptfoo：首次 `eval-gPM-2026-09-24T05:25:01` 因系统高负载（loadavg≈30、Duration 2m20s）出现 **1 个 provider 层 ERROR（41 passed、0 failed）**——为 #17 fingerprint 串行子进程的已知高负载 timeout flaky、非断言失败；间隔 30s 重跑 `eval-8FM-2026-09-24T05:28:06` 恢复 **42/42 passed (100%)、0 failed、0 errors**（Duration 5s），以此为合并后权威结果。
+
 ### Hold 合规
 
 未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
@@ -4621,7 +4628,7 @@
 
 ### 下一步
 
-1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+1. [x] 功能 PR #193 已合并（main `ffbc30d`），合并后 gate 13/13、fingerprint 15/15、25 selftest fail=0、promptfoo 42/42（权威 eval `eval-8FM-2026-09-24T05:28:06`）；本回填 PR 即补登。
 2. 给 #26 sink 补总立场短语 `Hold vs allowed` present-but-stripped 负向（与 risk-matrix 总立场 N12 同模式）。
 3. 继续次薄弱 selftest（bench_gates / gate_registry 各 2 negative）的独有边界复查，先探针。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
