@@ -23,7 +23,9 @@ parameters already pinned by #22 are only lightly re-touched here, not
 duplicated.
 
 Scenarios: 3 negative (a citation that resolves outside the repo root, or an
-external/absolute target, must yield None; non-path tokens (ellipsis / URL /
+external/absolute target, must yield None -- including a legal-prefix cite
+with an embedded ../ that escapes through the looks_like branch, not only a
+leading ../; non-path tokens (ellipsis / URL /
 absolute / prefix-less) must be rejected; an ambiguous filename:line cite
 matching >1 cited paths must emit an ambiguous note and not be silently
 attributed), 2 non-flag (fragment / angle / space stripping and a legal-depth
@@ -72,6 +74,14 @@ def main() -> int:
               mp.to_repo_rel(root, map_path, "https://e.com/a.md") is None)
         check("absolute /etc/passwd -> None",
               mp.to_repo_rel(root, map_path, "/etc/passwd") is None)
+        # A legal prefix with an embedded ../ that escapes uses the
+        # looks_like_repo_path branch (root / target), distinct from a
+        # leading ../ which uses the startswith('.') branch above. The
+        # prefixed form looks like an in-repo docs/ cite and is sneakier.
+        check("prefixed escape docs/../../etc/passwd -> None",
+              mp.to_repo_rel(root, map_path, "docs/../../etc/passwd") is None)
+        check("prefixed escape scripts/../../../etc/passwd -> None",
+              mp.to_repo_rel(root, map_path, "scripts/../../../etc/passwd") is None)
         print("  ok negative root-escape and external/absolute rejected")
 
         # --- N2: non-path tokens rejected ---

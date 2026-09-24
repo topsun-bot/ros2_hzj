@@ -4683,3 +4683,46 @@
 2. sink 行锚/策略/总立场已较完整；转向次薄弱 guard（bench_gates / gate_registry 各 2 negative）的独有边界复查，先探针。
 3. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
 
+## 轮次 72 — 2026-09-24 15:25（Asia/Shanghai）— 给 #38 md_paths_parser 补「合法前缀 + 中间 ../ 伪装逃逸」负向断言（功能 PR TBD）
+
+### 改了什么
+
+- 轮次71 后 runner/parser/helper 面核心边界已较完整；本轮在 `scripts/_md_paths.py` 的 `to_repo_rel` 找到一个真实未覆盖的**逃逸分支**。
+- 现有 N1 只测纯 `../../../etc/passwd`（`target.startswith('.')` 分支，行112）；未测**以合法 `REPO_PREFIX` 开头、中间夹 `../` 逃逸**（如 `docs/../../etc/passwd`）——它走 `looks_like_repo_path` 分支（行114，`root / target` 再 resolve），看起来像在引用 docs/ 下文件、更隐蔽。
+- 探针逐字证实：`docs/../../etc/passwd` → **None**、`scripts/../../../etc/passwd` → **None**（逃逸被拦）；而深度恰好抵消的 `docs/architecture/../../etc/passwd` 落在**仓内** `etc/passwd`（不逃逸、行为正确，现有 non-flag check「legal-depth stays in root」已钉）。新增两个 prefixed-escape 断言与该对照配对。
+- 仅改 `evals/md_paths_parser_selftest.py`（+2 check、docstring 补分支说明）；场景类别与收尾串不变（仍 `3 negative, 2 non-flag, 1 healthy, 1 mutation`），故 yaml/README 无计数改动；case 数不变（42）。
+
+### 分数前后对比
+
+| 项 | 轮次71 | 轮次72 |
+|---|---|---|
+| gate | 13/13 exit 0 | **13/13 exit 0** |
+| fingerprint | 15/15 stable | **15/15 stable**（fixtures 零改动） |
+| promptfoo | 42/42 (100%) | **42/42 (100%)、0 error** |
+| md_paths_parser | 3 negative 场景 | **3 negative 场景（N1 分支更严密，+2 断言）** |
+| selftest | 25 fail=0 | **25 fail=0** |
+
+- 合并前 promptfoo `eval-Z3V-2026-09-24T07:25:15`，42/42、0 failed、0 errors，Duration 4s。
+
+### 产物检查结果
+
+- compileall OK；#35 eval_registry PASS（42/42 双向、收尾串未变）；#36 doc_link PASS；
+- gates 13/13、fingerprint 15/15、25 selftest fail=0；
+- 纯标准库 eval + tempdir/内存，未新增脚本/fixture/依赖。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge / vendor / shell / load.py / ci.yml / guard 代码 / 15 个指纹 fixtures；未重写 Bridge runtime；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 保持未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言），parser/guard/runner/公共 API/fixtures 零改动，case 数不变。
+- 各 selftest 核心独有边界已基本覆盖，后续深化多为细分支/配对边界，价值递减；坚持先探针证实真实未覆盖，不堆同形断言。
+- 真·跨物理机/真实网卡 p99、Humble 认证仍 `STATUS: blocked`（轮次69 仅 Jazzy loopback 代理），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 继续在解析器/helper（repo_helper、md_paths_cited、dual_chain_env load/wrapper）找真实未覆盖分支，先探针；不与现有断言同形。
+3. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
+
