@@ -150,7 +150,27 @@ python3 config/env/load.py print-b
 
 ---
 
-## 7. 相关文档
+## 7. Claude code review（advisory，非 required check）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。
+
+- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened`），draft PR 跳过。
+- 动作：`anthropics/claude-code-action@v1` + 官方 `code-review` 插件，对 PR diff 做审查并以 review comment 形式贴回（inline + summary）。
+- 权限：`contents: read` / `pull-requests: read` / `issues: read` / `id-token: write`。**不写代码、不推提交、不合入。**
+- 仓库规则随 `--append-system-prompt` 注入：命中 Hold 冻结面（`config/fastdds.xml`、`SCOREBOARD.md`）、`agnocast` / `zenoh` 路径、`dimos_bridge` 运行时 / `vendor/` 改动、Cega 接入，以及**无实测产物支撑**的分位数 / `PASS` / `PROVEN` / 删 `STATUS: blocked` 标记，一律标为 blocking finding。
+- **定位**：advisory。`structure` / `contracts` / `boundary` 仍是唯一 required checks（§5）；本 job 红不阻塞合入，也不替代 §2 的 Hold 闸门。**人类批准 merge** 不变。
+
+一次性准备（仓库管理员）：
+
+1. 在 `topsun-bot/ros2_hzj` 安装 [Claude GitHub App](https://github.com/apps/claude)（Contents / Issues / Pull requests 读写）。
+2. 添加 repository secret `ANTHROPIC_API_KEY`（或改用 `CLAUDE_CODE_OAUTH_TOKEN` 并替换工作流里的输入名）。
+3. 推送含 `.github/workflows/*` 的提交需要 `workflow` scope（同 §6 注）。
+
+secret 缺失时该 job 失败但不影响 required checks。
+
+---
+
+## 8. 相关文档
 
 - [feishu-middleware-adr.md](feishu-middleware-adr.md) — 飞书三份中间件计划 → 本仓已决
 - [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — 中日公开做法对照（权威吸收文，不落旋钮）
