@@ -40,7 +40,9 @@ Why this exists
   N21-N24 cover the baseline losing Chain A/B rmw / domain identity
   while present.
   N25-N27 cover the baseline losing cross-host / three-chain blocked
-  honesty words or the Chain B unset-URI contract word while present. The map /
+  honesty words or the Chain B unset-URI contract word while present.
+  N28-N31 cover the baseline losing the 《3》/《4》/《5》/《6》 Hold-scope
+  markers while present. The map /
   rewrite / pointer phrase checks reuse strings already in the marker tuple
   and so are always accompanied by a FAIL markers line (they cannot fire
   independently like the paused phrase); they get no separate negative.
@@ -49,7 +51,7 @@ The harness copies the eleven files the guard actually reads (the nine
 ``required`` entries plus ``config/env/load.py`` and the thin wrapper) from the
 real repo into a temp tree, preserving relative paths, so the env cross-check
 face stays green on the pristine copy and only the mutated document drives the
-result. It then runs twenty-seven negative scenarios, three non-flag (existence-only /
+result. It then runs thirty-one negative scenarios, three non-flag (existence-only /
 policy-word) scenarios, two healthy scenarios, and one memory-only mutation. Standard
 library only; files are created only inside a tempfile and the repo is never
 edited. Exit 0 when every expectation holds, exit 1 (with details) otherwise.
@@ -477,6 +479,44 @@ def main() -> int:
               and "- **FAIL rewrite:**" not in out,
               f"{label} must trip only the marker scan")
 
+    # N28-N31: the baseline doc stays present but loses one of the four
+    # Hold-scope markers -- 《3》 (5 occurrences), 《4》 (2), 《5》 (2) or
+    # 《6》 (5), which record that workstreams 3-6 (90%/LLM, Mac/preprod,
+    # Promptfoo, CVE) stay Hold. N25-N27 covered the baseline losing its
+    # blocked/contract boundary words only; they did not cover the
+    # baseline losing the per-workstream Hold-scope tokens while present,
+    # so keeping the baseline shell while deleting one would strip a Hold
+    # boundary while the existing negatives stayed green. Stripping one
+    # token must fail markers and name it against the baseline only, trip
+    # no chain or other check, and leave the ADR healthy. Probed on the
+    # real guard in a temp tree.
+    for label, word in (
+        ("N28 baseline drops 《3》 Hold-scope marker", "《3》"),
+        ("N29 baseline drops 《4》 Hold-scope marker", "《4》"),
+        ("N30 baseline drops 《5》 Hold-scope marker", "《5》"),
+        ("N31 baseline drops 《6》 Hold-scope marker", "《6》"),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            _seed_tree(Path(td), edits={
+                g.BASELINE_REL: (lambda t, w=word: t.replace(w, "")),
+            })
+            out, code = _render(Path(td))
+        check(code == 1, f"{label} must exit 1")
+        check("- **FAIL markers:**" in out
+              and "feishu-dual-chain-baseline.md" in out
+              and f"need {word}" in out,
+              f"{label} must report the baseline missing {word}")
+        check("feishu-middleware-adr.md` (need" not in out,
+              f"{label} must not flag the healthy ADR")
+        check("- **FAIL chain A:**" not in out
+              and "- **FAIL chain B:**" not in out
+              and "- **FAIL paused:**" not in out
+              and "- **FAIL percentiles:**" not in out
+              and "- **FAIL missing:**" not in out
+              and "- **FAIL map:**" not in out
+              and "- **FAIL rewrite:**" not in out,
+              f"{label} must trip only the marker scan")
+
     # ---- non-flag (existence-only boundary) ---------------------------
     # NF1: an empty SCOREBOARD must stay green here -- this gate never reads
     # SCOREBOARD contents (the boundary job owns the number freeze).
@@ -544,7 +584,7 @@ def main() -> int:
         return 1
 
     print(SUCCESS_MARKER)
-    print("27 negative, 3 non-flag, 2 healthy, 1 mutation")
+    print("31 negative, 3 non-flag, 2 healthy, 1 mutation")
     return 0
 
 
