@@ -4733,3 +4733,41 @@
 2. 继续在解析器/helper（repo_helper、md_paths_cited、dual_chain_env load/wrapper）找真实未覆盖分支，先探针；不与现有断言同形。
 3. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
 
+## 轮次 73 — 2026-09-24 16:18（Asia/Shanghai）— 系统复查次薄弱工具面：核心独有边界已成熟，本轮无代码改动（纯文档，等待新指令）
+
+### 做了什么（只读取证）
+
+- 轮次72 在 parser 补上「合法前缀伪装逃逸」后，本轮按计划系统复查计数最少/次薄弱的工具面，逐一读 selftest docstring + 对应实现源码，确认是否还存在真实、独有、未覆盖的边界：
+  - **runner 面**：`bench_gates`（N1 占位目录删除、N2 blocked 正则改写 + non-flag 单候选仍绿 + mutation）、`gate_registry`（orphan/missing 双向 + discovery rule + mutation）、`gate_execution`（exit0+marker 双查、non-zero fail、missing 127、stdout+stderr 合并 + mutation）。
+  - **parser/helper 面**：`md_paths_parser`（根逃逸/外部绝对、fragment/`<>`/空格、非 path、ident 词边界+缓存+1-based、parse_map 行号/unique-suffix/ambiguous/fenced，轮次72 已补 looks_like 分支逃逸）、`md_paths_cited`（missing/gone symbol/dir 跳过 symbol、stale isdisjoint、multi-hit 计数、partial-intersect mutation）、`repo_helper`（repo_root 三分支、read_utf8、line_at、emit_render、bullets、missing-file、FAIL block）。
+  - **env 面**：`dual_chain_env_load`（unknown chain ValueError、unknown CLI exit2、Chain B pop URI、export escape/import purity、six subcommands、export-b 含 `unset CYCLONEDDS_URI`、apply-without-unset mutation）、`dual_chain_env_wrapper`（re-export `is` 非 copy、import purity、apply_chain_b 转发 unset、missing load.py fail、blind delegation mutation）。
+  - **核心 eval 工具**：`fingerprint_guard`（stdout drift、missing fixture、non-zero exit、--update 拒写、repo-root normalize、--update healthy、normalize flatten mutation）。
+- 结论：上述 9 个工具面的**各自独有核心边界与变异均已被钉住**。剩余候选仅三类，均不应为凑数加入：
+  1. 同形 `token in text` required-file/marker 循环（各 docstring 明确划在范围外，已由 #23 等同形覆盖）；
+  2. ci.yml 12-vs-13 枚举（接第 13 gate 需 GitHub `workflow` scope，外部用户操作阻塞，离线备份已在）；
+  3. 极低价值语法猎奇（负/越界 index、spec None、未闭合 fence、reference-style/图片链接），不反映 guard 安全意图、且多已被间接覆盖。
+
+### 分数（本轮回归，无改动、维持双百）
+
+| 项 | 结果 |
+|---|---|
+| gate | **13/13 exit 0** |
+| fingerprint | **15/15 stable**（fixtures 零改动） |
+| promptfoo | **42/42 (100%)、0 failed、0 errors**，`eval-P7e-2026-09-24T08:18:27`，Duration 4s |
+| selftest | **25 fail=0** |
+
+### Hold 合规
+
+本轮零代码/零 eval 改动，仅追加本日志；未编辑 config/fastdds.xml / SCOREBOARD、未启用 Agnocast/zenoh、未集成 Cega、未改 dimos_bridge/vendor/shell/load.py/ci.yml/guard/fixtures。真·跨物理机/真实网卡 p99、Humble 认证仍 `STATUS: blocked`（轮次69 Jazzy loopback 仅代理），未伪造。
+
+### 剩余风险 / 阻塞（需用户拍板，不自行突破）
+
+1. GitHub `workflow` scope：active yixinzhangagent 无 workflow，需用户本机 `gh auth refresh -h github.com -s workflow`，之后用离线备份补 ci.yml 独立 PR（structure job 仍只枚举前 12 gate）。
+2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准、拆 3 个独立 PR。
+3. 4 份飞书方案文档 3380004 无权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台主机做跨机/真实网卡 p99。
+
+### 下一步
+
+- A 面工具核心边界已成熟，**等待新指令**：后续深化应来自 (a) 上述外部阻塞解除后（ci.yml 接线、CVE 修复、Humble/跨机实测）的真实新行为断言，或 (b) 用户提出新的重构/功能主题。
+- 若下次触发时仍无新指令且无外部变化，将再做一次完整 gate+eval 回归并在日志标注，不制造同形/低价值提交。
+
