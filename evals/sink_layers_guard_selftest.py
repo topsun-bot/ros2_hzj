@@ -31,24 +31,41 @@ leaving the surrounding prose would keep the gate, #10, and the #17
 fingerprint all green while the layer table silently lost a row — the same
 "guard disabled but all green" blind spot the other self-tests cover.
 
-Scope is deliberately only this unique row-anchor parser. The plain
-marker-substring checks (``_SINK_MARKERS`` / ``_POLICY_CLAUSES`` / Hold vs
-allowed / three-chain / Unitree pointers) are direct ``token in text`` checks
-already covered by positive cases; the absent-vendor-tree mechanism
-(``ABSENT_VENDOR_TREES``) is covered by the #22 executor-map self-test.
+Scope covers the unique row-anchor parser plus the sink doc's two unique
+Hold policy clauses. The other plain marker-substring checks (``eCAL`` /
+``DPDK`` / ``Isaac`` / ``Cega`` / ``自定义 RMW`` / three-chain / Unitree
+pointers) are direct ``token in text`` checks; the absent-vendor-tree
+mechanism (``ABSENT_VENDOR_TREES``) is covered by the #22 executor-map
+self-test. The overarching ``Hold vs allowed`` phrase is left for a
+dedicated next round (it mirrors the risk-matrix overall-stance case).
+
+The two policy clauses are unique to this sink doc and are not asserted by
+any other self-test:
+  * N3 strips ``AUTO ≠ 已开零拷`` -- the zero-copy status honesty clause
+    (automatic shared-memory transport must not be reported as zero-copy
+    already enabled);
+  * N4 strips ``没有 vendor/iceoryx`` -- the iceoryx Hold clause.
+A policy clause lives in both ``_SINK_MARKERS`` and the standalone policy
+check, so dropping one must fail BOTH ``FAIL markers`` (naming the clause)
+and ``FAIL policy``, while the six layer rows still print ``ok layers`` and
+the other six files stay ``ok file`` (no row/other-file collateral).
 
 Fixtures are built by **copying the seven real files the guard reads** (the
 sink, ADR, source-map, executor, and Unitree-swap docs plus the
 existence-only fastdds.xml / SCOREBOARD) into a temp tree, then blanking one
 table-row label at a time (the row body, with all its markers, is kept) and
 driving the injectable ``render(root=...)``. It asserts:
-  1. two negative scenarios ARE caught (exit 1, no success marker,
-     ``FAIL layers`` naming the row, and no collateral ``FAIL markers`` /
-     ``FAIL policy`` because the row body is preserved):
-       N1 the ``| **rcl** |`` label is blanked — a bare-word scan would be
-          rescued by ``rclpy`` / ``rclcpp`` in the app/executor rows;
-       N2 the ``| **DDS** |`` label is blanked — a bare-word scan would be
-          rescued by the word ``DDS`` throughout the prose;
+  1. four negative scenarios ARE caught (exit 1, no success marker):
+       N1 the ``| **rcl** |`` label is blanked — ``FAIL layers`` naming the
+          row, no collateral ``FAIL markers`` / ``FAIL policy`` (the row body
+          is preserved); a bare-word scan would be rescued by ``rclpy`` /
+          ``rclcpp`` in the app/executor rows;
+       N2 the ``| **DDS** |`` label is blanked — same, rescued by the word
+          ``DDS`` throughout the prose if the scan were loosened;
+       N3 the ``AUTO ≠ 已开零拷`` policy clause is stripped — ``FAIL
+          markers`` AND ``FAIL policy`` naming it, with ``ok layers`` and the
+          other six files still ``ok file``;
+       N4 the ``没有 vendor/iceoryx`` policy clause is stripped — same;
   2. two healthy cases: the real repo ``render()`` and a pristine copied tree
      both exit 0 with the success marker (this also proves the rich app/
      executor prose is NOT mistaken for a missing/extra row — the no-false-
@@ -158,6 +175,41 @@ def _check_negatives(failures: list[str]) -> int:
     return caught
 
 
+def _check_policy_negatives(failures: list[str]) -> int:
+    # The sink doc's two unique Hold policy clauses must fail when stripped.
+    caught = 0
+
+    def expect_clause(label: str, clause: str) -> None:
+        nonlocal caught
+        mut = lambda text: text.replace(clause, "")
+        out, code = _render(mut)
+        ok = (
+            code == 1
+            and g.SUCCESS_MARKER not in out
+            # A policy clause is in both _SINK_MARKERS and the standalone
+            # policy check, so both must fire and name the clause.
+            and "FAIL markers" in out
+            and f"need {clause}" in out
+            and "FAIL policy" in out
+            # The six layer rows and the other six files are untouched.
+            and "ok layers" in out
+            and out.count("ok file:") == 6
+            and "FAIL layers" not in out
+        )
+        if ok:
+            caught += 1
+        else:
+            failures.append(
+                f"negative 'strip policy {label}': not caught cleanly "
+                f"(code={code}, need FAIL markers + FAIL policy naming "
+                f"{clause!r}, ok layers, 6 ok files, no FAIL layers)"
+            )
+
+    expect_clause("N3", "AUTO ≠ 已开零拷")
+    expect_clause("N4", "没有 vendor/iceoryx")
+    return caught
+
+
 def _check_healthy(failures: list[str]) -> int:
     healthy = 0
 
@@ -217,13 +269,15 @@ def _check_mutation(failures: list[str]) -> int:
 def main() -> int:
     failures: list[str] = []
 
-    negative = _check_negatives(failures)
+    row_negative = _check_negatives(failures)
+    policy_negative = _check_policy_negatives(failures)
+    negative = row_negative + policy_negative
     healthy = _check_healthy(failures)
     mutation = _check_mutation(failures)
 
     print("# Sink-layers guard negative self-test")
     print(
-        f"- negative scenarios caught: {negative}/2; "
+        f"- negative scenarios caught: {negative}/4; "
         f"healthy trees green: {healthy}/2; "
         f"mutation behaves: {mutation}/1"
     )
@@ -238,11 +292,13 @@ def main() -> int:
         )
         return 1
 
-    print(f"- **{SUCCESS_MARKER}** (2 negative, 2 healthy, 1 mutation)")
+    print(f"- **{SUCCESS_MARKER}** (4 negative, 2 healthy, 1 mutation)")
     print(
         "\nThe guard catches a blanked rcl/DDS table-row label even though the "
-        "app row still mentions rclpy and the prose is full of DDS; a healthy "
-        "six-row tree stays green; and widening the row regex to a bare-word "
+        "app row still mentions rclpy and the prose is full of DDS, and it "
+        "catches a stripped AUTO != zero-copy / no-vendor-iceoryx policy "
+        "clause via both markers and policy checks while the six rows stay "
+        "ok; a healthy six-row tree stays green; and widening the row regex to a bare-word "
         "scan demonstrably silences the missing-row check. Read-only, "
         "tempdir-only. Exit 0."
     )
