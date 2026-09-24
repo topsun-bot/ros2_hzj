@@ -4515,4 +4515,58 @@
 2. #41 matrix 面负向已到顶；转 **#42 dual_chain_baseline per-file marker 复查**（27 negative 基础上找独有 present-but-stripped，先探针），或复查其他 guard。
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、Humble Linux 主机解 blocked。
+---
 
+## 轮次 68 — 2026-09-23（Asia/Shanghai）— 给 #42 dual_chain_baseline 补四个 Hold 范围标记删除负向 N28–N31（功能 PR #189，main a5cf98c）
+
+### 只读取证
+
+- Read guard `check_dual_chain_baseline.py`（474 行）：baseline 文档强制 27 词 marker 元组 + 4 个独立短语检查 + 反伪造分位数正则。
+- 盲区：baseline 中 `《3》《4》《5》《6》` 四个 Hold 范围标记此前无「文件保留却删词」负向。
+- /tmp 探针（复用 guard 实读 11 个真实文件）逐字取证：删任一标记均 code1、恰一行 `FAIL markers: docs/architecture/feishu-dual-chain-baseline.md (need 《N》)`，兄弟 ADR 保持 ok，不触发 chain/paused/percentile/missing/map/rewrite；纯复制对照 code0。
+
+### 改动（行为不变，3 文件，eval-only，case 数不变仍 42）
+
+1. `evals/dual_chain_baseline_doc_selftest.py`：新增 N28–N31（27→31 negative），收尾计数 `31 negative, 3 non-flag, 2 healthy, 1 mutation`。
+2. `evals/promptfooconfig.yaml`：#42 描述追加、断言 value 27→31（cases 仍 42）。
+3. `evals/README.md`：5 处同步（文件表、case42 计数、新增子句、明细表头、详细列表 N28–N31）。README 因 77K 超大无法用 Edit 注册，改用带唯一匹配断言的 Python 精确替换脚本落盘（每处替换前断言 count==1，否则中止）。
+
+### 实测与合并
+
+- compileall OK；`run_all_gates.py` **13/13**；`fingerprint_check.py` **15/15 stable**；25 selftest fail=0；`promptfoo@0.123.1` **42/42 (100%)**，#42 输出含 `31 negative, 3 non-flag, 2 healthy, 1 mutation`。
+- 功能 PR #189（分支 round-68-baseline-hold-scope-markers，commit 436f0c1，3 files）required 三检 + CodeQL + Cursor 全 pass，squash-merge 到 main，mergeCommit `a5cf98c`。
+
+---
+
+## 轮次 69 — 2026-09-23（Asia/Shanghai）— 原生 arm64 DDS pub/sub 与时延探针，解除《3》《4》功能 blocked（功能 PR #190，main 39c016d）
+
+### 背景与根因
+
+- 为解真·pub/sub blocked，启动 Colima。本机仅有 `osrf/ros:humble-desktop` 的 **linux/amd64** 镜像，在 arm64 上经 **qemu-user** 模拟：talker 正常发、listener 全收不到（单容器 loopback、强制 UDP-only 亦然，无报错）→ **BUG-H1 High（环境，非 ROS 源码缺陷）**；qemu 下 `ros2 node/topic list` 为空、易误导 → **BUG-H2 Low**。
+- Docker Hub SSL 超时、packages.ros.org 证书名不匹配、各国内 docker registry 前缀直拉均失败，无法取得 arm64 jammy（Humble）镜像。
+- Colima VM 本体 = Ubuntu 24.04 aarch64 原生、apt 可用；绕过失效代理（`Acquire::*::Proxy=false`），密钥取自 keyserver.ubuntu.com（指纹尾号 F42ED6FBAB17C654），TUNA noble 源，原生安装 **Jazzy**（FastDDS 2.14.6 / rmw 8.4.4、Cyclone）。
+
+### 结果（VM loopback，1000 有效样本 + 300 warmup，100Hz，小 String，RELIABLE/depth10，全部 loss=0；µs）
+
+| 配置(domain) | min | mean | p50 | p90 | p95 | p99 | max | jitter | stdev |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| FastDDS 默认(42) | 187 | 476 | 420 | 696 | 817 | 1163 | 1897 | 743 | 175 |
+| FastDDS UDP-only(42) | 280 | 490 | 439 | 698 | 821 | 1055 | 1462 | 616 | 148 |
+| Cyclone 默认(0) | 250 | 440 | 388 | 607 | 750 | 1166 | 2585 | 777 | 185 |
+
+- 原生 Jazzy demo talker/listener sanity 听到 11 条（PASS），对照确认 qemu 为失败根因。
+- 新增 `hil/`（lat_talker/listener、run_latency/run_fast、测试专用 udp_only.xml、mc_rx/tx、README，9 文件）与 `docs/testing/2026-09-mac-hil-native.md`；新增文件下 gates 仍 **13/13**。
+- 功能 PR #190（分支 round-69-native-dds-hil，commit 0907b58）required 三检 + CodeQL + Cursor 全 pass；因 #189 先合导致 BEHIND，`gh pr update-branch` 后 required 三检复跑 pass，squash-merge 到 main，mergeCommit `39c016d`。本地两特性分支已清理。
+
+### 边界与剩余风险
+
+- Jazzy ≠ Humble（FastDDS 2.14.6 vs 2.6.x），本结果是**功能/时延代理，非 Humble 认证**；VM loopback、单机，**跨物理机/真实网卡 p99 仍 blocked**；数字未写入冻结 SCOREBOARD、未编辑 config/fastdds.xml。
+- 非阻塞：VM 残留失效代理致 apt 超时；打包脚坑（同批装 Cyclone 满足 rmw 虚拟依赖致 FastDDS 被跳过，需显式装）。
+- 外部阻塞不变：4 份飞书文档 3380004、原生 arm64 Humble（jammy 镜像）、跨机测试、CVE 修复三项待批准。
+
+### 下一步
+
+1. [x] PR #189、#190 已合并（main `39c016d`），本回填 PR 即补登轮次 68/69。
+2. 取得 arm64 jammy 镜像或 Humble Linux 主机后，重跑 `hil/` 以做 Humble 认证；补第二台主机做跨机/真实网卡 p99。
+3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
+4. 外部阻塞：飞书权限、CVE 修复三项待书面批准。
