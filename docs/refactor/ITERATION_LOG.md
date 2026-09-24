@@ -4570,3 +4570,59 @@
 2. 取得 arm64 jammy 镜像或 Humble Linux 主机后，重跑 `hil/` 以做 Humble 认证；补第二台主机做跨机/真实网卡 p99。
 3. existence-only helper 签名趋同再抽（单独 PR、行为不变）。
 4. 外部阻塞：飞书权限、CVE 修复三项待书面批准。
+
+---
+
+## 轮次 70 — 2026-09-24 13:18（Asia/Shanghai）— 给 #26 sink_layers 补两个独有 Hold 策略句删除负向 N3/N4（功能 PR TBD）
+
+### 只读取证（接续轮次69 下一步，选全仓最薄弱 selftest）
+
+- 盘点 25 个 selftest 的 negative 计数：sink_layers 仅 **2 negative、无 non-flag**，与 bench_gates/gate_registry 并列最少。轮次70 复查 #26 `check_sink_layers.py`（241 行）。
+- Read guard：sink 文档走 `_SINK_MARKERS`（含 5 个 `_POLICY_CLAUSES` 连续策略句）+ 六层表格行 `_LAYER_ROW_RE` + 4 个 ABSENT_VENDOR_TREES；原 selftest 只覆盖独有行锚解析器（N1 rcl / N2 DDS），docstring 并声明 policy/marker 删除"由正向用例覆盖"。
+- 真实盲区＝sink 文档**独有**、未被其他 selftest 断言的两个策略句：
+  - **`AUTO ≠ 已开零拷`**（零拷贝状态诚实：自动共享内存传输≠零拷贝已开，防谎报）；
+  - **`没有 vendor/iceoryx`**（iceoryx Hold 策略句）。
+  - 其余策略句（不改 XML/SCOREBOARD、不启用 Agnocast/zenoh、《3》–《6》仍 Hold）核心词已在 #41/#20/#27/#42 多处覆盖，不重复；总立场短语 `Hold vs allowed`（出现 6 次）与 risk-matrix 总立场 N12 同模式，留下一轮。
+- 探针（sink 文件保留、replace 删句，其余 6 文件不动）：
+  - 删 `AUTO ≠ 已开零拷` → code1，**同时** `FAIL markers (need AUTO ≠ 已开零拷)` + `FAIL policy (need `AUTO ≠ 已开零拷`)`，okfile 6、ok layers True；
+  - 删 `没有 vendor/iceoryx` → code1，同样 FAIL markers + FAIL policy，okfile 6、ok layers True；
+  - （对照）删 `Hold vs allowed` → code1，FAIL markers + FAIL Hold vs allowed，留下一轮。
+- policy 句同时在 `_SINK_MARKERS` 与独立 policy 检查中，故删句两道同时 fail，六层行与其他文件不连带。
+
+### 改动（行为不变，4 文件，eval-only，case 数不变仍 42）
+
+1. `evals/sink_layers_guard_selftest.py`：新增 `_check_policy_negatives` 与 **N3/N4**，negative 2→4，计数扩为 **`4 negative, 2 healthy, 1 mutation`**（本 selftest 无 non-flag 类别）；同步 docstring（Scope 改为行锚 + 两独有策略句、列举 N1–N4）、进度分母 /2→/4、收尾散文。
+2. `evals/promptfooconfig.yaml`：#26 description 补两策略句、计数 value 2→4；cases=42、scripts=42。
+3. `evals/README.md`：文件表行、明细表行（计数 + 子句）、Scope 段、负向场景段（2→4 并补 N3/N4）同步。
+4. 本日志小节。
+
+### 评估驱动证据
+
+- N3/N4 先在真实 guard 上 /tmp 探针逐字取证（FAIL markers + FAIL policy 双发、点名、ok layers、6 ok files）再写断言；
+- 与 H2 纯复制健康树配对（不删则绿）证明非恒真；显式断言六层行与其余文件不连带、行检查不触发；
+- 不新增 case、不改 guard/fixtures/runner，纯补独有策略句 present-but-weakened；既有 N1/N2、healthy、mutation 全保持。
+- 中途两次脚本失误（外层三引号内嵌三引号 docstring 致 SyntaxError；收尾散文锚点漏字面 `\n` 致 count 0）均在 write_text 前被拦下、文件未损坏，改用注释与小锚点后通过。
+
+### 实测（本机 macOS，2026-09-24 13:18 CST）
+
+- compileall OK；#35 注册面 PASS（25 selftest markers ↔ yaml 42 一致）；#36 doc_link PASS；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**（fixtures 零改动）；25 个 selftest fail=0；
+- `npx promptfoo@0.123.1 eval`：**42/42 passed (100%)、0 failed、0 errors**，合并前 eval `eval-dAz-2026-09-24T05:18:34`（Duration 5s，0 error）。
+
+### Hold 合规
+
+未编辑 config/fastdds.xml / SCOREBOARD（仅 tempdir 副本，原文件只读）；未启用 Agnocast/zenoh、未集成 Cega；未改 dimos_bridge/vendor/shell/load.py；未重写 Bridge runtime；未碰 ci.yml / guard 代码 / 15 个指纹 fixtures；改动纯标准库 eval + tempdir/内存，无新依赖、不在树内建 fixture；promptfoo 仅 npx 缓存；受保护旧草稿 docs/01-dds-request-flow.md 未跟踪未提交。
+
+### 剩余风险
+
+- 行为不变（仅加强 eval 断言与文档），guard/runner/公共 API/fixtures 零改动；case 数不变（42）。
+- sink_layers negative 2→4，行锚与两独有策略句已覆盖；总立场短语 `Hold vs allowed` present-but-stripped 留下一轮；其余直白 marker（eCAL/DPDK/Isaac 等）权重低或与正向同形，有意不加。
+- existence-only 放行/seed helper 仍在 #20/#27/#42/#41 四处签名不同；真·跨物理机/真实网卡 p99、Humble 认证仍 `STATUS: blocked`（轮次69 仅 Jazzy loopback 代理），未伪造。
+
+### 下一步
+
+1. 本功能 PR 合并后：回 main 跑合并后全套回归（应 42/42、0 error），开 docs-only 回填 PR 把功能 PR 号 / main HEAD / 合并后 eval ID 补进本小节。
+2. 给 #26 sink 补总立场短语 `Hold vs allowed` present-but-stripped 负向（与 risk-matrix 总立场 N12 同模式）。
+3. 继续次薄弱 selftest（bench_gates / gate_registry 各 2 negative）的独有边界复查，先探针。
+4. 外部阻塞不变：workflow scope、CVE 修复三项待批准、4 份飞书文档 3380004、arm64 jammy/Humble 主机与跨机测试。
+
