@@ -1,0 +1,77 @@
+name: claude-code-review
+
+# Advisory Claude Code review on pull requests. This is NOT a Hold gate:
+# the structure / contracts / boundary jobs in ci.yml stay the required checks.
+# Requires one repository secret: ANTHROPIC_API_KEY (or swap the input below for
+# claude_code_oauth_token + CLAUDE_CODE_OAUTH_TOKEN) and the Claude GitHub App
+# installed on the repository (https://github.com/apps/claude).
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+  id-token: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: claude review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request in ros2_hzj, TOPSUN's ROS 2 / DDS
+            dual-chain workspace. Read AGENTS.md and
+            docs/architecture/ci-cd-gates.md first; they define the Hold
+            boundary this review must enforce. The PR branch is already checked
+            out in the working directory.
+
+            Review the diff (`gh pr diff`) for:
+            - Correctness bugs in scripts/, evals/, config/env/, dimos_bridge/
+              Python (guards, gate runner, eval self-tests, env loaders).
+            - Hold boundary violations: any edit to config/fastdds.xml or
+              docs/artifacts/bench/SCOREBOARD.md; any path introducing Agnocast
+              or zenoh; enabling Cega; changes to dimos_bridge DDS behavior or
+              vendor/ sources; rewriting the Bridge runtime.
+            - Fabricated evidence: new `STATUS: PASS`, `DoD: met`, `PROVEN`,
+              invented latency percentiles, or claims that Humble / cross-host
+              runs happened on this host. Honest markers (`STATUS: blocked`,
+              `DoD: unmet`, `map ≠ reproduce`) must not be weakened.
+            - Registry drift: a new scripts/check_*.py gate must also appear
+              in scripts/run_all_gates.py, AGENTS.md ## Commands, and the
+              ci.yml structure job; a new evals/*_selftest.py must be
+              registered in evals/promptfooconfig.yaml and evals/README.md.
+            - Docs: broken in-repo relative links, stale counts (gate / case
+              numbers) in evals/README.md.
+
+            Do not re-review lines that were not changed. Skip style nits.
+            Chinese is fine for comments; keep them short and concrete.
+
+            Use `mcp__github_inline_comment__create_inline_comment` (with
+            `confirmed: true`) for specific line issues, and `gh pr comment`
+            for a short top-level summary ending with an explicit verdict
+            (LGTM / needs changes) and, if any, the Hold violations found.
+            Only post GitHub comments - do not submit review text as messages.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --max-turns 30

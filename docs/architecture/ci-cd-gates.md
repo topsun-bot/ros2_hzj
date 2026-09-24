@@ -5,6 +5,8 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。
 
+另有一条**建议性**工作流 [`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)：PR `opened` / `synchronize` / `ready_for_review` / `reopened` 时由 Claude Code（`anthropics/claude-code-action@v1`）读 diff，按 [AGENTS.md](../../AGENTS.md) 的 Hold 边界与本文闸门做代码审查，只发 PR 评论 / 行内评论，**不是** required check、**不**改代码、**不**替代 `boundary`。需要仓库 secret `ANTHROPIC_API_KEY`（或换成 `claude_code_oauth_token`）与安装 Claude GitHub App；secret 缺失时该 job 失败但不阻塞合并。
+
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
 ---
