@@ -3,7 +3,7 @@
 Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / 契约 / Hold 边界变成必绿检查，再谈更重的流水线。  
 查阅日期：2026-09-12。决策背景：[feishu-middleware-adr.md](feishu-middleware-adr.md)（#25）、[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)（#23）。
 
-工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。
+工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。另有 advisory 的 Claude 代码评审工作流（§7），不是 required check。
 
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
@@ -150,7 +150,27 @@ python3 config/env/load.py print-b
 
 ---
 
-## 7. 相关文档
+## 7. Claude 代码评审（advisory，非 required check）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，
+用 `anthropics/claude-code-action@v1` 在**同仓、非 draft** PR 的 `opened` / `synchronize` / `reopened` /
+`ready_for_review` 上跑一次只读评审，以行内评论 + 一条简短总结落在 PR 上。
+
+| 项 | 约定 |
+|----|------|
+| 评审顺序 | ① Hold 边界（XML / SCOREBOARD / Agnocast·zenoh 路径 / `dimos_bridge` DDS 行为 / vendor / Cega）② 诚实性（不编分位数、不把 `STATUS: blocked` 说成 PASS、不把分段 P99 相加）③ gate stdout marker 与 ci.yml / `evals/` 的契约漂移 ④ 普通正确性 |
+| 不做 | 不评风格；不要求需要 Humble runtime 的测试；**不 approve / 不 request changes / 不 merge** |
+| 权限 | `contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`。模型**没有 shell**：前置可信 step 先**删掉 checkout 里所有 symlink**（`.git` 除外；PR 可以提交指向 `/proc/self/environ` 或 runner temp 的链接，Read 的路径 deny 只看拼写路径，链接会绕过），再用 `gh pr diff` 把 diff 写进 checkout 的**同级** `mktemp` 目录（`…/work/<repo>/claude-review.XXXXXX`，PR 树里预埋不到文件或 symlink，也不是 runner temp），确切路径经 step output 交给 prompt。工具边界三层：`--tools "Read"` 把内建工具**集合**收成只有 Read（无 Bash / Edit / Write / Grep / Glob / WebFetch / Agent）；`--allowedTools` 只预批两个**纯文本** MCP 工具（行内评论 + tracking comment）与 Read；`--disallowedTools` 再显式 deny 上述工具，并对 Read deny 托管 ubuntu runner 上所有已知的非 checkout 位置（系统目录、`$HOME` 点文件 / 点目录、`~/work/_temp|_actions|_tool|_PipelineMapping`、`~/runners`），剩下可读的只有 `~/work/<repo>/**`（checkout + 上述 diff 目录）。不 deny 整个 `$HOME`，因为工作区就在它下面。checkout `persist-credentials: false`，工作区里没有 `GITHUB_TOKEN` |
+| 信任边界 | 触发用 `pull_request`（工作流定义取自 PR merge ref）：能改它的人本来就有 push 权限，与能改 `ci.yml` 是同一批人。**fork PR 跳过**（`head.repo == repository` 守卫）——GitHub 不给 fork 密钥、token 只读，与其红在缺 key 上不如明说不跑。刻意**不用** `pull_request_target`（写 token 对着不可信 checkout 跑） |
+| 待办 | `anthropics/claude-code-action@v1` 与 `actions/checkout@v4` 目前都是可变 tag（后者与 `ci.yml` 一致）；应由维护者一并钉到不可变 commit SHA 并交 Dependabot 跟进（见工作流内 TODO） |
+| 密钥 | 仓库 secret `ANTHROPIC_API_KEY`（Settings → Secrets and variables → Actions）。缺失时该 job 红，但它**不是** §5 的 required check，不阻断合入 |
+| 与 §1 关系 | `structure` / `contracts` / `boundary` 仍是唯一的合入闸门；本 job 只是给人类 reviewer 的第二双眼。人类批准 merge 的政策不变 |
+
+`boundary` 是机械 diff 路径检查；本评审是语义补充（例如 Hold 路径没碰但文档把 blocked 写成通过）。两者并行，互不替代。
+
+---
+
+## 8. 相关文档
 
 - [feishu-middleware-adr.md](feishu-middleware-adr.md) — 飞书三份中间件计划 → 本仓已决
 - [cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md) — 中日公开做法对照（权威吸收文，不落旋钮）
