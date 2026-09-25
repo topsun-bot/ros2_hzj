@@ -31,6 +31,27 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude code review（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。`anthropics/claude-code-action`（钉在 commit SHA，注释标 `v1.0.223`）在 `pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）上审阅 PR diff，把意见写进 action 自建的 **一条** tracking 评论（`track_progress: true` + `update_claude_comment` 工具）。审查重点：Hold 边界（[AGENTS.md](../../AGENTS.md)「Hold — do not」全表：XML / SCOREBOARD 冻结、Agnocast / zenoh 路径、《3》–《6》 不实现、`dimos_bridge` DDS 行为与 vendor 不改、不接 Cega / 不重写 Bridge 运行时）、诚实标记、脚本只读审阅、CI/文档一致性、一般代码质量。
+
+- **只评论，不 approve / request changes / merge。** 人类批准 merge 不变（§5）。
+- **不要**把 `claude-review` 设为 required status check。三个闸门仍是 `structure` / `contracts` / `boundary`。
+- 跳过 draft PR 与 fork PR（fork 拿不到 secret）。
+- 需要 secret `ANTHROPIC_API_KEY`，以及仓库装好 **Claude GitHub App**（<https://github.com/apps/claude>）。缺 secret 时该 job 红，但不影响三个闸门；没装 App 时 OIDC 换 token 失败，job 同样红。
+- 权限：`contents: read`、`pull-requests: write`、`id-token: write`。`id-token: write` **是在用的**：未传 `github_token` 时 action 用 GitHub OIDC token 换取短期的 Claude App token 来写评论；这一步还会在服务端校验工作流，PR 若改了本工作流文件则 run 被跳过（信任边界的一部分）。不想装 App 可改传 `github_token: ${{ github.token }}` 并去掉 `id-token: write`（评论作者会变成 `github-actions[bot]`，且失去上述服务端校验）。
+- **checkout 钉在事件的 merge commit**（`ref: ${{ github.sha }}`，`fetch-depth: 2` 带上 base tip 与 PR head 两个 parent），不用会漂移的 `refs/pull/N/merge`；可信步骤先断言 `HEAD^1 == base.sha`、`HEAD^2 == head.sha`。
+- **输入由可信步骤准备**：action 之前的一个 `run` 步骤用固定参数把 diff（本地 `git diff <base sha> HEAD`，完整、无 compare API 的 300 文件上限，与 `boundary` job 的 base…HEAD 同形）和 **base 分支**的 [AGENTS.md](../../AGENTS.md)（`gh api …/contents/AGENTS.md?ref=<base sha>`）写到 `$HOME/review-inputs/`。PR 若改 `AGENTS.md`，按 diff 当数据审，不当政策用。
+- **工具边界靠 flag 强制，不靠 prompt**：`--allowedTools` 只有 `Read` / `Glob` / `Grep` / `LS` + 固定参数的 `update_claude_comment`；`--disallowedTools` 明确封 `Bash` / `Edit` / `Write` / `WebFetch` / `WebSearch` / `Task` / file_ops / inline comment。模型查不了别的 PR / 别的仓，也没有 `gh pr comment --body-file` 这类外泄路径。
+- **文件读取沙箱**：API key 必然在 reviewer 进程自己的环境里，所以 `/proc/self/environ` 之类必须读不到。可信步骤生成 `settings.json`（`--settings`）：`permissions.blockReadsOutsideWorkingDirectories: true` 把 Read / Grep / Glob 限制在工作区 + `--add-dir $HOME/review-inputs`；再叠一层 `deny`：`Read(//proc/**)`、`//sys`、`//dev`、`//etc`、`//root`、`//tmp`、`//var`、`//run`、`//opt`、`//home/runner/.*`（含 `.claude`、`.config`）、`//home/runner/runners/**`（runner 自身凭据）、`//home/runner/work/_temp|_actions|_tool/**`、`.git/**`。deny 优先于 allow，且对 symlink 的目标也生效。可信步骤还会在取完 diff 后 **删掉工作区里所有 symlink**（`.git/` 除外），PR 里提交的软链不能把只读工具引到凭据文件。剩余风险：绕过 Claude Code 权限规则本身。
+- **不加载 PR 控制的 Claude Code 配置**：`--setting-sources user` 不读项目 / local settings（hooks、`apiKeyHelper`、permission allow 都可能在里面）；`--strict-mcp-config` 只用 action 自己的 `--mcp-config`，PR 里的 `.mcp.json` 不生效；`--disable-slash-commands` 不加载项目 skills。可信步骤同时把工作区里的 `.claude/`、`.claude-plugin/`、`.mcp.json`、`CLAUDE.md`、`CLAUDE.local.md` 删掉（diff 已先取好，这些改动仍在 `pr.diff` 里可审）。
+- 工作区是 PR **merge commit**（base + PR 合并结果），不是 PR head；prompt 明说「只有 `pr.diff` 里的才算 PR 改动」。
+- Hold 边界一律标 blocking，**不看标签**；`allow-hold-bypass` 例外由 `boundary` job 和人类判定，所以本工作流不需要 `labeled` / `unlabeled` 触发。
+- **不执行 PR 检出里的任何代码**（不跑 `python3 scripts/*`、不跑 `config/env/load.py`）：该 job 持有 API key / 写权限 token / OIDC token，而检出内容由 PR 控制。脚本正确性只靠读；真正执行留给无 secret 的 `structure` / `contracts` job。
+- `actions/checkout` 也钉 commit SHA（注释标 `v4.4.0`），并 `persist-credentials: false`，token 不落 `.git/config`。
+- **信任边界**：`pull_request` 工作流的 YAML 取自 PR merge ref，同仓 PR 可以改这个文件本身。job 跑在 GitHub Environment **`claude-review`** 里：把 `ANTHROPIC_API_KEY` 放到该 environment（而不是仓库级）并按需加 protection rules（required reviewers / 限定分支），就得到比「有 push 权限」更强的审批边界。不加 rules 时 environment 是透明的，行为同仓库级 secret。
+- 升级 action 时改 SHA 并更新注释里的版本号；不要回到可变 tag。
+
 ---
 
 ## 2. Hold 政策
