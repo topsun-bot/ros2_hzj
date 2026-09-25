@@ -80,6 +80,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - 不要只保护其中一个 job。
 - Agent 可以做到 **merge / production 闸门之前**（开 PR、推提交、等 CI、修红）。
 - **人类批准 merge**。本仓不自动合入。
+- 合并前必须同时有 Cursor 自动审核 + GitHub Copilot Approve（不替代现有 CI 绿 + 人审）。
 
 ---
 
