@@ -4771,3 +4771,37 @@
 - A 面工具核心边界已成熟，**等待新指令**：后续深化应来自 (a) 上述外部阻塞解除后（ci.yml 接线、CVE 修复、Humble/跨机实测）的真实新行为断言，或 (b) 用户提出新的重构/功能主题。
 - 若下次触发时仍无新指令且无外部变化，将再做一次完整 gate+eval 回归并在日志标注，不制造同形/低价值提交。
 
+## 轮次 74 — 2026-09-25 20:51（Asia/Shanghai）— 二次成熟复查（含 JS provider）：核心边界仍全覆盖，本轮无代码改动（纯文档，继续等待新指令）
+
+### 做了什么（只读取证）
+
+- 用户在设备离线后手动触发本次执行。轮次73 已复查 9 个工具面；本轮补上当时未深入的 **JS provider 面**，并复核结论：
+  - `local_script_provider`（#33）：读 selftest docstring + `evals/localScriptProvider.mjs` 本体（106 行）。已钉 empty/whitespace prompt 报错、主动 non-zero（code1）与 missing script（code2）的 `error` + stdout/stderr 组合、成功路径 stderr 不泄漏 output、argv 空白拆分 + cwd=repoRoot、blind provider mutation、超时 `code timeout`/`after Nms`（ETIMEDOUT/SIGTERM）、DEFAULT_TIMEOUT_MS≥60s 与 LOCAL_SCRIPT_TIMEOUT_MS override/非数字回退的静态契约。
+  - 唯一发现的未覆盖分支：子进程被**非 SIGTERM 信号**（如 SIGKILL，`err.signal` 非 SIGTERM、`status` 非 number）杀死时，provider 走 `code='unknown'` 兜底（mjs 行91–96）。判定为低增量的错误分类兜底、不反映 guard 安全意图，**本轮不加入**；如用户希望钉住该分类，可单独提一个 provider selftest 用例。
+- 结论与轮次73 一致：runner / parser / helper / env / fingerprint / provider 共 **10 个工具面**的各自独有核心边界与变异均已被钉住。剩余候选仅同形 `token in text` 循环、ci.yml 12-vs-13（workflow scope 阻塞）、极低价值语法/兜底项，均不应为凑数加入。
+
+### 分数（本轮回归，无改动、维持双百）
+
+| 项 | 结果 |
+|---|---|
+| gate | **13/13 exit 0** |
+| fingerprint | **15/15 stable**（fixtures 零改动） |
+| promptfoo | **42/42 (100%)、0 failed、0 errors**，`eval-y8Y-2026-09-25T12:50:31`，Duration 5s |
+| selftest | **25 fail=0** |
+
+### Hold 合规
+
+本轮零代码/零 eval 改动，仅追加本日志；未编辑 config/fastdds.xml / SCOREBOARD、未启用 Agnocast/zenoh、未集成 Cega、未改 dimos_bridge/vendor/shell/load.py/ci.yml/guard/fixtures。真·跨物理机/真实网卡 p99、Humble 认证仍 `STATUS: blocked`（轮次69 Jazzy loopback 仅代理），未伪造。
+
+### 剩余风险 / 阻塞（需用户拍板，不自行突破）
+
+1. GitHub `workflow` scope：active yixinzhangagent 无 workflow，需本机 `gh auth refresh -h github.com -s workflow`，再用离线备份补 ci.yml 独立 PR。
+2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待明确批准、拆 3 PR。
+3. 4 份飞书方案文档 3380004 无权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台主机做跨机/真实网卡 p99。
+4. 可选小项：provider 的 SIGKILL→`unknown` 兜底分类是否要钉，由用户决定。
+
+### 下一步
+
+- 连续两次成熟复查结论一致，**继续等待新指令**：高价值深化应来自外部阻塞解除（ci.yml 接线、CVE 修复、Humble/跨机实测）后的真实新行为，或用户提出的新重构/功能主题。
+- 若后续触发仍无新指令且无外部变化，将再做完整 gate+eval 回归并标注，不制造同形/低价值提交。
+
