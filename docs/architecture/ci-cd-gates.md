@@ -31,6 +31,17 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude 代码审查（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)，job `claude review`（`anthropics/claude-code-action`，钉到 release commit SHA，不用可移动的 `v1` tag）。
+
+- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened`），**draft PR 跳过**，**fork PR 跳过**（fork 本来拿不到 secret）。同 PR 进行中 run 会被取消。
+- 权限：`contents: read` + `pull-requests: write` + `id-token: write`。checkout `persist-credentials: false`。
+- 信任边界：审查模型**没有 shell、没有网络、没有写工具**，只能 Read / Grep / Glob 检出树和可信步骤用 GitHub API 抓好的 PR diff（`.claude-review/pr.diff`，未跟踪）；`blockReadsOutsideWorkingDirectories` 把 Read / Grep / Glob 全部圈在检出目录内，`/proc`、`/dev`、`/sys`、`~/.claude`、runner `_temp` 另加 deny 双保险。检出树里的任何东西都配置不了审查器：只加载 `user` 设置源、忽略 `.mcp.json`（`--strict-mcp-config`）、关闭 hooks、不把 `CLAUDE.md` / `AGENTS.md` 当指令加载；提示词内嵌的清单是唯一规则来源，仓库文档（含本文）只是待审数据。inline 评论走 action 的结构化 MCP 工具；汇总评论是模型的最终消息，由**可信后处理步骤**发（一条带 marker 的评论，re-push 覆盖），并在正文匹配到凭证模式（私钥 / 云厂商 / GitHub / JWT / 通用 `key=` 等）时拒发；run 被取消或 PR head 已前移时不发；diff 拉不到就跳过审查、只发一条『已跳过』。模型从不执行 `gh`，环境里的 API key 没有进 PR 评论的通路。
+- 审查面：Hold 边界（冻结文件、Agnocast / zenoh 路径、`dimos_bridge` / `vendor` / Bridge runtime / Cega）、诚实标记（不得凭空出现分位数 / PASS / PROVEN / eval ID）、`evals/` 计数一致性、文档相对链接、Python 脚本标准库 / 不写 `os.environ` / 无 ROS 仍 exit 0。审查清单**内嵌在工作流提示词里**，是审查器唯一的规则来源；[AGENTS.md](../../AGENTS.md) 与本文只是这些规则的策略出处，对审查器而言和其它仓库文件一样是待审数据。
+- 凭证：仓库 secret `ANTHROPIC_API_KEY`。未配置时 job 打印 notice 后**绿色跳过**，不会把 PR 弄红。
+- **不要**把它设为 required status check：合并闸门仍只有 `structure` / `contracts` / `boundary`（§5）。审查结论是给人看的建议，人类仍负责 merge。
+
 ---
 
 ## 2. Hold 政策
