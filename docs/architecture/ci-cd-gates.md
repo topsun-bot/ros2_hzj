@@ -5,6 +5,11 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 工作流：[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)。三个 job **都必须绿**：`structure`、`contracts`、`boundary`。
 
+辅助评审：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（job `claude-review`）在 `pull_request`
+（`opened` / `synchronize` / `reopened` / `ready_for_review`）上用 Claude Code 自动评审 diff 并以 sticky comment 留评；
+draft PR 与来自 fork 的 PR **跳过**（GitHub 不向 fork 的 `pull_request` run 下发仓库 secret，跑了只会红）。
+**不是** required check、**不**改分支、**不**替代上面三个 job；仓库需配置 secret `ANTHROPIC_API_KEY`，缺失时该 job 失败但不阻塞合并。
+
 **不是** 飞书现场 / 实机 / 跨机根因证明。Not Feishu field proof.
 
 ---
