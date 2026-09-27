@@ -31,6 +31,19 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude 代码评审（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。job：`claude-review`。
+
+- 触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）。draft PR 与 fork PR 跳过（fork 拿不到 secret）。
+- 动作：[`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action)（与 `actions/checkout` 一样钉到完整 commit SHA，注释标版本；升级走独立 PR）读 `AGENTS.md` + PR diff，每次运行用 `gh pr comment` 发**一条**评审评论（action 自身不发评论，避免双发）。只评论：不 push、不贴标签、不 approve、不 merge。
+- 评审重点：§2 Hold 边界回潮（XML / SCOREBOARD / `agnocast`·`zenoh` 路径 / `dimos_bridge`·`vendor` / Cega）、`scripts/`·`evals/`·`config/env/`·CI yaml 的正确性、**编造证据**（未测的时延、`PASS` / `PROVEN`、SHA）、失效相对链接、新 gate 缺 `evals/*_selftest.py`。
+- 权限：`contents: read` + `pull-requests: write` + `issues: write` + `id-token: write`（仅该 job；工作流顶层 `permissions: {}`）。
+- 工具：只读文件工具（`Read` / `Glob` / `Grep` / `LS`）+ `gh pr diff|view|checks`、`gh issue view`、`gh search` + 唯一写操作 `gh pr comment`；`Edit` / `Write` / `WebFetch` / `WebSearch` 显式 disallow，checkout 不会被改动。
+- 前置：仓库 Actions secret **`ANTHROPIC_API_KEY`**（建议专用 key + Console 花费上限；或改用 `CLAUDE_CODE_OAUTH_TOKEN` + `claude_code_oauth_token:`）。触发用 `pull_request` 而**不是** `pull_request_target`：secret 只暴露给同仓分支，而推同仓分支本身已需要 write 权限；`pull_request_target` 会把 secret 带给 fork 的不可信代码，更差。没配 secret 时该 job 失败但**不影响合入**——见下。
+
+**不是 required status check。** 合入闸门仍只有 `structure` / `contracts` / `boundary`（§5）。Claude 的评论是给人看的第二双眼睛，不替代 `boundary` 的机械拦截，也不算 Hold bypass 的批准。
+
 ---
 
 ## 2. Hold 政策
@@ -78,6 +91,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 期望：`main` **要求本工作流绿才能合**。在 GitHub 里把 `structure`、`contracts`、`boundary` 设为 required status checks（Ruleset「Require status checks」或经典 Branch protection）。
 
 - 不要只保护其中一个 job。
+- **不要**把 `claude-review`（§1.1）设为 required：它依赖 secret 与外部 API，是 advisory，不是闸门。
 - Agent 可以做到 **merge / production 闸门之前**（开 PR、推提交、等 CI、修红）。
 - **人类批准 merge**。本仓不自动合入。
 

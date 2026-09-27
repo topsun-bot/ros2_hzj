@@ -1,0 +1,95 @@
+name: claude-code-review
+
+# Advisory Claude review on every non-draft PR. Not a required status check:
+# structure / contracts / boundary in ci.yml stay the merge gates
+# (docs/architecture/ci-cd-gates.md §1 / §5). Claude posts exactly one
+# review comment per run via `gh pr comment` (the action itself posts nothing);
+# it never edits, labels, merges, or approves.
+#
+# Setup (one-time, repo Settings -> Secrets and variables -> Actions):
+#   ANTHROPIC_API_KEY  — Anthropic API key. (Alternative: CLAUDE_CODE_OAUTH_TOKEN
+#   with `claude_code_oauth_token:` below.) Use a dedicated key with a spend
+#   limit set in the Anthropic Console. The job is skipped on fork PRs, where
+#   secrets are unavailable.
+#
+# Trust boundary: the trigger is `pull_request`, deliberately not
+# `pull_request_target`. Only same-repo branches reach the secret, and pushing a
+# same-repo branch already requires write access, so this workflow grants no
+# capability a collaborator lacks. `pull_request_target` would run trusted
+# workflow code against untrusted fork PRs with secrets, which is the worse
+# pattern for this repo. Actions are pinned to full commit SHAs; bump them
+# deliberately (Dependabot / renovate or a reviewed PR), never by moving a tag.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    name: claude-review
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request in `ros2_hzj`, TOPSUN's ROS 2 / DDS
+            dual-chain workspace. Read `AGENTS.md` first: it is the one-page
+            contract (Chain A `rmw_fastrtps_cpp` domain 42 + `config/fastdds.xml`;
+            Chain B Cyclone domain 0; no custom RMW; LCM out of scope).
+
+            Review the diff (`gh pr diff`), reading any unchanged files you need from
+            the checkout (Read / Glob / Grep), and report on:
+            - Hold-boundary regressions (see `docs/architecture/ci-cd-gates.md` §2):
+              edits to `config/fastdds.xml` or `docs/artifacts/bench/SCOREBOARD.md`,
+              any path containing `agnocast` / `zenoh`, changes to `dimos_bridge`
+              DDS behaviour or `vendor/` sources, Cega / Bridge runtime integration.
+              Flag these even if CI `boundary` would also catch them.
+            - Correctness bugs in `scripts/`, `evals/`, `config/env/`, and CI yaml.
+            - Fabricated evidence: new latency numbers, `PASS` / `PROVEN` claims,
+              or SHAs that the PR does not actually measure or verify. This repo
+              marks unproven items `STATUS: blocked` / `DoD: unmet` on purpose.
+            - Broken in-repo relative links or gate scripts removed from
+              `scripts/run_all_gates.py` / the CI `structure` list.
+            - Test coverage for new gate scripts (an `evals/*_selftest.py` is the
+              repo convention).
+
+            Be concise and concrete: cite file paths and line ranges, and separate
+            blocking findings from nits. Do not restate the PR description. If the
+            diff is docs-only (e.g. an `ITERATION_LOG.md` backfill), say so and keep
+            the review short.
+
+            Post the review as exactly one comment with `gh pr comment` using your
+            Bash tool. Do not push commits, apply labels, approve, or merge.
+          # Read-only repo inspection (AGENTS.md, gate registry, link targets) plus
+          # the gh read commands and the single gh pr comment. Editing tools are
+          # disallowed explicitly so the review can never change the checkout.
+          claude_args: >-
+            --model claude-opus-5
+            --allowedTools "Read,Glob,Grep,LS,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh search:*)"
+            --disallowedTools "Edit,MultiEdit,Write,NotebookEdit,WebFetch,WebSearch"
