@@ -1,0 +1,50 @@
+# ros2_hzj CODEOWNERS —— 分级人工审批
+#
+# 为什么需要这个文件：
+#   main 分支保护要求 1 个 approve，但近期绝大多数 PR 的 approve 来自 cursor[bot]
+#   （拥有 PR 写权限的 GitHub App），机器人审批就能满足门禁，等于没有真人把关。
+#   配合分支保护开启 require_code_owner_reviews 后，命中下列路径的 PR
+#   必须由 @topsun-bot/ros2-reviewers（真人）审批才能合并。
+#
+# 分级原则：
+#   【核心目录】必须真人审 —— 爆炸半径大、改错会影响整条链路/CI 门禁/实机：
+#     - .github/（CI 工作流、本文件自身）
+#     - CI 门禁脚本（structure / contracts / boundary 依赖的 scripts/*.py）
+#     - DDS / QoS / RMW / 话题与环境契约配置（config/、*.xml）
+#     - Hold 冻结文件（boundary 检查可被 allow-hold-bypass 标签绕过，这里补人工兜底）
+#     - 接口定义（dimos_bridge 的 msgs / protocol / transport / 实机执行器）
+#     - vendor/ 下的 RMW / DDS 源码快照、docker/ 部署镜像
+#     - AGENTS.md（约束 AI 代理行为的 Hold 规则）
+#   【叶子目录】不设 owner —— 文档、示例、bench/HIL 脚本、evals、孤立节点内部实现，
+#     依靠必需检查（structure / contracts / boundary）+ AI 审查即可合并。
+#
+# 注意：CODEOWNERS 规则“后匹配者优先”；本文件没有全局 `*` 规则，未列出的路径即为叶子。
+
+# ---- 治理：CI 与本文件自身 ----
+/.github/ @topsun-bot/ros2-reviewers
+/.github/CODEOWNERS @topsun-bot/ros2-reviewers
+/AGENTS.md @topsun-bot/ros2-reviewers
+/LICENSE @topsun-bot/ros2-reviewers
+
+# ---- CI 门禁定义（structure / contracts / boundary 调用的检查脚本）----
+/scripts/*.py @topsun-bot/ros2-reviewers
+
+# ---- DDS / QoS / RMW / 话题与环境契约配置 ----
+/config/ @topsun-bot/ros2-reviewers
+/scripts/bench/*.xml @topsun-bot/ros2-reviewers
+/hil/*.xml @topsun-bot/ros2-reviewers
+
+# ---- Hold 冻结文件 / 接口冻结契约 ----
+/docs/artifacts/bench/SCOREBOARD.md @topsun-bot/ros2-reviewers
+/docs/architecture/ros2-dds-r0-interface-freeze.md @topsun-bot/ros2-reviewers
+
+# ---- 接口定义与传输层（dimos_bridge）----
+/dimos_bridge/dimos/msgs/ @topsun-bot/ros2-reviewers
+/dimos_bridge/dimos/protocol/ @topsun-bot/ros2-reviewers
+/dimos_bridge/dimos/core/transport.py @topsun-bot/ros2-reviewers
+/dimos_bridge/dual_chain_env.py @topsun-bot/ros2-reviewers
+/dimos_bridge/dimos/robot/unitree/g1/effectors/ @topsun-bot/ros2-reviewers
+
+# ---- vendor 源码快照（RMW / Fast-DDS / CycloneDDS）与部署镜像 ----
+/vendor/ @topsun-bot/ros2-reviewers
+/docker/ @topsun-bot/ros2-reviewers
