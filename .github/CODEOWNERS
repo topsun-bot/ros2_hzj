@@ -42,8 +42,11 @@
 /dimos_bridge/dimos/msgs/ @topsun-bot/ros2-reviewers
 /dimos_bridge/dimos/protocol/ @topsun-bot/ros2-reviewers
 /dimos_bridge/dimos/core/transport.py @topsun-bot/ros2-reviewers
+/dimos_bridge/dimos/core/global_config.py @topsun-bot/ros2-reviewers
 /dimos_bridge/dual_chain_env.py @topsun-bot/ros2-reviewers
 /dimos_bridge/dimos/robot/unitree/g1/effectors/ @topsun-bot/ros2-reviewers
+# Go2 ROS 话题/类型绑定已在 ros2-dds-r0-interface-freeze.md 冻结
+/dimos_bridge/dimos/robot/unitree/go2/blueprints/smart/unitree_go2_ros.py @topsun-bot/ros2-reviewers
 
 # ---- vendor 源码快照（RMW / Fast-DDS / CycloneDDS）与部署镜像 ----
 /vendor/ @topsun-bot/ros2-reviewers
