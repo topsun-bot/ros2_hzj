@@ -31,6 +31,16 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude code review（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（`anthropics/claude-code-action@v1` + 官方 `code-review` 插件）。
+
+- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened`）；draft PR 跳过。同 PR 的进行中 run 会被取消。
+- 产出：Claude 在 PR diff 上贴 inline 评审意见（只允许 `mcp__github_inline_comment__create_inline_comment` 工具）。**只评审，不推提交、不合入。**
+- 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`（GitHub App OIDC）。
+- 前置：仓库 secret **`ANTHROPIC_API_KEY`**，且仓库已安装 Claude GitHub App。缺任一项该 job 会红，但它**不是** required status check，不影响合入。
+- **不要**把 `claude-code-review` 设为 required check（§5 仍只要求 `structure` / `contracts` / `boundary`）。它是第二双眼睛，不替代人类批准 merge，也不替代 Hold 边界守卫。
+
 ---
 
 ## 2. Hold 政策
