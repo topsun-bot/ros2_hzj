@@ -1,0 +1,135 @@
+name: claude-code-review
+
+# Advisory PR review by Claude. Separate from ci.yml on purpose: the three
+# gate jobs (structure / contracts / boundary) stay untouched and remain the
+# only required checks. This workflow only maintains one review comment per
+# PR (edited in place on later pushes); it cannot push, merge, or label (no
+# allow-hold-bypass from a bot).
+#
+# Requirements (repo settings, not code):
+#   - secret ANTHROPIC_API_KEY
+#   - Claude GitHub App installed on the repository (OIDC token exchange)
+# See docs/architecture/ci-cd-gates.md §1.1.
+#
+# Auth model: the action exchanges the OIDC token (id-token: write) for a
+# short-lived Claude GitHub App installation token and runs `gh` with that
+# token. The workflow's own GITHUB_TOKEN stays read-only on purpose; the
+# comment write comes from the App's permissions, not from these scopes.
+# Do not add pull-requests/issues: write here; if the App is not installed
+# the job fails instead of silently escalating the default token.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: review
+    # Drafts are reviewed once they are marked ready_for_review. Fork PRs are
+    # skipped explicitly: on `pull_request` a fork run gets no secrets and no
+    # OIDC-to-App exchange anyway, so it could only fail; skipping keeps that
+    # boundary visible instead of leaving a red job. Same-repo PR authors
+    # already hold write access to this repository.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # The job never runs git (Bash(git:*) is denied below), so do not
+          # leave the workflow GITHUB_TOKEN in .git/config where a file read
+          # could pick it up.
+          persist-credentials: false
+
+      - name: Claude code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # One write path only: Claude writes its findings to a temp file and
+          # posts them with `gh pr comment --body-file`, editing that same
+          # comment on later runs (--edit-last), so a PR carries one review
+          # comment instead of one per push and no review text hits the shell.
+          # use_sticky_comment is deliberately not set so the action does not
+          # also maintain a second comment of its own.
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request in the ros2_hzj repository (ROS 2 / DDS
+            dual-chain workspace). Read AGENTS.md first: it is the one-page contract
+            for this repo, including the Hold list. There is no CLAUDE.md.
+
+            Read the PR with exactly these commands (no other shell command is
+            permitted; for repository context such as AGENTS.md and the files the
+            diff touches, use your file-reading tools on the checkout):
+              gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+              gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json title,body,baseRefName,headRefName,files,commits
+              gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }}
+              gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --name-only
+            Then report:
+            - Correctness bugs and behavior regressions in changed scripts, evals, and
+              config (Python is standard-library only; no ROS runtime is available in CI).
+            - Hold boundary violations: any edit to config/fastdds.xml or
+              docs/artifacts/bench/SCOREBOARD.md, any path introducing Agnocast / zenoh,
+              any change to dimos_bridge DDS behavior or vendor/ sources, any Cega
+              integration or Bridge runtime rewrite.
+            - Honesty markers: flag invented percentiles (p50/p90/p95/p99), invented
+              PASS / PROVEN / measured results, or removal of STATUS: blocked /
+              DoD: unmet markers. This repo does not fabricate bench numbers.
+            - Eval quality: a new negative case must be able to fail (paired healthy
+              case, non-tautological assertion); fixture counts in evals/promptfooconfig.yaml
+              and evals/README.md must match the selftest output.
+            - Docs: new files under docs/architecture must be registered in ci.yml
+              structure checks and AGENTS.md when the PR claims they are gates.
+
+            Be concrete: cite file paths and line ranges, and say why each finding
+            matters. Do not restate the PR description. If you find nothing blocking,
+            say so in one short paragraph. Do not approve or request changes as a
+            review event.
+
+            Publish exactly one PR comment and reuse it on later runs. Never put
+            the review text on a shell command line: diff excerpts contain
+            backticks and `$(...)`, which the shell would execute. Instead:
+            1. Write the full review, starting with the line `## Claude code review`,
+               to /tmp/claude-review.md with your Write tool.
+            2. Edit your previous comment in place with your Bash tool. Only these
+               three exact commands are permitted, in this order of preference:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/claude-review.md
+               If the installed gh rejects `--create-if-none`:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --body-file /tmp/claude-review.md
+               Only if that fails because you have no earlier comment on this PR:
+                 gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md
+            Never leave more than one comment per run.
+
+          # Every shell command is an exact-match rule (no `:*` prefix) bound to
+          # this event's PR number and repository, so a prompt injection in the
+          # diff cannot point the App token at any other PR, issue, or
+          # repository. Prefix rules would not do: gh takes the last `--repo`
+          # given, so an appended flag could retarget a prefix-matched command;
+          # and `git diff --no-index` / `--output` would reach arbitrary runner
+          # paths, so no git prefix rule is granted either (the checkout is
+          # depth 1, the PR diff comes from `gh pr diff`). Write is scoped to
+          # the single temp file the comment body is read from (--body-file), so
+          # the review text never passes through a shell command line. Reads of
+          # /proc are denied so process environments cannot be copied into that
+          # file; a Read(...) rule governs every built-in file-reading tool
+          # (Read, Grep, Glob, LS), not only Read itself. No push, no merge, no
+          # label. Reference:
+          # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }}),Bash(gh pr view ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --json title,body,baseRefName,headRefName,files,commits),Bash(gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }}),Bash(gh pr diff ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --name-only),Write(//tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --edit-last --body-file /tmp/claude-review.md),Bash(gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/claude-review.md)"
+            --disallowedTools "Read(//proc/**),Bash(git:*)"
