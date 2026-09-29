@@ -35,12 +35,12 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。
 触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）；fork PR 跳过（secret 不下发）。
-动作：[`anthropics/claude-code-action@v1`](https://github.com/anthropics/claude-code-action)，读 PR diff，按 [AGENTS.md](../../AGENTS.md) 与本文的 Hold 边界写行内评论 + 一条 sticky 总结评论。
+动作：[`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action) **钉到 v1.0.236 的 commit SHA**（`8ce9314f…`，不用浮动 `@v1`：该 step 拿到 `ANTHROPIC_API_KEY` 与 app token，升级要有人看过 diff 再改 SHA）。先用普通 step 以 `gh pr diff` 把 diff 写到 `.pr-review/pr.diff`，再让模型按 [AGENTS.md](../../AGENTS.md) 与本文的 Hold 边界写行内评论 + 一条 tracking / sticky 总结评论。
 
 | 项 | 约定 |
 |----|------|
 | 关注点 | Hold 违规（冻结路径 / Agnocast·zenoh / `dimos_bridge` / vendor / Cega）、诚实标记（不发明分位数、PASS、PROVEN；`STATUS: blocked` / `DoD: unmet` 不得静默翻转）、双链契约、脚本与文档相对链接 |
-| 权限 | `contents: read` + `pull-requests: write` + `issues: read`；工具白名单只允许行内评论与 `gh pr comment/diff/view`；**不**推提交、**不** approve / request changes |
+| 权限 | `contents: read` + `pull-requests: write` + `id-token: write`（OIDC 换 Claude GitHub App 的短期 token，安全敏感，故列出）。**不给模型 shell**：`--allowedTools` 只有 `mcp__github_comment__update_claude_comment` 与 `mcp__github_inline_comment__create_inline_comment`，读文件限于 checkout（Claude Code 默认）；checkout 用 `persist-credentials: false`，workflow token 不落 `.git/config`。**不**推提交、**不** approve / request changes |
 | 秘钥 | 仓库 secret `ANTHROPIC_API_KEY`（人类在 GitHub Settings → Secrets 里配置；未配置则该 job 失败但不影响 §1 三个 job） |
 | 状态 | **不是** required status check；`structure` / `contracts` / `boundary` 仍是唯一必绿。评论是输入，**人类批准 merge** |
 | 首次接线 | action 要求工作流文件与 `main` 上的版本一致；**引入它的那个 PR** 上 job 会打印 `Skipping action due to workflow validation` 并 exit 0（不评论）。合入 `main` 后的下一个 PR 才真正跑 |
