@@ -1,0 +1,55 @@
+name: claude-code-review
+
+# Claude 自动代码走查：PR 打开 / 更新 / 转正式时，由 Claude Code 读取 diff 并在 PR 上留评论。
+# 只读 + 评论；不 approve、不 merge、不推代码。需在仓库 Secrets 配置 ANTHROPIC_API_KEY。
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    name: claude-review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 显式用本 workflow 的 GITHUB_TOKEN 评论，不走 OIDC / Claude GitHub App 换 token，
+          # 因此不需要 id-token: write。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            请对这个 pull request 做代码走查，用中文给出反馈，重点关注：
+            - 正确性：潜在 bug、边界条件、行为是否与 PR 描述一致（本仓强调"行为不变"的纯提取 / 纯文档改动）
+            - Hold 边界（见 AGENTS.md「Hold — do not」）：是否触碰 config/fastdds.xml、
+              docs/artifacts/bench/SCOREBOARD.md 数字、dimos_bridge DDS 行为、vendor 源码，
+              是否引入 Agnocast / zenoh / Cega
+            - 一致性：文档链接是否有效、gate 脚本与 evals 用例是否同步、README / AGENTS.md 是否需要更新
+            - 安全与依赖：新增依赖、shell / CI 改动、密钥泄露风险
+            - 测试覆盖：改动是否有对应的 gate / eval 断言
+
+            以 AGENTS.md 为风格与约定的依据。反馈保持建设性、具体到文件与行号；
+            没有问题时明确说明"未发现阻塞问题"，不要编造问题。
+
+            用 Bash 工具执行 `gh pr comment` 把走查结果作为一条评论留在 PR 上。
+
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
