@@ -40,7 +40,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 | 项 | 约定 |
 |----|------|
 | 关注点 | Hold 违规（冻结路径 / Agnocast·zenoh / `dimos_bridge` / vendor / Cega）、诚实标记（不发明分位数、PASS、PROVEN；`STATUS: blocked` / `DoD: unmet` 不得静默翻转）、双链契约、脚本与文档相对链接 |
-| 权限 | `contents: read` + `pull-requests: write` + `id-token: write`（OIDC 换 Claude GitHub App 的短期 token，安全敏感，故列出）。**不给模型 shell**：`--allowedTools` 只有 `mcp__github_comment__update_claude_comment` 与 `mcp__github_inline_comment__create_inline_comment`，读文件限于 checkout（Claude Code 默认）；checkout 用 `persist-credentials: false`，workflow token 不落 `.git/config`。**不**推提交、**不** approve / request changes |
+| 权限 | `contents: read` + `pull-requests: write` + `id-token: write`（OIDC 换 Claude GitHub App 的短期 token，安全敏感，故列出）。**不给模型 shell，且由 CLI 强制而非仅靠 allowlist**：`--setting-sources user`（忽略 PR 里签入的 `.claude/settings*.json`，含 permissions / hooks）、`--strict-mcp-config`（忽略 PR 里的 `.mcp.json`，只用 action 自带的评论 MCP server）、`--tools "Read,Glob,Grep"`（内建工具只剩只读文件工具）、`--disallowedTools` 拒绝 `Bash,Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Agent`（deny 优先于任何来源的 allow）；`--allowedTools` 只有 `mcp__github_comment__update_claude_comment` 与 `mcp__github_inline_comment__create_inline_comment`。checkout 用 `persist-credentials: false`，workflow token 不落 `.git/config`。同仓后续 PR 改 `.claude/` 或 `.mcp.json` **不能**给这一步开 shell；要放宽只能改本工作流（本文 + CI review 可见）。**不**推提交、**不** approve / request changes |
 | 秘钥 | 仓库 secret `ANTHROPIC_API_KEY`（人类在 GitHub Settings → Secrets 里配置；未配置则该 job 失败但不影响 §1 三个 job） |
 | 状态 | **不是** required status check；`structure` / `contracts` / `boundary` 仍是唯一必绿。评论是输入，**人类批准 merge** |
 | 首次接线 | action 要求工作流文件与 `main` 上的版本一致；**引入它的那个 PR** 上 job 会打印 `Skipping action due to workflow validation` 并 exit 0（不评论）。合入 `main` 后的下一个 PR 才真正跑 |
