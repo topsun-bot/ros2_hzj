@@ -43,6 +43,7 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 | 权限 | `contents: read` + `pull-requests: write` + `issues: read`；工具白名单只允许行内评论与 `gh pr comment/diff/view`；**不**推提交、**不** approve / request changes |
 | 秘钥 | 仓库 secret `ANTHROPIC_API_KEY`（人类在 GitHub Settings → Secrets 里配置；未配置则该 job 失败但不影响 §1 三个 job） |
 | 状态 | **不是** required status check；`structure` / `contracts` / `boundary` 仍是唯一必绿。评论是输入，**人类批准 merge** |
+| 首次接线 | action 要求工作流文件与 `main` 上的版本一致；**引入它的那个 PR** 上 job 会打印 `Skipping action due to workflow validation` 并 exit 0（不评论）。合入 `main` 后的下一个 PR 才真正跑 |
 
 评论里的建议不改 Hold 政策：Claude 指出「可以调 XML」也不构成 bypass；bypass 仍只有 §4 的人类标签。
 
