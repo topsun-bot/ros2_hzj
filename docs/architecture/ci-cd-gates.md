@@ -31,6 +31,18 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude code review（advisory，不是闸门）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)（`anthropics/claude-code-action@v1` + 官方 `code-review` 插件）。
+
+- 触发：`pull_request`（`opened` / `synchronize` / `ready_for_review` / `reopened` / `converted_to_draft`——最后一项只用来取消刚转回 draft 的 PR 上还在跑的评审）。draft PR 跳过；**fork PR 跳过**（GitHub 不向 fork 的 `pull_request` run 下发 secret，跑了只会红）。同 PR 的进行中 run 会被取消；单次 run 上限 30 分钟。
+- 产出：Claude 在 PR diff 上贴 inline 评审意见，无发现时贴一条汇总评论。**只评审，不推提交、不合入。**工具边界由三层钉住：(a) 这是无人值守运行，任何未被预批准的工具调用没人能应答提示，直接被拒；预批准只来自 `--allowedTools`（这里只有贴 inline 评论的 `mcp__github_inline_comment__create_inline_comment`）和 code-review 技能自己声明的只读命令（它靠这些读 PR，所以 shell **不是**整体关掉，而是只剩技能预批准的只读操作）；(b) `--disallowedTools` 显式移除 `Edit` / `Write` / `MultiEdit` / `NotebookEdit` / `WebFetch` / `WebSearch`，并拒绝 `git push` / `git commit` / `gh pr merge` / `gh pr close` / `curl` / `wget` / `rm`——即使技能放行也拒（deny 优先于 allow）；(c) job 的 `GITHUB_TOKEN` 只有 `contents: read` / `pull-requests: read` / `issues: read`，无任何 write；`id-token: write` 只是让 action 用 OIDC 换取 Claude GitHub App 身份来贴评论，不是 `GITHUB_TOKEN` 的写权限。deny 规则里 `Bash(git push *)` 这类「前缀 + 空格 + `*`」形态按 Claude Code 权限文档同时匹配带参数和不带参数的调用（如 `Bash(npm run *)` 也匹配裸 `npm run`）。
+- 权限：`contents: read` + `pull-requests: read` + `issues: read` + `id-token: write`（评论经 Claude GitHub App OIDC 身份发出，不用 job 的 `GITHUB_TOKEN`）。
+- 前置：仓库 secret **`ANTHROPIC_API_KEY`**，且仓库已安装 Claude GitHub App。缺任一项该 job 会红，但它**不是** required status check，不影响合入。
+- **不要**把 `claude-code-review` 设为 required check（§5 仍只要求 `structure` / `contracts` / `boundary`）。它是第二双眼睛，不替代人类批准 merge，也不替代 Hold 边界守卫。
+- 信任边界：`pull_request` 跑的是 PR 分支上的这份 YAML。本仓同仓 PR 只能由有 write 权限的协作者开，他们本来就能在任意分支的任意 workflow 里拿到仓库 secret，本 job 不额外扩大这个面；fork PR 拿不到 secret，已跳过。缓解在仓库设置层而不在本文件：`ANTHROPIC_API_KEY` 用专用、限额的 Console workspace key；`.github/workflows/` 的改动走 CODEOWNERS / required review；不要在这个 job 里加 shell step、放宽 `--allowedTools` 或删减 `--disallowedTools`。
+- 供应链钉版：`anthropics/claude-code-action@v1` 与插件市场 `https://github.com/anthropics/claude-code.git` 目前都跟随 Anthropic 官方仓库的移动 ref，与本仓 `ci.yml` 里 `actions/checkout@v4` 同一信任级别（两者都以 job 的 secret 运行，钉其一不钉另一无意义）。若要收紧为不可变版本：action 改 `@<40 位 SHA>`，市场 URL 加 `#<tag 或 SHA>` 后缀（`plugin marketplace add` 支持 `#ref`），并连同 `ci.yml` 的 `actions/checkout` 一起在**独立 PR** 里做，之后由 Dependabot / 人工评审推进版本。
+
 ---
 
 ## 2. Hold 政策
