@@ -31,6 +31,22 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 
 跨机 UDP 仍 **blocked**（单机）。无假分位数。
 
+### 1.1 Claude Code Review（顾问式，不是必绿闸）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。
+触发：`pull_request`（`opened` / `synchronize` / `reopened` / `ready_for_review`）；fork PR 跳过（secret 不下发）。
+动作：[`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action) **钉到 v1.0.236 的 commit SHA**（`8ce9314f…`，不用浮动 `@v1`：该 step 拿到 `ANTHROPIC_API_KEY` 与 app token，升级要有人看过 diff 再改 SHA）。先用普通 step 以 `gh pr diff` 把 diff 写到 `.pr-review/pr.diff`，再让模型按 [AGENTS.md](../../AGENTS.md) 与本文的 Hold 边界写行内评论 + 一条 tracking / sticky 总结评论。
+
+| 项 | 约定 |
+|----|------|
+| 关注点 | Hold 违规（冻结路径 / Agnocast·zenoh / `dimos_bridge` / vendor / Cega）、诚实标记（不发明分位数、PASS、PROVEN；`STATUS: blocked` / `DoD: unmet` 不得静默翻转）、双链契约、脚本与文档相对链接 |
+| 权限 | `contents: read` + `pull-requests: write` + `id-token: write`（OIDC 换 Claude GitHub App 的短期 token，安全敏感，故列出）。**不给模型 shell，且由 CLI 强制而非仅靠 allowlist**：`--setting-sources user`（忽略 PR 里签入的 `.claude/settings*.json`，含 permissions / hooks）、`--strict-mcp-config`（忽略 PR 里的 `.mcp.json`，只用 action 自带的评论 MCP server）、`--tools "Read,Glob,Grep"`（内建工具只剩只读文件工具）、`--disallowedTools` 拒绝 `Bash,Edit,Write,MultiEdit,NotebookEdit,WebFetch,WebSearch,Agent`（deny 优先于任何来源的 allow）；`--allowedTools` 只有 `mcp__github_comment__update_claude_comment` 与 `mcp__github_inline_comment__create_inline_comment`。checkout（`actions/checkout` 同样钉到 v4.4.0 的 commit SHA）用 `persist-credentials: false`，workflow token 不落 `.git/config`。同仓后续 PR 改 `.claude/` 或 `.mcp.json` **不能**给这一步开 shell；要放宽只能改本工作流（本文 + CI review 可见）。**不**推提交、**不** approve / request changes |
+| 秘钥 | 仓库 secret `ANTHROPIC_API_KEY`（人类在 GitHub Settings → Secrets 里配置；未配置则该 job 失败但不影响 §1 三个 job） |
+| 状态 | **不是** required status check；`structure` / `contracts` / `boundary` 仍是唯一必绿。评论是输入，**人类批准 merge** |
+| 首次接线 | action 要求工作流文件与 `main` 上的版本一致；**引入它的那个 PR** 上 job 会打印 `Skipping action due to workflow validation` 并 exit 0（不评论）。合入 `main` 后的下一个 PR 才真正跑 |
+
+评论里的建议不改 Hold 政策：Claude 指出「可以调 XML」也不构成 bypass；bypass 仍只有 §4 的人类标签。
+
 ---
 
 ## 2. Hold 政策
