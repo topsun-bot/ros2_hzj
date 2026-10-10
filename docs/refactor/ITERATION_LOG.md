@@ -4805,3 +4805,65 @@
 - 连续两次成熟复查结论一致，**继续等待新指令**：高价值深化应来自外部阻塞解除（ci.yml 接线、CVE 修复、Humble/跨机实测）后的真实新行为，或用户提出的新重构/功能主题。
 - 若后续触发仍无新指令且无外部变化，将再做完整 gate+eval 回归并标注，不制造同形/低价值提交。
 
+## 轮次 75 — 2026-10-10 20:55（Asia/Shanghai）— 补全 localScriptProvider 非 SIGTERM 信号错误分类与 selftest 探针校验
+
+### 改了什么
+
+1. **`evals/localScriptProvider.mjs`**：
+   - 完善子进程被外部信号中断时的错误分类逻辑（行 86–97）。
+   - 此前逻辑中：当子进程因超时被杀时为 `err.code === 'ETIMEDOUT' || err.signal === 'SIGTERM'`，分类为 `'timeout'`；若为主动非零退出则为数字 `err.status`；但对于其他外部致命信号（例如 `SIGKILL`、`SIGINT` 等），`err.status` 为 `null` 且 `timedOut` 为 `false`，导致此前回退至通用 `'unknown'`。
+   - 改进后：若 `err && err.signal` 存在，则将 `code` 明确置为 `err.signal`（如 `SIGKILL`、`SIGINT`），并在错误消息中准确报告 `local-script: ${command} exited with code ${code}: ...`，避免将确切的外部信号终止原因误标为模糊的 `'unknown'`。
+2. **`evals/local_script_provider_selftest.py`**：
+   - 在 tempdir Node 测试套件 `_HARNESS` 中新增动态生成的 `sigkill.py` 用例（通过 `os.kill(os.getpid(), signal.SIGKILL)` 自杀）。
+   - 新增 `_check_negative_signal_killed` 独立断言：验证 provider 捕获 `SIGKILL` 时正确设置 `hasError: true`，错误信息明确包含 `exited with code SIGKILL`，且绝不包含 `code unknown`。
+   - 在静态契约检查 `_check_timeout_budget_contract` 中补充对 `err.signal` 信号回退分类声明的源码断言。
+   - 在 `main()` 中注册第 10 项检查 `ok negative non-SIGTERM signal reports signal name not unknown`。
+   - 维持所有既有断言（4 negative, 2 non-flag, 1 healthy, 1 mutation, 1 timeout-budget contract）100% 通过，与 `promptfooconfig.yaml`（用例 #33）及 `evals/README.md` 保持完全向后兼容与严格一致。
+
+### 分数前后对比
+
+| 项 | 轮次 74（基线） | 轮次 75（实测） |
+|---|---|---|
+| gate | 13/13 exit 0 | **13/13 exit 0** |
+| fingerprint | 15/15 stable | **15/15 stable**（fixtures 零改动） |
+| local_script_provider_selftest | 9 checks ok | **10 checks ok**（+1 信号分类断言，pass） |
+| selftest | 25 fail=0 | **25 fail=0** |
+| zero-but-missing-marker | 0 | **0** |
+
+### 产物检查结果
+
+- `git status && git diff`: 严格限定修改范围，仅变动 `evals/localScriptProvider.mjs`、`evals/local_script_provider_selftest.py` 与 `docs/refactor/ITERATION_LOG.md`。
+- #35 `eval_registry_selftest.py` PASS：42/42 双向注册一致，无 orphan / missing。
+- #36 `doc_link_selftest.py` PASS：923 个相对链接无失效。
+- 纯标准库与 Node 内置模块，未引入任何第三方外部依赖，tempdir 运行不污染工作区。
+
+### 实测（本机 macOS Darwin arm64）
+
+- `python3 evals/local_script_provider_selftest.py` -> 10 项检查全 ok，输出 `local-script provider selftest: PASS`，耗时 ~1s。
+- `python3 -c "...25 selftests..."` -> 全部 25 个 selftest 脚本 PASS，`Total scripts: 25, fails: 0`，耗时 ~7s。
+- `python3 scripts/run_all_gates.py` -> `gates: 13, exit-0: 13, non-zero: 0, zero-but-missing-marker: 0`，`all gates green`，耗时 ~1s。
+- `python3 evals/fingerprint_check.py` -> 15/15 命令与 `evals/fixtures/` 完全一致，`stdout fingerprint: stable`，耗时 ~2s。
+- `python3 config/env/load.py print-a` & `print-b` -> Chain A（fastrtps / 42 / fastdds.xml）与 Chain B（cyclone / 0）双链契约输出完全一致。
+
+### Hold 合规
+
+- 严格遵守 `AGENTS.md` 与 Hold 规则：
+  - 零编辑 `config/fastdds.xml` 与 `docs/artifacts/bench/SCOREBOARD.md`。
+  - 零变动 `dimos_bridge/dimos/**`、`vendor/**`、`docker/**`、`scripts/bench/requirements-chain-b.txt`。
+  - 受保护的用户旧草稿 `docs/01-dds-request-flow.md` 保持未跟踪未修改。
+  - `docs/security/2026-09-vendor-cve-audit.md` 保持只读未改动。
+  - 未启用 Agnocast / zenoh / Cega。
+  - 跨物理机真实网卡 p99 与原生 Humble 运行环境在 macOS 主机上如实保持 `STATUS: blocked`，绝无虚构。
+
+### 剩余风险 / 阻塞
+
+1. GitHub `workflow` scope：当前 active token 缺少 `workflow` 权限，待用户执行 `gh auth refresh -h github.com -s workflow` 后由独立 PR 接线 ci.yml 第 13 gate。
+2. 《6》CVE 审计三项修复（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户批准后单独建 PR 处理。
+3. 飞书 4 份方案文档返回 3380004 无权限；本机缺少原生 Humble 与双机环境，真实 ROS 2 pub/sub 与硬件网络 p99 保持 `STATUS: blocked`。
+
+### 下一步
+
+- 向 orchestrator / parent 提交 handoff 报告，汇报轮次 75 完成情况。
+- 等待代码审查、Adversarial Challenge 与 Forensic Audit。
+
+

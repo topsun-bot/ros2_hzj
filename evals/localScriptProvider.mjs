@@ -86,6 +86,8 @@ export default class LocalScriptProvider {
       // node kills an over-budget child with signal SIGTERM and code
       // ETIMEDOUT and no numeric exit status; distinguish that from a script
       // that actively exits non-zero so the failure reason is not mislabeled.
+      // Non-SIGTERM signals (e.g. SIGKILL, SIGINT) report the signal name
+      // directly rather than falling back to generic 'unknown'.
       const timedOut =
         !!err && (err.code === 'ETIMEDOUT' || err.signal === 'SIGTERM');
       const code =
@@ -93,7 +95,9 @@ export default class LocalScriptProvider {
           ? err.status
           : timedOut
             ? 'timeout'
-            : 'unknown';
+            : err && err.signal
+              ? err.signal
+              : 'unknown';
       const when = timedOut ? ` after ${timeoutMs}ms` : '';
       return {
         output: stdout + (stderr ? '\n' + stderr : ''),
