@@ -44,8 +44,8 @@ const repoRoot = path.resolve(here, '..');
 const DEFAULT_TIMEOUT_MS = 120000;
 
 function resolveTimeoutMs() {
-  const raw = Number(process.env.LOCAL_SCRIPT_TIMEOUT_MS);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_TIMEOUT_MS;
+  const raw = Math.floor(Number(process.env.LOCAL_SCRIPT_TIMEOUT_MS));
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TIMEOUT_MS;
 }
 
 export default class LocalScriptProvider {

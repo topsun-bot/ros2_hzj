@@ -4866,4 +4866,27 @@
 - 向 orchestrator / parent 提交 handoff 报告，汇报轮次 75 完成情况。
 - 等待代码审查、Adversarial Challenge 与 Forensic Audit。
 
+## 轮次 76 — 2026-10-10 21:56（Asia/Shanghai）— 1 分钟定时循环：修复 localScriptProvider `resolveTimeoutMs()` 亚毫秒小数截断归零漏洞并同步 PR #204
 
+### 改了什么
+
+1. **`evals/localScriptProvider.mjs`**：
+   - 修复 `resolveTimeoutMs()`（行 46–49）中 `Number(process.env.LOCAL_SCRIPT_TIMEOUT_MS)` 先判 `raw > 0` 后执行 `Math.floor(raw)` 的顺序边界漏洞：当传入 `0 < raw < 1` 的正小数（例如 `LOCAL_SCRIPT_TIMEOUT_MS="0.5"`）时，原代码满足 `raw > 0` 后经 `Math.floor(0.5)` 返回 `0`，而在 Node `child_process.execFileSync` 中 `timeout: 0` 代表禁用超时（无限等待），违背了行 43 注释 `positive integer ms` 与 selftest 行 272 `must not silently zero the budget` 的契约。
+   - 改为 `const raw = Math.floor(Number(process.env.LOCAL_SCRIPT_TIMEOUT_MS)); return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TIMEOUT_MS;`，先向下取整再校验 `> 0`，使 `< 1` 的亚毫秒小数安全回退至 `DEFAULT_TIMEOUT_MS`（`120000`）。
+2. **`evals/local_script_provider_selftest.py`**：
+   - 在 `_check_timeout_budget_contract`（行 272–275）补充 `assert "Math.floor(Number(" in src` 静态契约断言，防止回退为先判正数后取整的旧写法。
+
+### 分数前后对比
+
+| 项 | 轮次 75 | 轮次 76（实测） |
+|---|---|---|
+| gate | 13/13 exit 0 | **13/13 exit 0**（`zero-but-missing-marker: 0`） |
+| fingerprint | 15/15 stable | **15/15 stable**（fixtures 零改动） |
+| local_script_provider_selftest | 10 checks ok | **10 checks ok**（含亚毫秒取整防归零契约） |
+| selftest | 25 fail=0 | **25 fail=0** |
+| promptfoo | 42/42 (100%) | **42/42 (100%)、0 failed、0 errors** |
+
+### Hold 合规与 PR 状态
+
+- 严格遵守 `AGENTS.md` Hold 边界：`config/fastdds.xml`、`SCOREBOARD.md`、`dimos_bridge/dimos/**`、`vendor/**`、`docker/**`、`requirements-chain-b.txt` 与 `docs/security/2026-09-vendor-cve-audit.md` 零改动。
+- 已同步推送至远程分支并更新 [**`topsun-bot/ros2_hzj#204`**](https://github.com/topsun-bot/ros2_hzj/pull/204)。

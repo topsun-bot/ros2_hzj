@@ -269,8 +269,9 @@ def _check_timeout_budget_contract(_r: dict | None = None) -> None:
     )
     assert "LOCAL_SCRIPT_TIMEOUT_MS" in src, "timeout budget must be env-overridable"
     assert "ETIMEDOUT" in src and "SIGTERM" in src, "timeout classification markers missing"
-    # Non-numeric / non-positive override must not silently zero the budget.
+    # Non-numeric / non-positive / sub-1ms fractional override must not silently zero the budget.
     assert "Number.isFinite" in src and "> 0" in src, "override validation missing"
+    assert "Math.floor(Number(" in src, "sub-1ms fractional override must floor before > 0 check"
     assert "err.signal" in src, "non-SIGTERM signal fallback classification missing"
 
 
