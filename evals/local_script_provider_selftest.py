@@ -59,6 +59,12 @@ assertion failures):
     least 60s (no regression to the too-tight 30s), the LOCAL_SCRIPT_TIMEOUT_MS
     override is wired, and the ETIMEDOUT/SIGTERM timeout classification exists.
     A non-numeric override falls back to the default.
+
+Round-75 external signal classification hardening:
+  * 1 extra signal check: a subprocess terminated by a non-SIGTERM signal
+    (e.g. SIGKILL via os.kill) must return an `error` labeled with the specific
+    signal name (code SIGKILL), distinct from timeout (SIGTERM) or generic
+    "code unknown".
 """
 
 from __future__ import annotations
@@ -98,6 +104,8 @@ fs.writeFileSync(okStderrPy, "import sys;sys.stdout.write('CLEAN-OUT\\n');sys.st
 const missingPy = path.join(dir, 'does_not_exist.py');
 const slowPy = path.join(dir, 'slow.py');
 fs.writeFileSync(slowPy, "import time;time.sleep(1.2)\n");
+const sigkillPy = path.join(dir, 'sigkill.py');
+fs.writeFileSync(sigkillPy, "import os, signal; os.kill(os.getpid(), signal.SIGKILL)\n");
 
 const run = async (prompt) => {
   const r = await provider.callApi(prompt);
@@ -112,6 +120,7 @@ const results = {
   exit1: await run(failPy),
   missing: await run(missingPy),
   okStderr: await run(okStderrPy),
+  sigkill: await run(sigkillPy),
 };
 
 // Blind provider: update-shaped but the catch deliberately returns no error,
@@ -140,6 +149,21 @@ results.realExit1HasError = results.exit1.hasError;
 // an over-budget child with ETIMEDOUT / SIGTERM and no numeric status.
 process.env.LOCAL_SCRIPT_TIMEOUT_MS = '250';
 results.timeout = await run(slowPy);
+// Sub-1ms fractional override ('0.5') must floor to 0 before the > 0 check and
+// fall back to DEFAULT_TIMEOUT_MS (not pass timeout: 0 which disables timeout).
+// Prove this live in 200ms by instantiating a copy of the provider with
+// DEFAULT_TIMEOUT_MS = 200 and running slowPy under LOCAL_SCRIPT_TIMEOUT_MS='0.5'.
+const shortProvPath = path.join(dir, 'shortDefaultProvider.mjs');
+const provSrc = fs.readFileSync(provPath, 'utf8').replace(
+  /DEFAULT_TIMEOUT_MS\s*=\s*\d+/,
+  'DEFAULT_TIMEOUT_MS = 200'
+);
+fs.writeFileSync(shortProvPath, provSrc);
+const ShortProvider = (await import(pathToFileURL(shortProvPath).href)).default;
+const shortProvider = new ShortProvider();
+process.env.LOCAL_SCRIPT_TIMEOUT_MS = '0.5';
+const subRes = await shortProvider.callApi(slowPy);
+results.subOneMsFallback = { hasError: !!(subRes && subRes.error), error: (subRes && subRes.error) || null };
 delete process.env.LOCAL_SCRIPT_TIMEOUT_MS;
 results.envRestored = !('LOCAL_SCRIPT_TIMEOUT_MS' in process.env);
 results.afterOverrideFast = await run(okStderrPy);
@@ -234,8 +258,23 @@ def _check_negative_timeout(r: dict) -> None:
     # not relabel/soften a real non-zero exit).
     assert "exited with code 1" in (r["exit1"]["error"] or ""), r["exit1"]
     assert r["envRestored"] is True, "LOCAL_SCRIPT_TIMEOUT_MS override must be removed after test"
+    sub = r["subOneMsFallback"]
+    assert sub["hasError"] is True and "after 200ms" in (sub["error"] or ""), (
+        f"sub-1ms override ('0.5') must fall back to DEFAULT_TIMEOUT_MS (200ms), got: {sub}"
+    )
     after = r["afterOverrideFast"]
-    assert after["hasError"] is False and "CLEAN-OUT" in (after["output"] or ""),         "after deleting the override a fast command must succeed on the default budget"
+    assert after["hasError"] is False and "CLEAN-OUT" in (after["output"] or ""), \
+        "after deleting the override a fast command must succeed on the default budget"
+
+
+def _check_negative_signal_killed(r: dict) -> None:
+    s = r["sigkill"]
+    assert s["hasError"] is True, "subprocess terminated by signal must set error"
+    err = s["error"] or ""
+    assert "exited with code SIGKILL" in err, (
+        f"non-SIGTERM signal must report signal name, got: {err}"
+    )
+    assert "code unknown" not in err, f"must not fall back to unknown: {err}"
 
 
 def _check_timeout_budget_contract(_r: dict | None = None) -> None:
@@ -249,8 +288,10 @@ def _check_timeout_budget_contract(_r: dict | None = None) -> None:
     )
     assert "LOCAL_SCRIPT_TIMEOUT_MS" in src, "timeout budget must be env-overridable"
     assert "ETIMEDOUT" in src and "SIGTERM" in src, "timeout classification markers missing"
-    # Non-numeric / non-positive override must not silently zero the budget.
+    # Non-numeric / non-positive / sub-1ms fractional override must not silently zero the budget.
     assert "Number.isFinite" in src and "> 0" in src, "override validation missing"
+    assert "Math.floor(Number(" in src, "sub-1ms fractional override must floor before > 0 check"
+    assert "err.signal" in src, "non-SIGTERM signal fallback classification missing"
 
 
 def main() -> int:
@@ -265,6 +306,7 @@ def main() -> int:
             ("non-flag success output is stdout-only", _check_nonflag_success_stdout_only),
             ("mutation blind provider swallows exit-1 vs real reports", _check_mutation_blind_swallows),
             ("negative over-budget command reports code timeout, env restores", _check_negative_timeout),
+            ("negative non-SIGTERM signal reports signal name not unknown", _check_negative_signal_killed),
             ("timeout-budget contract: default >=60s, env override wired", _check_timeout_budget_contract),
         ]
         for label, fn in checks:
