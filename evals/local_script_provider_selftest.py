@@ -149,6 +149,21 @@ results.realExit1HasError = results.exit1.hasError;
 // an over-budget child with ETIMEDOUT / SIGTERM and no numeric status.
 process.env.LOCAL_SCRIPT_TIMEOUT_MS = '250';
 results.timeout = await run(slowPy);
+// Sub-1ms fractional override ('0.5') must floor to 0 before the > 0 check and
+// fall back to DEFAULT_TIMEOUT_MS (not pass timeout: 0 which disables timeout).
+// Prove this live in 200ms by instantiating a copy of the provider with
+// DEFAULT_TIMEOUT_MS = 200 and running slowPy under LOCAL_SCRIPT_TIMEOUT_MS='0.5'.
+const shortProvPath = path.join(dir, 'shortDefaultProvider.mjs');
+const provSrc = fs.readFileSync(provPath, 'utf8').replace(
+  /DEFAULT_TIMEOUT_MS\s*=\s*\d+/,
+  'DEFAULT_TIMEOUT_MS = 200'
+);
+fs.writeFileSync(shortProvPath, provSrc);
+const ShortProvider = (await import(pathToFileURL(shortProvPath).href)).default;
+const shortProvider = new ShortProvider();
+process.env.LOCAL_SCRIPT_TIMEOUT_MS = '0.5';
+const subRes = await shortProvider.callApi(slowPy);
+results.subOneMsFallback = { hasError: !!(subRes && subRes.error), error: (subRes && subRes.error) || null };
 delete process.env.LOCAL_SCRIPT_TIMEOUT_MS;
 results.envRestored = !('LOCAL_SCRIPT_TIMEOUT_MS' in process.env);
 results.afterOverrideFast = await run(okStderrPy);
@@ -243,6 +258,10 @@ def _check_negative_timeout(r: dict) -> None:
     # not relabel/soften a real non-zero exit).
     assert "exited with code 1" in (r["exit1"]["error"] or ""), r["exit1"]
     assert r["envRestored"] is True, "LOCAL_SCRIPT_TIMEOUT_MS override must be removed after test"
+    sub = r["subOneMsFallback"]
+    assert sub["hasError"] is True and "after 200ms" in (sub["error"] or ""), (
+        f"sub-1ms override ('0.5') must fall back to DEFAULT_TIMEOUT_MS (200ms), got: {sub}"
+    )
     after = r["afterOverrideFast"]
     assert after["hasError"] is False and "CLEAN-OUT" in (after["output"] or ""), \
         "after deleting the override a fast command must succeed on the default budget"

@@ -4890,3 +4890,26 @@
 
 - 严格遵守 `AGENTS.md` Hold 边界：`config/fastdds.xml`、`SCOREBOARD.md`、`dimos_bridge/dimos/**`、`vendor/**`、`docker/**`、`requirements-chain-b.txt` 与 `docs/security/2026-09-vendor-cve-audit.md` 零改动。
 - 已同步推送至远程分支并更新 [**`topsun-bot/ros2_hzj#204`**](https://github.com/topsun-bot/ros2_hzj/pull/204)。
+
+## 轮次 77 — 2026-10-10 21:59（Asia/Shanghai）— 1 分钟定时循环：为 `LOCAL_SCRIPT_TIMEOUT_MS="0.5"` 亚毫秒回退补充运行时探针（`subOneMsFallback`）并同步 PR #204
+
+### 改了什么
+
+1. **`evals/local_script_provider_selftest.py`**：
+   - 在内嵌 Node.js `_HARNESS`（行 152–166）中新增运行时探针 `subOneMsFallback`：基于 `localScriptProvider.mjs` 构造将 `DEFAULT_TIMEOUT_MS` 设为 `200` 的临时模块副本，在 `LOCAL_SCRIPT_TIMEOUT_MS="0.5"` 环境下调用 `slowPy`（`time.sleep(2)`），将原本需等待 `120000ms` 才能实证的默认预算回退缩短为 `200ms` 级毫秒实测。
+   - 在 `_check_negative_timeout`（行 261–264）中新增断言 `assert "localScriptProvider timeout after 200ms" in sub_one_err`，从动态运行时层面锁死轮次 76 修复的亚毫秒小数（`0 < x < 1`）回退至 `DEFAULT_TIMEOUT_MS` 行为，杜绝仅靠静态源码字符串匹配可能遗漏的回归。
+
+### 分数前后对比
+
+| 项 | 轮次 76 | 轮次 77（实测） |
+|---|---|---|
+| gate | 13/13 exit 0 | **13/13 exit 0**（`zero-but-missing-marker: 0`） |
+| fingerprint | 15/15 stable | **15/15 stable**（fixtures 零改动） |
+| local_script_provider_selftest | 10 checks ok | **10 checks ok**（新增 `subOneMsFallback` 200ms 动态探针实测） |
+| selftest | 25 fail=0 | **25 fail=0** |
+| promptfoo | 42/42 (100%) | **42/42 (100%)、0 failed、0 errors** |
+
+### Hold 合规与 PR 状态
+
+- 严格遵守 `AGENTS.md` Hold 边界：`config/fastdds.xml`、`SCOREBOARD.md`、`dimos_bridge/dimos/**`、`vendor/**`、`docker/**`、`requirements-chain-b.txt` 与 `docs/security/2026-09-vendor-cve-audit.md` 零改动。
+- 后续 1 分钟定时触发若无外部阻塞解除（如本机原生 Humble、双物理机 NIC p99、上游 CVE 公告更新或 PR #204 审阅意见），将遵循轮次 73–74 纪律仅做快速门禁与 PR 状态巡检，不再制造边际递减的冗余提交。
