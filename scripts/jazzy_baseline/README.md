@@ -1,7 +1,9 @@
 # Jazzy ROS 2 性能基线（10× 分母）
 
 测 **ROS 2 Jazzy** 发行版自带的 `rmw_fastrtps_cpp` 与 `rmw_cyclonedds_cpp`。
-结果是后面「用 Rust 重写中间件、性能 10 倍」的分母。
+为后面「用 Rust 重写中间件、性能 10 倍」准备可复现采集工具。当前所有产物保留 `not_final_baseline=true`，不能作为已验收的 10× 分母。
+
+对应 [Notion 任务①](https://app.notion.com/p/3f6567e95a6a8166bde4cd97a4950441)；初始实现见 [PR #205](https://github.com/topsun-bot/ros2_hzj/pull/205)。工具使用发行版 `rclpy`，时延包含 Python、消息构造和拷贝、调度、RMW／DDS 开销，不能解释成纯 DDS 或 C++ 客户端性能。同进程和跨机仍是未满足的验收项。
 
 这套工具**不是** Humble 双链 bench，也**不是** [`docs/artifacts/bench/SCOREBOARD.md`](../../docs/artifacts/bench/SCOREBOARD.md)。
 
@@ -26,7 +28,7 @@ Humble 双链入口仍是 [`scripts/bench/README.md`](../bench/README.md)。
 | 维 | 默认 | 可配 |
 |----|------|------|
 | RMW | `rmw_fastrtps_cpp`, `rmw_cyclonedds_cpp` | `--rmw` |
-| 拓扑 | **同机两进程** `same-host`（必测） | `cross-host` 可选；单机写 `STATUS: blocked` |
+| 拓扑 | **同机两进程** `same-host` | `same-process` 未实现；`cross-host` 未编排，均写 `STATUS: blocked`，不能替代任务要求 |
 | 消息 | 1 KiB / 64 KiB / 1 MiB / 4 MiB | `--sizes` |
 | QoS | `reliable` / `best_effort` | `--qos` |
 | 模式 | 单向时延（同机 `CLOCK_MONOTONIC` 打戳） | `--mode rtt` 往返 |
@@ -69,6 +71,8 @@ JAZZY_BASELINE_IMAGE=osrf/ros:jazzy-desktop ./scripts/jazzy_baseline/docker_run.
 python3 scripts/jazzy_baseline/selftest.py
 ```
 
+自检包含测量窗口、失败退出、旧产物保护和重复汇总的合成数据回归测试；自检通过不代表实际 ROS 性能验收。
+
 ## 运行
 
 仓库根：
@@ -88,27 +92,9 @@ python3 scripts/jazzy_baseline/run.py \
   --rmw rmw_fastrtps_cpp --qos reliable --hz 10 --repeats 3
 ```
 
-跨机（可选；两台都要 Jazzy，同一 `--topic-prefix` / `--domain`）：
+`--out` 必须是新的或空目录。重复运行不会覆盖旧结果；每个 worker 的命令、合并 stdout／stderr 和退出码保存在 case 目录。进程非零退出、缺结果、空样本、实际 RMW 不匹配或部分矩阵失败，都会使正常运行命令非零退出。`--allow-missing-ros` 是显式允许 blocked 的工具检查选项，`--smoke` 保留该行为；判定实测成功还必须核对 `results.json` 的 `status`。
 
-```bash
-# 主机 B — 先开订阅
-source /opt/ros/jazzy/setup.bash
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp ROS_DOMAIN_ID=87
-python3 scripts/jazzy_baseline/worker.py \
-  --role sub --mode oneway --qos reliable --size 1024 --hz 50 \
-  --duration 10 --warmup 2 --topic-prefix /jazzy_baseline/cross \
-  --result-json /tmp/sub.json
-
-# 主机 A — 发布
-source /opt/ros/jazzy/setup.bash
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp ROS_DOMAIN_ID=87
-python3 scripts/jazzy_baseline/worker.py \
-  --role pub --mode oneway --qos reliable --size 1024 --hz 50 \
-  --duration 10 --warmup 2 --topic-prefix /jazzy_baseline/cross \
-  --result-json /tmp/pub.json
-```
-
-单机跑 `--topology cross-host` 会诚实写 `STATUS: blocked`，不编分位。
+跨机是任务要求，但当前运行器没有远端启动、共同测量窗口和结果汇集支持。`--topology cross-host` 始终写 `STATUS: blocked`，不能用两次独立启动的单向 worker 当成跨机基线。跨主机 `CLOCK_MONOTONIC` 不可比；未来跨机编排应使用完整 RTT（不除以 2），或专门设计可验证的同步时钟测量。单机 RTT 功能可以通过 `--mode rtt` 验证。
 
 ## 产物
 
@@ -119,21 +105,25 @@ python3 scripts/jazzy_baseline/worker.py \
 | `results.csv` | 机器可读；列见 `defaults.CSV_COLUMNS` |
 | `results.json` | 同上 + 环境 |
 | `summary.md` | 按 RMW 分表：p50/p90/p99/max、msg/s、MB/s、CPU、RSS |
+| `repeats.json` / `repeats.csv` | 相同参数下各次指标的 n、均值、样本标准差、范围、CV；保留缺失／失败／重复编号警告 |
 | `environment.md` / `.json` | CPU、内核、ROS 发行版、rmw dpkg 版本、git SHA |
-| `cases/...` | 每个 case 的 pub/sub worker JSON |
+| `cases/...` | worker JSON（含原始 `samples_ns`）、角色日志、`processes.json` 命令与退出码 |
 
 每行都带 `not_final_baseline=true` 和 `host_class`（云端 VM 为 `cursor-cloud-vm`）。**云端冒烟数字不能当最终基线。**
 
 ## 方法注意
 
-1. **预热**：`--warmup` 秒内的样本不进分位、不进吞吐。默认 2 s，冒烟 0.5 s。
-2. **重复**：正式基线 `--repeats 3`（或更多），取各次 CSV 再自己算中位；不要只报一次 p50。
+1. **预热与窗口**：发现完成且两端就绪后才发布共同起点。按消息发送时间筛选半开测量窗口，预热消息和重复消息不计数；末尾 drain 仅接收窗口内发送的消息。吞吐分母始终为完整 `duration`，不会因丢尾消息缩短。默认预热 2 s，冒烟 0.5 s。
+2. **重复**：任务要求 `--repeats 3`（或更多），自动汇总各次指标的波动。各次 p99 的平均值不是合并全部样本后的总体 p99。汇总 `complete` 仅表示相应参数组重复统计完整，不表示全拓扑验收通过。
 3. **CPU 隔离**：共享云 vCPU 噪声很大。目标机建议 `isolcpus` / `cset` / `taskset`，关 turbo，固定频率，停无关进程。本 harness 不自动绑核。
 4. **时钟**：同机单向时延用 `CLOCK_MONOTONIC`（进程间可比）。跨机不要信单向戳，改 `--mode rtt`，或先 PTP。
 5. **大包**：4 MiB 会走 DDS 分片。默认 2 Hz。Docker 请 `--shm-size=1g` 或更大。
 6. **发现**：同机 `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST`。跨机需要组播或自己的 peer 列表；本工具不改 XML。
 7. **缺件**：没有对应 `librmw_*.so` 的 case 写 `STATUS: blocked` + 原因，不填假数。
 8. **不要**把同机数字说成现场 / 实机 / 跨机根因。
+9. **资源口径**：CPU／RSS 在测量阶段采样，排除预热和主动 drain；实际采样边界会受调度和正在执行的 publish／callback 影响，worker JSON 保留理论窗口、实际资源采样起止和 elapsed。CPU% 以单逻辑核 100% 为基准，RSS 峰值是采样峰值。
+10. **负载与样本量**：这里是固定 offered Hz 下的接收吞吐，不是饱和吞吐。每轮 `received` 是分位数样本量；默认 4 MiB × 2 Hz × 10 s 只有约 20 个样本，p99 是低样本观察值，不宜用于尾延迟承诺。
+11. **复现代码**：环境记录包含 Git SHA、工作树是否有改动，以及每个 Python 文件的 SHA-256；未提交代码的实测不能只靠旧 HEAD 复现。
 
 ## Rust 实现怎么接同一套测试
 
@@ -163,7 +153,7 @@ CSV 列不变，直接和 Jazzy Fast-DDS / Cyclone 行比吞吐与分位。
 --size N --hz F --duration S --warmup S
 --topic-prefix PREFIX
 --result-json PATH
---sync-dir DIR          # 写 <role>.ready；读 go JSON {"go_at_mono": float}
+--sync-dir DIR          # pub/client 完成发现后写 ready；两端读共同 go JSON
 ```
 
 线格式（小端，总长 = `--size`）：
@@ -179,7 +169,7 @@ topic：`{prefix}/data`（单向或 ping），`{prefix}/echo`（pong）。
 消息类型：`std_msgs/UInt8MultiArray`（连续 `uint8`）。
 
 结果 JSON 至少包含：`status`, `sent` 或 `received`, `p50_us`/`p90_us`/`p99_us`/`max_us`,
-`throughput_msg_s`, `throughput_mbyte_s`, `cpu_percent`, `rss_kb_avg`, `rss_kb_peak`, `pid`。
+`throughput_msg_s`, `throughput_mbyte_s`, `cpu_percent`, `rss_kb_avg`, `rss_kb_peak`, `pid`，以及实际装载的 `rmw`（不能只回显请求的环境值）。
 
 ```bash
 python3 scripts/jazzy_baseline/run.py \

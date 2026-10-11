@@ -60,14 +60,19 @@ def clk_tck() -> float:
 def read_cpu_jiffies(pid: int) -> int | None:
     path = Path(f"/proc/{pid}/stat")
     try:
-        parts = path.read_text(encoding="ascii", errors="replace").split()
+        text = path.read_text(encoding="ascii", errors="replace")
     except (OSError, FileNotFoundError):
         return None
-    # utime=14, stime=15 (1-based). After comm, fields are stable.
-    if len(parts) < 15:
+    # comm（字段 2）可包含空格和括号，以最后一个右括号确定边界。
+    end_comm = text.rfind(")")
+    if end_comm < 0:
+        return None
+    parts = text[end_comm + 1 :].split()
+    # 剩余字段从 state（字段 3）开始，utime / stime 是索引 11 / 12。
+    if len(parts) < 13:
         return None
     try:
-        return int(parts[13]) + int(parts[14])
+        return int(parts[11]) + int(parts[12])
     except ValueError:
         return None
 
@@ -134,4 +139,6 @@ class ProcSampler:
             "rss_kb_peak": peak,
             "sample_count": len(self.rss_kb),
             "elapsed_s": elapsed,
+            "resource_sample_start_mono_s": self._t0,
+            "resource_sample_end_mono_s": self._t1,
         }

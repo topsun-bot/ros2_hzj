@@ -10,12 +10,12 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import math
 import os
 from pathlib import Path
-import shutil
+import re
 import subprocess
 import sys
-import tempfile
 import time
 from typing import Any
 
@@ -127,7 +127,13 @@ def _child_env(rmw: str, domain: int, localhost_only: bool) -> dict[str, str]:
     env["ROS_DOMAIN_ID"] = str(domain)
     # Stock Jazzy: do not inherit the Humble Chain A XML seed.
     env.pop("FASTRTPS_DEFAULT_PROFILES_FILE", None)
+    env.pop("FASTDDS_DEFAULT_PROFILES_FILE", None)
+    env.pop("RMW_FASTRTPS_USE_QOS_FROM_XML", None)
+    env.pop("RMW_FASTRTPS_PUBLICATION_MODE", None)
     env.pop("CYCLONEDDS_URI", None)
+    # Prevent implicit DEFAULT_FASTDDS_PROFILES.xml loading from the working directory.
+    env["SKIP_DEFAULT_XML"] = "1"
+    env.pop("ROS_STATIC_PEERS", None)
     if localhost_only:
         # Jazzy: ROS_LOCALHOST_ONLY still works but prints a deprecation
         # warning on every node. LOCALHOST discovery range is the replacement.
@@ -139,11 +145,13 @@ def _child_env(rmw: str, domain: int, localhost_only: bool) -> dict[str, str]:
     return env
 
 
-def _wait_ready(path: Path, timeout_s: float) -> bool:
+def _wait_ready(path: Path, timeout_s: float, process: subprocess.Popen | None = None) -> bool:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         if path.is_file():
             return True
+        if process is not None and process.poll() is not None:
+            return False
         time.sleep(0.02)
     return False
 
@@ -153,7 +161,7 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {"status": "blocked", "blocked_reason": f"missing {path.name}"}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         return {"status": "blocked", "blocked_reason": f"bad json {path.name}: {exc}"}
     if not isinstance(data, dict):
         return {"status": "blocked", "blocked_reason": f"non-object {path.name}"}
@@ -176,13 +184,29 @@ def _merge_case(
     elif sub.get("status") != "ok":
         status = "blocked"
         reason = str(sub.get("blocked_reason") or "subscriber failed")
-    sent = int(pub.get("sent") or 0)
+    sent = pub.get("sent", 0)
     # oneway: subscriber holds one-way samples; rtt: client (pub) holds RTT.
     latency_src = pub if spec.get("mode") == "rtt" else sub
-    received = int(latency_src.get("received") or sub.get("received") or 0)
+    received = latency_src.get("received", 0)
+    if type(sent) is not int or type(received) is not int:
+        status, reason = "blocked", "worker counts must be integers"
+        sent, received = 0, 0
+    if status == "ok":
+        if sent <= 0 or received <= 0 or received > sent:
+            status, reason = "blocked", f"invalid measured counts: sent={sent}, received={received}"
+        elif any(worker.get("rmw") != spec["rmw"] for worker in (pub, sub)):
+            status, reason = "blocked", "loaded RMW does not match requested implementation"
+        else:
+            required = ("p50_us", "p90_us", "p99_us", "max_us", "throughput_msg_s", "throughput_mbyte_s")
+            try:
+                valid = all(math.isfinite(float(latency_src[k])) and float(latency_src[k]) >= 0 for k in required)
+            except (KeyError, TypeError, ValueError):
+                valid = False
+            if not valid:
+                status, reason = "blocked", "missing or non-finite measured latency/throughput"
     loss = float("nan")
     if sent > 0:
-        loss = max(0.0, 1.0 - received / sent)
+        loss = 1.0 - received / sent
     row = {
         "status": status,
         "not_final_baseline": True,
@@ -269,7 +293,7 @@ def _worker_cmd(
     result_json: Path,
     sync_dir: Path,
 ) -> list[str]:
-    worker = args.worker
+    worker = str(Path(args.worker).resolve())
     if Path(worker).is_file() and os.access(worker, os.X_OK) and not worker.endswith(".py"):
         prog = [worker]
     else:
@@ -310,10 +334,9 @@ def _run_pair(
     case_dir: Path,
     env: dict[str, str],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    case_dir.mkdir(parents=True, exist_ok=True)
+    # Never reuse raw artifacts: old JSON must not turn a crashed worker green.
+    case_dir.mkdir(parents=True, exist_ok=False)
     sync_dir = case_dir / "sync"
-    if sync_dir.exists():
-        shutil.rmtree(sync_dir)
     sync_dir.mkdir()
     if spec["mode"] == "rtt":
         a_role, b_role = "echo", "client"
@@ -325,27 +348,57 @@ def _run_pair(
     b_json = case_dir / f"{b_role}.json"
     a_cmd = _worker_cmd(args, role=a_role, spec=spec, result_json=a_json, sync_dir=sync_dir)
     b_cmd = _worker_cmd(args, role=b_role, spec=spec, result_json=b_json, sync_dir=sync_dir)
-    proc_a = subprocess.Popen(a_cmd, env=env, cwd=str(REPO_ROOT))
-    if not _wait_ready(sync_dir / a_ready, args.discover):
-        proc_a.terminate()
-        try:
-            proc_a.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc_a.kill()
-        return (
-            {"status": "blocked", "blocked_reason": f"{a_role} never became ready"},
-            {"status": "blocked", "blocked_reason": f"{a_role} never became ready"},
-        )
-    proc_b = subprocess.Popen(b_cmd, env=env, cwd=str(REPO_ROOT))
-    go_at = time.monotonic() + 1.0
-    (sync_dir / "go").write_text(json.dumps({"go_at_mono": go_at}) + "\n", encoding="utf-8")
-    timeout = args.warmup + args.duration + args.discover + args.margin + 20.0
+    processes: list[tuple[str, subprocess.Popen]] = []
+    logs = []
+    reason = ""
+
+    def start(role: str, command: list[str]) -> subprocess.Popen:
+        log = (case_dir / f"{role}.log").open("w", encoding="utf-8")
+        logs.append(log)
+        child = subprocess.Popen(command, env=env, cwd=str(case_dir), stdout=log, stderr=subprocess.STDOUT)
+        processes.append((role, child))
+        return child
+
     try:
+        proc_a = start(a_role, a_cmd)
+        if not _wait_ready(sync_dir / a_ready, args.discover, proc_a):
+            raise RuntimeError(f"{a_role} never became ready")
+        proc_b = start(b_role, b_cmd)
+        if not _wait_ready(sync_dir / b_ready, args.discover + 2, proc_b):
+            raise RuntimeError(f"{b_role} never became ready")
+        go_at = time.monotonic() + 0.5
+        (sync_dir / "go").write_text(json.dumps({"go_at_mono": go_at}) + "\n", encoding="utf-8")
+        timeout = spec["warmup"] + spec["duration"] + args.margin + 10.0
         proc_b.wait(timeout=timeout)
         proc_a.wait(timeout=args.margin + 10.0)
-    except subprocess.TimeoutExpired:
-        proc_b.kill()
-        proc_a.kill()
+        for role, process in processes:
+            if process.returncode != 0:
+                raise RuntimeError(f"{role} exited {process.returncode}; see {role}.log")
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        reason = str(exc)
+    finally:
+        for _, process in processes:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+        for log in logs:
+            log.close()
+        (case_dir / "processes.json").write_text(json.dumps({
+            "commands": {a_role: a_cmd, b_role: b_cmd},
+            "exit_codes": {role: process.returncode for role, process in processes},
+            "error": reason,
+            "effective_environment": {key: env.get(key, "") for key in (
+                "ROS_DISTRO", "RMW_IMPLEMENTATION", "ROS_DOMAIN_ID",
+                "ROS_AUTOMATIC_DISCOVERY_RANGE", "SKIP_DEFAULT_XML",
+            )},
+        }, indent=2) + "\n", encoding="utf-8")
+    if reason:
+        blocked = {"status": "blocked", "blocked_reason": reason}
+        return blocked, blocked.copy()
     # Publisher/client first, subscriber/echo second (merge expects that order).
     return _load_json(b_json), _load_json(a_json)
 
@@ -355,14 +408,33 @@ def build_specs(args: argparse.Namespace) -> list[dict[str, Any]]:
     sizes = _csv_ints(args.sizes, DEFAULT_SIZES)
     qoss = [str(x) for x in _csv_list(args.qos, DEFAULT_QOS)]
     modes = [m.strip() for m in str(args.mode).split(",") if m.strip()] or list(DEFAULT_MODES)
+    for name, values in (("rmw", rmws), ("sizes", sizes), ("qos", qoss), ("mode", modes)):
+        if not values or len(set(values)) != len(values):
+            raise ValueError(f"{name} must be a non-empty list without duplicates")
+    if any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", value) for value in rmws):
+        raise ValueError("rmw must be a package name, not a path")
+    if any(value not in DEFAULT_QOS for value in qoss):
+        raise ValueError("qos must be reliable or best_effort")
+    if not 1 <= args.repeats <= 1000:
+        raise ValueError("repeats must be between 1 and 1000")
+    if not 0 <= args.domain <= 232:
+        raise ValueError("domain must be between 0 and 232")
+    for name in ("duration", "discover", "margin", "warmup"):
+        value = getattr(args, name)
+        if not math.isfinite(value) or value < 0 or (name != "warmup" and value == 0):
+            raise ValueError(f"{name} must be finite and {'nonnegative' if name == 'warmup' else 'positive'}")
+    if args.hz is not None and (not math.isfinite(args.hz) or args.hz <= 0):
+        raise ValueError("hz must be finite and positive")
+    if not re.fullmatch(r"(?:/[A-Za-z_][A-Za-z0-9_]*)+", args.topic_prefix):
+        raise ValueError("topic-prefix must be an absolute ROS topic namespace")
     specs: list[dict[str, Any]] = []
     for rmw in rmws:
         for qos in qoss:
             for size in sizes:
-                if size < HEADER_SIZE:
-                    raise ValueError(f"size {size} < header {HEADER_SIZE}")
+                if not HEADER_SIZE <= size <= 4194304:
+                    raise ValueError(f"size must be between {HEADER_SIZE} and 4194304 bytes")
                 for mode in modes:
-                    for repeat in range(1, max(args.repeats, 1) + 1):
+                    for repeat in range(1, args.repeats + 1):
                         specs.append(
                             {
                                 "rmw": rmw,
@@ -398,6 +470,7 @@ def _write_blocked_run(
         "topology": args.topology,
         "domain": args.domain,
         "smoke": bool(args.smoke),
+        "expected_repeats": args.repeats,
         "environment": env,
         "cases": cases,
         "host_class": host_class,
@@ -407,8 +480,10 @@ def _write_blocked_run(
 
 
 def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
-    out_dir = Path(args.out)
+    out_dir = Path(args.out).resolve()
     specs = build_specs(args)
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise ValueError(f"output directory is not empty; use a new --out path: {out_dir}")
     if args.topology == "cross-host":
         reason = (
             "cross-host requires two machines. Start the subscriber/echo with "
@@ -418,13 +493,13 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
         return _write_blocked_run(out_dir, args, reason, specs)
     if args.topology == "same-process":
         reason = (
-            "same-process is reserved; the required scenario is same-host "
-            "two-process. Re-run with --topology same-host."
+            "same-process is not implemented yet. It remains an unmet task-1 "
+            "acceptance item; same-host two-process results do not cover it."
         )
         return _write_blocked_run(out_dir, args, reason, specs)
     if not ros_sourced():
         reason = (
-            "ROS 2 Jazzy is not sourced (no ROS_DISTRO/AMENT_PREFIX_PATH). "
+            "ROS 2 Jazzy is not sourced (requires ROS_DISTRO=jazzy and AMENT_PREFIX_PATH). "
             "Use ./scripts/jazzy_baseline/docker_run.sh or "
             "`source /opt/ros/jazzy/setup.bash`."
         )
@@ -484,6 +559,7 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
         "topology": args.topology,
         "domain": args.domain,
         "smoke": bool(args.smoke),
+        "expected_repeats": args.repeats,
         "environment": env_facts,
         "cases": cases,
         "host_class": host_class,
@@ -494,9 +570,15 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    payload = run_matrix(args)
+    try:
+        payload = run_matrix(args)
+    except (ValueError, OSError) as exc:
+        print(f"[jazzy-baseline] ERROR: {exc}", file=sys.stderr)
+        return 2
     print(f"[jazzy-baseline] STATUS={payload['status']} out={args.out}", flush=True)
-    if payload["status"] == "blocked" and not args.allow_missing_ros and not args.smoke:
+    if payload["status"] == "partial":
+        return 2
+    if payload["status"] == "blocked" and not args.allow_missing_ros:
         return 2
     return 0
 

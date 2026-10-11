@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import os
 from pathlib import Path
 import platform
@@ -31,7 +32,7 @@ def cpu_model() -> str:
 def os_pretty() -> str:
     try:
         return platform.freedesktop_os_release().get("PRETTY_NAME", platform.system())
-    except OSError:
+    except (OSError, AttributeError):
         return platform.system()
 
 
@@ -60,6 +61,8 @@ def hostname_class(host: str | None = None) -> str:
     name = host or socket.gethostname()
     if name in {"cursor", "codespaces"} or name.startswith("cursor"):
         return "cursor-cloud-vm"
+    if name == "lima-colima" or name.startswith("colima"):
+        return "colima-local-vm"
     return "unknown"
 
 
@@ -96,12 +99,7 @@ def rmw_available(rmw: str) -> bool:
 
 
 def ros_sourced() -> bool:
-    if os.environ.get("ROS_DISTRO") and shutil.which("ros2"):
-        return True
-    distro = os.environ.get("ROS_DISTRO") or "jazzy"
-    return Path(f"/opt/ros/{distro}/setup.bash").is_file() and bool(
-        os.environ.get("AMENT_PREFIX_PATH")
-    )
+    return os.environ.get("ROS_DISTRO") == "jazzy" and bool(os.environ.get("AMENT_PREFIX_PATH"))
 
 
 def collect(repo_root: Path, *, extra: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -129,8 +127,8 @@ def collect(repo_root: Path, *, extra: dict[str, Any] | None = None) -> dict[str
         "ros2_which": shutil.which("ros2") or "",
         "rmw_implementation_env": os.environ.get("RMW_IMPLEMENTATION") or "",
         "ros_domain_id": os.environ.get("ROS_DOMAIN_ID") or "",
-        "fastrtps_default_profiles_file": os.environ.get("FASTRTPS_DEFAULT_PROFILES_FILE") or "",
-        "cyclonedds_uri": os.environ.get("CYCLONEDDS_URI") or "",
+        "fastrtps_default_profiles_file": "(set; removed in child)" if os.environ.get("FASTRTPS_DEFAULT_PROFILES_FILE") else "",
+        "cyclonedds_uri": "(set; removed in child)" if os.environ.get("CYCLONEDDS_URI") else "",
         "ros_localhost_only": os.environ.get("ROS_LOCALHOST_ONLY") or "",
         "ros_automatic_discovery_range": os.environ.get("ROS_AUTOMATIC_DISCOVERY_RANGE") or "",
         "packages": {
@@ -141,6 +139,11 @@ def collect(repo_root: Path, *, extra: dict[str, Any] | None = None) -> dict[str
             "cyclonedds": dpkg_version(f"{pkg_prefix}cyclonedds"),
         },
         "git_sha_ros2_hzj": git_sha(repo_root),
+        "git_worktree_dirty": bool(_run(["git", "-C", str(repo_root), "status", "--porcelain", "--untracked-files=no"])),
+        "source_sha256": {
+            path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted((repo_root / "scripts" / "jazzy_baseline").glob("*.py"))
+        },
     }
     if extra:
         env.update(extra)

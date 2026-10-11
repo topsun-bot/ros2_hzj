@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import array
+from dataclasses import dataclass, field
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -22,7 +24,123 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from defaults import HEADER_SIZE, TOPIC_DATA, TOPIC_ECHO  # noqa: E402
 from metrics import ProcSampler, percentiles_us  # noqa: E402
-from wire import magic_ok, pack, unpack  # noqa: E402
+from wire import ProbeHeader, magic_ok, pack, unpack  # noqa: E402
+
+
+@dataclass
+class MeasurementSamples:
+    """按发送时间筛选半开测量窗口；测试使用合成报文，不代表 ROS 测量。"""
+
+    start_ns: int
+    end_ns: int
+    size: int
+    samples_ns: list[int] = field(default_factory=list)
+    seen: set[int] = field(default_factory=set)
+    duplicate_count: int = 0
+    invalid_count: int = 0
+    outside_window_count: int = 0
+
+    def header(self, blob: Any) -> ProbeHeader | None:
+        if len(blob) != self.size:
+            self.invalid_count += 1
+            return None
+        try:
+            header = unpack(blob)
+        except (ValueError, TypeError):
+            self.invalid_count += 1
+            return None
+        if not magic_ok(header):
+            self.invalid_count += 1
+            return None
+        if not self.start_ns <= header.t0_ns < self.end_ns:
+            self.outside_window_count += 1
+            return None
+        if header.seq in self.seen:
+            self.duplicate_count += 1
+            return None
+        return header
+
+    def observe(self, blob: Any, received_ns: int, pending: dict[int, int] | None = None) -> None:
+        header = self.header(blob)
+        if header is None:
+            return
+        if received_ns < header.t0_ns:
+            self.invalid_count += 1
+            return
+        if pending is not None:
+            if pending.get(header.seq) != header.t0_ns:
+                self.invalid_count += 1
+                return
+            pending.pop(header.seq)
+        self.seen.add(header.seq)
+        self.samples_ns.append(received_ns - header.t0_ns)
+
+    def result(self, duration_s: float) -> dict[str, Any]:
+        received = len(self.samples_ns)
+        result: dict[str, Any] = {
+            "status": "ok" if received else "blocked",
+            "received": received,
+            "duplicate_count": self.duplicate_count,
+            "invalid_count": self.invalid_count,
+            "outside_window_count": self.outside_window_count,
+            "samples_ns": self.samples_ns,
+            "throughput_msg_s": received / duration_s,
+            "throughput_mbyte_s": received * self.size / duration_s / 1e6,
+            "window_s": duration_s,
+            **percentiles_us(self.samples_ns),
+        }
+        if not received:
+            result["blocked_reason"] = "no valid measured samples"
+        return result
+
+
+class MeasurementResources:
+    """只在测量阶段采样资源；输出实际采样边界，暴露调度延迟。"""
+
+    def __init__(self, start_ns: int, end_ns: int) -> None:
+        self.start_ns, self.end_ns = start_ns, end_ns
+        self.sampler = ProcSampler(os.getpid())
+        self.started = False
+        self.stopped = False
+        self.next_sample_ns = start_ns
+
+    def update(self, now_ns: int) -> None:
+        if not self.started and self.start_ns <= now_ns < self.end_ns:
+            self.sampler.start()
+            self.started = True
+        if self.started and not self.stopped:
+            if now_ns >= self.end_ns:
+                self.sampler.stop()
+                self.stopped = True
+            elif now_ns >= self.next_sample_ns:
+                self.sampler.sample()
+                self.next_sample_ns = now_ns + 100_000_000
+
+    def finish(self) -> dict[str, Any]:
+        if self.started and not self.stopped:
+            self.sampler.stop()
+            self.stopped = True
+        result = self.sampler.as_dict()
+        result.update({
+            "measure_start_ns": self.start_ns,
+            "measure_end_ns": self.end_ns,
+            "resource_window_observed": self.started,
+        })
+        return result
+
+
+def measurement_bounds(go_at: float, warmup: float, duration: float) -> tuple[int, int]:
+    start_ns = round(go_at * 1e9) + round(warmup * 1e9)
+    return start_ns, start_ns + round(duration * 1e9)
+
+
+def _spin_timeout(now_ns: int, until_ns: int, start_ns: int, end_ns: int) -> float:
+    boundaries = [until_ns]
+    if now_ns < end_ns:
+        boundaries.append(end_ns)
+    if now_ns < start_ns:
+        boundaries.append(start_ns)
+    return max(0.0, min(0.01, (min(boundaries) - now_ns) / 1e9))
 
 
 def _qos_profile(kind: str) -> Any:
@@ -61,13 +179,20 @@ def _wait_go(sync_dir: Path | None, go_at_mono: float | None) -> float:
             if go_path.is_file():
                 try:
                     data = json.loads(go_path.read_text(encoding="utf-8"))
-                    go_at_mono = float(data.get("go_at_mono", 0.0)) or go_at_mono
-                except (OSError, ValueError, json.JSONDecodeError):
-                    pass
+                    go_at_mono = float(data["go_at_mono"])
+                    if not math.isfinite(go_at_mono) or go_at_mono <= 0:
+                        raise ValueError("invalid go_at_mono")
+                except (OSError, ValueError, KeyError, TypeError):
+                    time.sleep(0.02)
+                    continue
                 break
             time.sleep(0.02)
+        else:
+            raise RuntimeError("timed out waiting for a valid synchronized start")
     if go_at_mono is None:
         return time.monotonic()
+    if not math.isfinite(go_at_mono) or go_at_mono <= time.monotonic():
+        raise RuntimeError("synchronized start is invalid or already expired")
     while time.monotonic() < go_at_mono:
         time.sleep(0.005)
     return go_at_mono
@@ -82,14 +207,30 @@ def _write_ready(sync_dir: Path | None, role: str) -> None:
 
 
 def _write_result(path: Path, payload: dict[str, Any]) -> None:
+    def json_safe(value: Any) -> Any:
+        if isinstance(value, float) and not math.isfinite(value):
+            return None
+        if isinstance(value, dict):
+            return {key: json_safe(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [json_safe(item) for item in value]
+        return value
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(json_safe(payload), indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def _base_result(args: argparse.Namespace, role: str) -> dict[str, Any]:
+    try:
+        from rclpy.utilities import get_rmw_implementation_identifier
+
+        actual_rmw = get_rmw_implementation_identifier()
+    except (ImportError, RuntimeError):
+        actual_rmw = ""
     return {
         "role": role,
-        "rmw": os.environ.get("RMW_IMPLEMENTATION") or args.rmw or "",
+        "rmw": actual_rmw,
+        "requested_rmw": os.environ.get("RMW_IMPLEMENTATION") or args.rmw or "",
         "qos": args.qos,
         "size_bytes": args.size,
         "mode": args.mode,
@@ -110,9 +251,6 @@ def _run_pub(args: argparse.Namespace) -> dict[str, Any]:
     if args.mode == "rtt":
         topic = f"{args.topic_prefix}/{TOPIC_DATA}"
     pub = node.create_publisher(_msg_type(), topic, _qos_profile(args.qos))
-    _write_ready(args.sync_dir, args.role)
-    _wait_go(args.sync_dir, args.go_at_mono)
-
     deadline = time.monotonic() + args.discover
     matched = False
     while time.monotonic() < deadline:
@@ -127,42 +265,43 @@ def _run_pub(args: argparse.Namespace) -> dict[str, Any]:
         rclpy.shutdown()
         return result
 
-    sampler = ProcSampler(os.getpid())
-    sampler.start()
-    t0 = time.monotonic()
-    t_warm_end = t0 + args.warmup
-    t_end = t_warm_end + args.duration
-    period = 1.0 / args.hz
-    next_t = t0
+    _write_ready(args.sync_dir, args.role)
+    go_at = _wait_go(args.sync_dir, args.go_at_mono)
+    start_ns, end_ns = measurement_bounds(go_at, args.warmup, args.duration)
+    resources = MeasurementResources(start_ns, end_ns)
+    period_ns = round(1e9 / args.hz)
+    next_ns = round(go_at * 1e9)
     seq = 0
     sent = 0
     late = 0
-    blob_pad = pack(0, 0, args.size)  # size check; rebuilt per publish
-    del blob_pad
-    while time.monotonic() < t_end:
-        now = time.monotonic()
-        if now < next_t:
-            time.sleep(min(next_t - now, 0.001))
-            rclpy.spin_once(node, timeout_sec=0.0)
+    while True:
+        now = time.monotonic_ns()
+        resources.update(now)
+        if now >= end_ns:
+            break
+        if now < next_ns:
+            rclpy.spin_once(node, timeout_sec=_spin_timeout(now, next_ns, start_ns, end_ns))
             continue
         stamp = time.monotonic_ns()
+        if stamp >= end_ns:
+            break
         pub.publish(_make_msg(pack(seq, stamp, args.size)))
-        if now >= t_warm_end:
+        if start_ns <= stamp < end_ns:
             sent += 1
         seq += 1
-        next_t += period
-        if next_t < now - period:
-            next_t = now
+        next_ns += period_ns
+        if next_ns < stamp - period_ns:
+            next_ns = stamp
             late += 1
-        if seq % 32 == 0:
-            sampler.sample()
         rclpy.spin_once(node, timeout_sec=0.0)
-    sampler.stop()
+    resource_result = resources.finish()
     node.destroy_node()
     rclpy.shutdown()
     result = _base_result(args, args.role)
-    result.update({"status": "ok", "sent": sent, "late_slots": late, "matched": True})
-    result.update(sampler.as_dict())
+    result.update({"status": "ok" if sent else "blocked", "sent": sent, "late_slots": late, "matched": True})
+    if not sent:
+        result["blocked_reason"] = "no measured messages sent"
+    result.update(resource_result)
     return result
 
 
@@ -178,64 +317,33 @@ def _run_sub(args: argparse.Namespace) -> dict[str, Any]:
 
     rclpy.init()
     node = Node(f"jazzy_baseline_sub_{os.getpid()}")
-    samples_ns: list[int] = []
-    received = 0
-    bad_magic = 0
-    first_ns: int | None = None
-    last_ns: int | None = None
-    measure_start = float("inf")
+    samples: MeasurementSamples | None = None
 
     def on_msg(msg: Any) -> None:
-        nonlocal received, bad_magic, first_ns, last_ns
         now = time.monotonic_ns()
-        wall = time.monotonic()
-        try:
-            header = unpack(bytes(msg.data))
-        except ValueError:
-            return
-        if not magic_ok(header):
-            bad_magic += 1
-            return
-        if wall < measure_start:
-            return
-        samples_ns.append(now - header.t0_ns)
-        received += 1
-        if first_ns is None:
-            first_ns = now
-        last_ns = now
+        if samples is not None:
+            samples.observe(msg.data, now)
 
     topic = f"{args.topic_prefix}/{TOPIC_DATA}"
     node.create_subscription(_msg_type(), topic, on_msg, _qos_profile(args.qos))
     _write_ready(args.sync_dir, args.role)
     go_at = _wait_go(args.sync_dir, args.go_at_mono)
-    measure_start = go_at + args.warmup
-    stop_at = measure_start + args.duration + args.margin
-    sampler = ProcSampler(os.getpid())
-    sampler.start()
-    while time.monotonic() < stop_at:
-        rclpy.spin_once(node, timeout_sec=0.05)
-        if int(time.monotonic() * 10) % 8 == 0:
-            sampler.sample()
-    sampler.stop()
+    start_ns, end_ns = measurement_bounds(go_at, args.warmup, args.duration)
+    samples = MeasurementSamples(start_ns, end_ns, args.size)
+    resources = MeasurementResources(start_ns, end_ns)
+    stop_ns = end_ns + round(args.margin * 1e9)
+    while True:
+        now = time.monotonic_ns()
+        resources.update(now)
+        if now >= stop_ns:
+            break
+        rclpy.spin_once(node, timeout_sec=_spin_timeout(now, stop_ns, start_ns, end_ns))
+    resource_result = resources.finish()
     node.destroy_node()
     rclpy.shutdown()
-    window = args.duration if args.duration > 0 else 1e-9
-    if first_ns is not None and last_ns is not None and last_ns > first_ns:
-        window = max((last_ns - first_ns) / 1e9, 1e-9)
-    stats = percentiles_us(samples_ns)
     result = _base_result(args, args.role)
-    result.update(
-        {
-            "status": "ok",
-            "received": received,
-            "bad_magic": bad_magic,
-            "throughput_msg_s": received / window,
-            "throughput_mbyte_s": (received * args.size) / window / 1e6,
-            "window_s": window,
-            **stats,
-        }
-    )
-    result.update(sampler.as_dict())
+    result.update(samples.result(args.duration))
+    result.update(resource_result)
     return result
 
 
@@ -249,9 +357,16 @@ def _run_echo(args: argparse.Namespace) -> dict[str, Any]:
         _msg_type(), f"{args.topic_prefix}/{TOPIC_ECHO}", _qos_profile(args.qos)
     )
     echoed = 0
+    invalid_count = 0
 
     def on_msg(msg: Any) -> None:
-        nonlocal echoed
+        nonlocal echoed, invalid_count
+        if len(msg.data) != args.size:
+            invalid_count += 1
+            return
+        if not magic_ok(unpack(msg.data)):
+            invalid_count += 1
+            return
         out.publish(msg)
         echoed += 1
 
@@ -260,18 +375,23 @@ def _run_echo(args: argparse.Namespace) -> dict[str, Any]:
     )
     _write_ready(args.sync_dir, args.role)
     go_at = _wait_go(args.sync_dir, args.go_at_mono)
-    stop_at = go_at + args.warmup + args.duration + args.margin
-    sampler = ProcSampler(os.getpid())
-    sampler.start()
-    while time.monotonic() < stop_at:
-        rclpy.spin_once(node, timeout_sec=0.05)
-        sampler.sample()
-    sampler.stop()
+    start_ns, end_ns = measurement_bounds(go_at, args.warmup, args.duration)
+    resources = MeasurementResources(start_ns, end_ns)
+    stop_ns = end_ns + round(args.margin * 1e9)
+    while True:
+        now = time.monotonic_ns()
+        resources.update(now)
+        if now >= stop_ns:
+            break
+        rclpy.spin_once(node, timeout_sec=_spin_timeout(now, stop_ns, start_ns, end_ns))
+    resource_result = resources.finish()
     node.destroy_node()
     rclpy.shutdown()
     result = _base_result(args, args.role)
-    result.update({"status": "ok", "echoed": echoed})
-    result.update(sampler.as_dict())
+    result.update({"status": "ok" if echoed else "blocked", "echoed": echoed, "invalid_count": invalid_count})
+    if not echoed:
+        result["blocked_reason"] = "no valid messages echoed"
+    result.update(resource_result)
     return result
 
 
@@ -285,33 +405,22 @@ def _run_client(args: argparse.Namespace) -> dict[str, Any]:
         _msg_type(), f"{args.topic_prefix}/{TOPIC_DATA}", _qos_profile(args.qos)
     )
     pending: dict[int, int] = {}
-    rtt_ns: list[int] = []
-    received = 0
+    samples: MeasurementSamples | None = None
 
     def on_pong(msg: Any) -> None:
-        nonlocal received
         now = time.monotonic_ns()
-        try:
-            header = unpack(bytes(msg.data))
-        except ValueError:
-            return
-        t0 = pending.pop(header.seq, None)
-        if t0 is None:
-            return
-        rtt_ns.append(now - t0)
-        received += 1
+        if samples is not None:
+            samples.observe(msg.data, now, pending)
 
-    node.create_subscription(
+    echo_sub = node.create_subscription(
         _msg_type(), f"{args.topic_prefix}/{TOPIC_ECHO}", on_pong, _qos_profile(args.qos)
     )
-    _write_ready(args.sync_dir, args.role)
-    _wait_go(args.sync_dir, args.go_at_mono)
 
     deadline = time.monotonic() + args.discover
     matched = False
     while time.monotonic() < deadline:
         rclpy.spin_once(node, timeout_sec=0.05)
-        if pub.get_subscription_count() >= 1:
+        if pub.get_subscription_count() >= 1 and echo_sub.get_publisher_count() >= 1:
             matched = True
             break
     if not matched:
@@ -321,52 +430,52 @@ def _run_client(args: argparse.Namespace) -> dict[str, Any]:
         rclpy.shutdown()
         return result
 
-    sampler = ProcSampler(os.getpid())
-    sampler.start()
-    t0 = time.monotonic()
-    t_warm_end = t0 + args.warmup
-    t_end = t_warm_end + args.duration
-    period = 1.0 / args.hz
-    next_t = t0
+    _write_ready(args.sync_dir, args.role)
+    go_at = _wait_go(args.sync_dir, args.go_at_mono)
+    start_ns, end_ns = measurement_bounds(go_at, args.warmup, args.duration)
+    resources = MeasurementResources(start_ns, end_ns)
+    samples = MeasurementSamples(start_ns, end_ns, args.size)
+    period_ns = round(1e9 / args.hz)
+    next_ns = round(go_at * 1e9)
     seq = 0
     sent = 0
-    while time.monotonic() < t_end:
-        now = time.monotonic()
-        if now < next_t:
-            rclpy.spin_once(node, timeout_sec=min(next_t - now, 0.01))
+    while True:
+        now = time.monotonic_ns()
+        resources.update(now)
+        if now >= end_ns:
+            break
+        if now < next_ns:
+            rclpy.spin_once(node, timeout_sec=_spin_timeout(now, next_ns, start_ns, end_ns))
             continue
         stamp = time.monotonic_ns()
-        if now >= t_warm_end:
+        if stamp >= end_ns:
+            break
+        if start_ns <= stamp < end_ns:
             pending[seq] = stamp
             sent += 1
         pub.publish(_make_msg(pack(seq, stamp, args.size)))
         seq += 1
-        next_t += period
-        if next_t < now - period:
-            next_t = now
+        next_ns += period_ns
+        if next_ns < stamp - period_ns:
+            next_ns = stamp
         rclpy.spin_once(node, timeout_sec=0.0)
-    drain = time.monotonic() + args.margin
-    while time.monotonic() < drain:
-        rclpy.spin_once(node, timeout_sec=0.05)
-    sampler.stop()
+    resource_result = resources.finish()
+    drain_ns = end_ns + round(args.margin * 1e9)
+    while time.monotonic_ns() < drain_ns:
+        now = time.monotonic_ns()
+        rclpy.spin_once(node, timeout_sec=_spin_timeout(now, drain_ns, start_ns, end_ns))
     node.destroy_node()
     rclpy.shutdown()
-    window = args.duration if args.duration > 0 else 1e-9
-    stats = percentiles_us(rtt_ns)
     result = _base_result(args, args.role)
+    result.update(samples.result(args.duration))
     result.update(
         {
-            "status": "ok",
             "sent": sent,
-            "received": received,
-            "throughput_msg_s": received / window,
-            "throughput_mbyte_s": (received * args.size) / window / 1e6,
-            "window_s": window,
+            "unanswered": len(pending),
             "matched": True,
-            **stats,
         }
     )
-    result.update(sampler.as_dict())
+    result.update(resource_result)
     return result
 
 
@@ -387,10 +496,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--sync-dir", default="")
     p.add_argument("--go-at-mono", type=float, default=None)
     args = p.parse_args(argv)
-    if args.size < HEADER_SIZE:
-        p.error(f"--size must be >= {HEADER_SIZE}")
-    if args.hz <= 0 or args.duration <= 0:
-        p.error("--hz and --duration must be > 0")
+    if not HEADER_SIZE <= args.size <= 4_194_304:
+        p.error(f"--size must be between {HEADER_SIZE} and 4194304")
+    for name, maximum, zero_allowed in (
+        ("hz", 1_000_000.0, False),
+        ("duration", 3600.0, False),
+        ("warmup", 600.0, True),
+        ("discover", 300.0, False),
+        ("margin", 300.0, False),
+    ):
+        value = getattr(args, name)
+        if not math.isfinite(value) or value > maximum or value < 0 or (not zero_allowed and value == 0):
+            p.error(f"--{name} must be finite, {'>= 0' if zero_allowed else '> 0'} and <= {maximum:g}")
+    if args.hz * (args.warmup + args.duration) > 1_000_000:
+        p.error("offered messages must not exceed 1000000 per worker run")
+    if args.go_at_mono is not None and (not math.isfinite(args.go_at_mono) or args.go_at_mono <= 0):
+        p.error("--go-at-mono must be finite and > 0")
     args.sync_dir = Path(args.sync_dir) if args.sync_dir else None
     return args
 

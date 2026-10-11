@@ -6,6 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 import tempfile
+import unittest
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -226,6 +227,9 @@ def main() -> int:
         test_write_reports_roundtrip()
     except AssertionError as exc:
         print(f"FAIL: {exc}")
+        return 1
+    suite = unittest.defaultTestLoader.discover(str(SCRIPT_DIR), pattern="test_*.py")
+    if not unittest.TextTestRunner(stream=sys.stdout, verbosity=1).run(suite).wasSuccessful():
         return 1
     print(SUCCESS_MARKER)
     return 0
