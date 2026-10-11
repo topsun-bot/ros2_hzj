@@ -129,9 +129,13 @@ def _child_env(rmw: str, domain: int, localhost_only: bool) -> dict[str, str]:
     env.pop("FASTRTPS_DEFAULT_PROFILES_FILE", None)
     env.pop("CYCLONEDDS_URI", None)
     if localhost_only:
-        env["ROS_LOCALHOST_ONLY"] = "1"
+        # Jazzy: ROS_LOCALHOST_ONLY still works but prints a deprecation
+        # warning on every node. LOCALHOST discovery range is the replacement.
+        env["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"
+        env.pop("ROS_LOCALHOST_ONLY", None)
     else:
         env.pop("ROS_LOCALHOST_ONLY", None)
+        env.pop("ROS_AUTOMATIC_DISCOVERY_RANGE", None)
     return env
 
 

@@ -35,7 +35,7 @@ Humble 双链入口仍是 [`scripts/bench/README.md`](../bench/README.md)。
 | 重复 | 3 | `--repeats` |
 | 资源 | 每个进程 CPU% + VmRSS 均值/峰值 | `/proc/<pid>` |
 
-默认域 **87**，避免撞上链 A 域 42 / 链 B 域 0。同机默认 `ROS_LOCALHOST_ONLY=1`。
+默认域 **87**，避免撞上链 A 域 42 / 链 B 域 0。同机默认 `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST`（Jazzy 替代已弃用的 `ROS_LOCALHOST_ONLY`）。
 
 ## 构建
 
@@ -131,7 +131,7 @@ python3 scripts/jazzy_baseline/worker.py \
 3. **CPU 隔离**：共享云 vCPU 噪声很大。目标机建议 `isolcpus` / `cset` / `taskset`，关 turbo，固定频率，停无关进程。本 harness 不自动绑核。
 4. **时钟**：同机单向时延用 `CLOCK_MONOTONIC`（进程间可比）。跨机不要信单向戳，改 `--mode rtt`，或先 PTP。
 5. **大包**：4 MiB 会走 DDS 分片。默认 2 Hz。Docker 请 `--shm-size=1g` 或更大。
-6. **发现**：同机 `ROS_LOCALHOST_ONLY=1`。跨机需要组播或自己的 peer 列表；本工具不改 XML。
+6. **发现**：同机 `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST`。跨机需要组播或自己的 peer 列表；本工具不改 XML。
 7. **缺件**：没有对应 `librmw_*.so` 的 case 写 `STATUS: blocked` + 原因，不填假数。
 8. **不要**把同机数字说成现场 / 实机 / 跨机根因。
 

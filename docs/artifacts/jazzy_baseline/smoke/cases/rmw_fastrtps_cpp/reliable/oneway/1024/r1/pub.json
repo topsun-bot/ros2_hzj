@@ -1,0 +1,20 @@
+{
+  "cpu_percent": 9.198078984882873,
+  "duration_s": 2.0,
+  "elapsed_s": 2.500522124000099,
+  "hz": 20.0,
+  "late_slots": 0,
+  "matched": true,
+  "mode": "oneway",
+  "pid": 13362,
+  "qos": "reliable",
+  "rmw": "rmw_fastrtps_cpp",
+  "role": "pub",
+  "rss_kb_avg": 67620.0,
+  "rss_kb_peak": 67628.0,
+  "sample_count": 3,
+  "sent": 40,
+  "size_bytes": 1024,
+  "status": "ok",
+  "warmup_s": 0.5
+}

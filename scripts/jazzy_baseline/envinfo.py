@@ -132,6 +132,7 @@ def collect(repo_root: Path, *, extra: dict[str, Any] | None = None) -> dict[str
         "fastrtps_default_profiles_file": os.environ.get("FASTRTPS_DEFAULT_PROFILES_FILE") or "",
         "cyclonedds_uri": os.environ.get("CYCLONEDDS_URI") or "",
         "ros_localhost_only": os.environ.get("ROS_LOCALHOST_ONLY") or "",
+        "ros_automatic_discovery_range": os.environ.get("ROS_AUTOMATIC_DISCOVERY_RANGE") or "",
         "packages": {
             "rmw_fastrtps_cpp": dpkg_version(f"{pkg_prefix}rmw-fastrtps-cpp"),
             "rmw_cyclonedds_cpp": dpkg_version(f"{pkg_prefix}rmw-cyclonedds-cpp"),
@@ -169,6 +170,7 @@ def render_md(env: dict[str, Any]) -> str:
         f"- **FASTRTPS_DEFAULT_PROFILES_FILE:** `{env.get('fastrtps_default_profiles_file') or '(unset — stock Jazzy)'}`",
         f"- **CYCLONEDDS_URI:** `{env.get('cyclonedds_uri') or '(unset — stock Jazzy)'}`",
         f"- **ROS_LOCALHOST_ONLY:** `{env.get('ros_localhost_only') or '(unset)'}`",
+        f"- **ROS_AUTOMATIC_DISCOVERY_RANGE:** `{env.get('ros_automatic_discovery_range') or '(unset; child workers set LOCALHOST)'}`",
         f"- **dpkg rmw_fastrtps_cpp:** `{pkgs.get('rmw_fastrtps_cpp', '')}`",
         f"- **dpkg rmw_cyclonedds_cpp:** `{pkgs.get('rmw_cyclonedds_cpp', '')}`",
         f"- **dpkg rclpy:** `{pkgs.get('rclpy', '')}`",

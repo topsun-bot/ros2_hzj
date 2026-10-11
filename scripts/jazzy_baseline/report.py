@@ -136,7 +136,7 @@ def render_summary(payload: dict[str, Any]) -> str:
         "## Method",
         "",
         "- Warmup seconds are discarded before percentiles and throughput.",
-        "- Same-host uses two processes and `ROS_LOCALHOST_ONLY=1` by default.",
+        "- Same-host uses two processes and `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST`.",
         "- Cross-host is optional; a single VM records `STATUS: blocked`.",
         "- Repeat recommended ≥ 3 on the robot / HIL host; isolate CPUs if you can.",
         "",

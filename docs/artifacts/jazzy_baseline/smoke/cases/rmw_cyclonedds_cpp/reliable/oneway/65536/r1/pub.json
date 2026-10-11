@@ -1,0 +1,20 @@
+{
+  "cpu_percent": 10.397808366588833,
+  "duration_s": 2.0,
+  "elapsed_s": 2.5005269460000363,
+  "hz": 20.0,
+  "late_slots": 0,
+  "matched": true,
+  "mode": "oneway",
+  "pid": 13458,
+  "qos": "reliable",
+  "rmw": "rmw_cyclonedds_cpp",
+  "role": "pub",
+  "rss_kb_avg": 56542.666666666664,
+  "rss_kb_peak": 56768.0,
+  "sample_count": 3,
+  "sent": 40,
+  "size_bytes": 65536,
+  "status": "ok",
+  "warmup_s": 0.5
+}
