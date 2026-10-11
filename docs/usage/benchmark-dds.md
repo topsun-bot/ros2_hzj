@@ -6,6 +6,8 @@
 
 可复现入口（仓库根）：[`scripts/bench/`](../../scripts/bench/README.md)。
 
+Jazzy 发行版 Fast-DDS / Cyclone 作为 Rust「10 倍」分母（同机 pub/sub、吞吐、CPU/RSS，**不是** SCOREBOARD）：[`scripts/jazzy_baseline/README.md`](../../scripts/jazzy_baseline/README.md)。
+
 - 链 B：`./scripts/bench/run_chain_b.sh` → 文档里的 `pytest -m tool -k dds`，再加一层 **不改** `ddspubsub` 的 ping-pong 包分位
 - 链 A：先 `source config/env/chain_a.sh`，再 `./scripts/bench/run_chain_a.sh`；本机没有 Humble 时用 [`scripts/bench/docker_chain_a.sh`](../../scripts/bench/docker_chain_a.sh)（`docker/ros/` Humble 镜像，运行时再 source 链 A）
 

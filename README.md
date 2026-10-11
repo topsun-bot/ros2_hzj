@@ -22,6 +22,7 @@
 
 # News
 
+- [2026.10.11] Jazzy Fast-DDS / Cyclone **10× 分母** harness：[`scripts/jazzy_baseline/`](scripts/jazzy_baseline/README.md)。同机 pub/sub 时延 / 吞吐 / CPU / RSS；不改 XML / SCOREBOARD。云端冒烟 ≠ 最终基线。
 - [2026.09.12] 飞书 wiki3 §13(4) Cega / Bridge **后置 Hold**：[feishu-cega-bridge-hold.md](docs/architecture/feishu-cega-bridge-hold.md) · `python3 scripts/check_cega_bridge_hold.py`。不接 Cega，不改 `dimos_bridge` 运行时。三条链 / DoD 仍 unmet / blocked。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] 飞书 wiki3 §6.3 产品 DoD 仍 **unmet / STATUS: blocked**：[feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) · `python3 scripts/check_dod_evidence.py`。实编、modified `.so`、本机 baseline-vs-change、回滚、产品验收阈均未满足。`prove_rmw.py` 只是 env / 字符串身份闸。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] 飞书 §13(3) 双链基线指针：[feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) · `python3 scripts/check_dual_chain_baseline.py`。SCOREBOARD current-best pointer only；same-topology XML tuning is paused；跨机 UDP `STATUS: blocked`；three-chain map≠reproduce；Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL。不改 XML / SCOREBOARD。
@@ -260,6 +261,16 @@ source config/env/chain_a.sh
 
 已落盘产物：[`docs/artifacts/bench/`](docs/artifacts/bench/README.md)（2026-09-10 基线与 iter1–iter6）。数字不是飞书现场 / 实机 / 跨机根因。`cross-host-UDP` 在单机上为 blocked。
 
+Jazzy 10× 分母（stock RMW，不加载 `fastdds.xml`）：
+
+```bash
+python3 scripts/jazzy_baseline/selftest.py
+./scripts/jazzy_baseline/docker_run.sh          # 或 source /opt/ros/jazzy/setup.bash
+python3 scripts/jazzy_baseline/run.py --smoke
+```
+
+说明：[scripts/jazzy_baseline/README.md](scripts/jazzy_baseline/README.md)。云端 VM 数字不能当最终基线。
+
 完整 DimOS extra、消息类型、非 stub 模块仍在 [`topsun_dimos`](https://github.com/topsun-bot/topsun_dimos)。本仓缺依赖时命令会在 import 处失败——那是环境问题，不是「已经测过」。
 
 ## 目录地图
@@ -274,6 +285,7 @@ source config/env/chain_a.sh
 | [`docker/ros/`](docker/ros/) | R3 Dockerfile 拆分 |
 | [`docs/`](docs/) | R0 冻结、transports、[评测怎么跑](docs/usage/benchmark-dds.md) |
 | [`scripts/bench/`](scripts/bench/README.md) | 双链 bench runner |
+| [`scripts/jazzy_baseline/`](scripts/jazzy_baseline/README.md) | Jazzy 发行版 Fast-DDS / Cyclone 10× 分母（不是 SCOREBOARD） |
 
 ## 文档
 

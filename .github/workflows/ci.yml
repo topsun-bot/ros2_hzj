@@ -113,6 +113,10 @@ jobs:
           test -f scripts/bench/run_imu_hf.sh
           test -f scripts/bench/run_cross_host_a.sh
           test -f scripts/bench/write_delta.py
+          test -f scripts/jazzy_baseline/run.py
+          test -f scripts/jazzy_baseline/worker.py
+          test -f scripts/jazzy_baseline/selftest.py
+          test -f scripts/jazzy_baseline/README.md
           test -f docs/artifacts/bench/README.md
           # Durable index only — do not fossilize every iter changelog file.
           python3 - <<'PY'
@@ -135,6 +139,12 @@ jobs:
           grep -q 'ROS_DOMAIN_ID=42' config/env/chain_a.sh
           grep -q 'rmw_cyclonedds_cpp' config/env/chain_b.sh
           grep -q 'ROS_DOMAIN_ID=0' config/env/chain_b.sh
+
+      - name: jazzy_baseline selftest (no ROS)
+        run: |
+          set -euo pipefail
+          python3 scripts/jazzy_baseline/selftest.py
+          python3 scripts/jazzy_baseline/selftest.py | grep -F 'jazzy baseline selftest: PASS'
 
       - name: check_source_map.py (wiki3 §13.2)
         run: |
