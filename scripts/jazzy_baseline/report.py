@@ -288,7 +288,7 @@ def render_summary(payload: dict[str, Any]) -> str:
         "## Method",
         "",
         "- Warmup seconds are discarded before percentiles and throughput.",
-        "- Same-host uses two processes and `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST`.",
+        "- Same-host uses two processes; the default configuration sets `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (see each processes.json for the effective environment).",
         "- 同进程、跨进程、跨机均为任务要求；same-host 结果只覆盖本机跨进程。",
         "- 每组至少重复 3 次并检查波动汇总；smoke 运行不满足完整基线验收。",
         "",

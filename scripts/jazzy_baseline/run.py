@@ -486,9 +486,9 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError(f"output directory is not empty; use a new --out path: {out_dir}")
     if args.topology == "cross-host":
         reason = (
-            "cross-host requires two machines. Start the subscriber/echo with "
-            "--role sub|echo on host B, then --role pub|client on host A. "
-            "A single VM records STATUS: blocked (no invented percentiles)."
+            "cross-host orchestration is not implemented: it requires remote "
+            "startup, a coordinated measurement window and result collection. "
+            "Independent worker starts do not constitute a cross-host baseline."
         )
         return _write_blocked_run(out_dir, args, reason, specs)
     if args.topology == "same-process":

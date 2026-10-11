@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-c",
+    "import json,hashlib,math; from pathlib import Path\nroot=Path(\"docs/artifacts/jazzy_baseline/2026-10-11-colima\")\ndef reject(value): raise ValueError(\"non-standard JSON constant: \"+value)\nfiles=list(root.rglob(\"*.json\"))\nfor path in files: json.loads(path.read_text(),parse_constant=reject)\nd=json.loads((root/\"rtt/results.json\").read_text())\nassert d[\"status\"]==\"ok\" and len(d[\"cases\"])==8\nfor row in d[\"cases\"]:\n    case=root/\"rtt/cases\"/row[\"rmw\"]/row[\"qos\"]/\"rtt\"/str(row[\"size_bytes\"])/\"r1\"\n    client=json.loads((case/\"client.json\").read_text()); echo=json.loads((case/\"echo.json\").read_text()); proc=json.loads((case/\"processes.json\").read_text())\n    assert client[\"rmw\"]==echo[\"rmw\"]==row[\"rmw\"]\n    assert row[\"sent\"]==client[\"sent\"] and 0<row[\"received\"]==len(client[\"samples_ns\"])<=row[\"sent\"]\n    assert row[\"throughput_msg_s\"]==row[\"received\"]/row[\"duration_s\"]\n    assert all(code==0 for code in proc[\"exit_codes\"].values()) and not proc[\"error\"]\nfor name,expected in d[\"environment\"][\"source_sha256\"].items():\n    assert hashlib.sha256((Path(\"scripts/jazzy_baseline\")/name).read_bytes()).hexdigest()==expected, name\nassert d[\"environment\"][\"packages\"][\"fastdds\"].startswith(\"2.14.6\")\nprint(\"PASS: strict JSON files\",len(files),\"; RTT 8/8 raw counts, actual RMW, fixed throughput, exit codes; current Python source hashes match RTT; Fast DDS package version captured\")"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T11:33:27.414425+00:00",
+  "finished_utc": "2026-10-11T11:33:27.462130+00:00",
+  "exit_code": 0,
+  "output": "PASS: strict JSON files 214 ; RTT 8/8 raw counts, actual RMW, fixed throughput, exit codes; current Python source hashes match RTT; Fast DDS package version captured\n"
+}

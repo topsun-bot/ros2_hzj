@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "scripts/jazzy_baseline/selftest.py"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T09:22:41.726580+00:00",
+  "finished_utc": "2026-10-11T09:22:42.066596+00:00",
+  "exit_code": 1,
+  "output": "  ok percentiles\n  ok wire rejects short size\n  ok hz defaults\n  ok smoke matrix 4 cases\nTraceback (most recent call last):\n  File \"/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work/scripts/jazzy_baseline/selftest.py\", line 239, in <module>\n    raise SystemExit(main())\n  File \"/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work/scripts/jazzy_baseline/selftest.py\", line 224, in main\n    test_blocked_reports()\n  File \"/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work/scripts/jazzy_baseline/selftest.py\", line 99, in test_blocked_reports\n    payload = _write_blocked_run(out, args, \"ROS not loaded (selftest)\", build_specs(args))\n  File \"/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work/scripts/jazzy_baseline/run.py\", line 461, in _write_blocked_run\n    env = collect(REPO_ROOT, extra={\"status\": \"blocked\", \"blocked_reason\": reason})\n  File \"/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work/scripts/jazzy_baseline/envinfo.py\", line 120, in collect\n    \"os_pretty\": os_pretty(),\n  File \"/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work/scripts/jazzy_baseline/envinfo.py\", line 34, in os_pretty\n    return platform.freedesktop_os_release().get(\"PRETTY_NAME\", platform.system())\nAttributeError: module 'platform' has no attribute 'freedesktop_os_release'\n"
+}

@@ -1,0 +1,809 @@
+{
+  "expected_repeats": 1,
+  "groups": [
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 1831.916,
+          "mean": 1831.916,
+          "min": 1831.916,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 1123.8115,
+          "mean": 1123.8115,
+          "min": 1123.8115,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 1808.67683,
+          "mean": 1808.67683,
+          "min": 1808.67683,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 6.9798646548968435,
+          "mean": 6.9798646548968435,
+          "min": 6.9798646548968435,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 68164.0,
+          "mean": 68164.0,
+          "min": 68164.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 5.985163587611387,
+          "mean": 5.985163587611387,
+          "min": 5.985163587611387,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 67924.0,
+          "mean": 67924.0,
+          "min": 67924.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 44005.701,
+          "mean": 44005.701,
+          "min": 44005.701,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 38636.559,
+          "mean": 38636.559,
+          "min": 38636.559,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 43895.204399999995,
+          "mean": 43895.204399999995,
+          "min": 43895.204399999995,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 20.00668889491632,
+          "mean": 20.00668889491632,
+          "min": 20.00668889491632,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 80776.0,
+          "mean": 80776.0,
+          "min": 80776.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 11.005236521022777,
+          "mean": 11.005236521022777,
+          "min": 11.005236521022777,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 88692.0,
+          "mean": 88692.0,
+          "min": 88692.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 41.94304,
+          "mean": 41.94304,
+          "min": 41.94304,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 3094.463,
+          "mean": 3094.463,
+          "min": 3094.463,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 1220.256,
+          "mean": 1220.256,
+          "min": 1220.256,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 3050.98625,
+          "mean": 3050.98625,
+          "min": 3050.98625,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 6.965348935055314,
+          "mean": 6.965348935055314,
+          "min": 6.965348935055314,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 68140.0,
+          "mean": 68140.0,
+          "min": 68140.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 7.004673279606992,
+          "mean": 7.004673279606992,
+          "min": 7.004673279606992,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 67904.0,
+          "mean": 67904.0,
+          "min": 67904.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "best_effort",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 16819.406,
+          "mean": 16819.406,
+          "min": 16819.406,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 16159.2635,
+          "mean": 16159.2635,
+          "min": 16159.2635,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 16806.203149999998,
+          "mean": 16806.203149999998,
+          "min": 16806.203149999998,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 17.0589382224281,
+          "mean": 17.0589382224281,
+          "min": 17.0589382224281,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 88840.0,
+          "mean": 88840.0,
+          "min": 88840.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 8.026660157621777,
+          "mean": 8.026660157621777,
+          "min": 8.026660157621777,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 88692.0,
+          "mean": 88692.0,
+          "min": 88692.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 8.388608,
+          "mean": 8.388608,
+          "min": 8.388608,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 2.0,
+          "mean": 2.0,
+          "min": 2.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "best_effort",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 11848.547,
+          "mean": 11848.547,
+          "min": 11848.547,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 955.3525,
+          "mean": 955.3525,
+          "min": 955.3525,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 10901.866340000002,
+          "mean": 10901.866340000002,
+          "min": 10901.866340000002,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 10.002568599992767,
+          "mean": 10.002568599992767,
+          "min": 10.002568599992767,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 56588.0,
+          "mean": 56588.0,
+          "min": 56588.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 8.002014842565943,
+          "mean": 8.002014842565943,
+          "min": 8.002014842565943,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 56536.0,
+          "mean": 56536.0,
+          "min": 56536.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "reliable",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 446222.958,
+          "mean": 446222.958,
+          "min": 446222.958,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 118022.482,
+          "mean": 118022.482,
+          "min": 118022.482,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 437908.4653200001,
+          "mean": 437908.4653200001,
+          "min": 437908.4653200001,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 28.03027146179739,
+          "mean": 28.03027146179739,
+          "min": 28.03027146179739,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 88936.0,
+          "mean": 88936.0,
+          "min": 88936.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 24.042190076988298,
+          "mean": 24.042190076988298,
+          "min": 24.042190076988298,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 95592.0,
+          "mean": 95592.0,
+          "min": 95592.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 41.94304,
+          "mean": 41.94304,
+          "min": 41.94304,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "reliable",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 2535.184,
+          "mean": 2535.184,
+          "min": 2535.184,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 1282.662,
+          "mean": 1282.662,
+          "min": 1282.662,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 2466.7498000000005,
+          "mean": 2466.7498000000005,
+          "min": 2466.7498000000005,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 7.0014219971901355,
+          "mean": 7.0014219971901355,
+          "min": 7.0014219971901355,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 56536.0,
+          "mean": 56536.0,
+          "min": 56536.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 7.0062807601065495,
+          "mean": 7.0062807601065495,
+          "min": 7.0062807601065495,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 56580.0,
+          "mean": 56580.0,
+          "min": 56580.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "best_effort",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 1.0,
+      "expected_repeats": 1,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": 35213.681,
+          "mean": 35213.681,
+          "min": 35213.681,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": 32138.4565,
+          "mean": 32138.4565,
+          "min": 32138.4565,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": 35152.17651,
+          "mean": 35152.17651,
+          "min": 35152.17651,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": 22.011523276488486,
+          "mean": 22.011523276488486,
+          "min": 22.011523276488486,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": 78380.0,
+          "mean": 78380.0,
+          "min": 78380.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": 16.005518655416708,
+          "mean": 16.005518655416708,
+          "min": 16.005518655416708,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": 74224.0,
+          "mean": 74224.0,
+          "min": 74224.0,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": 8.388608,
+          "mean": 8.388608,
+          "min": 8.388608,
+          "n": 1,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": 2.0,
+          "mean": 2.0,
+          "min": 2.0,
+          "n": 1,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "rtt",
+      "observed_runs": 1,
+      "qos": "best_effort",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "partial",
+      "successful_repeat_ids": [
+        1
+      ],
+      "successful_runs": 1,
+      "topology": "same-host",
+      "valid_successful_runs": 1,
+      "warmup_s": 0.2,
+      "warnings": [
+        "at least 3 fully measured unique successful repeats required; got 1"
+      ]
+    }
+  ],
+  "method": "Across-run statistics of each run's metric; percentiles are not pooled.",
+  "not_final_baseline": true,
+  "status": "partial",
+  "warnings": []
+}

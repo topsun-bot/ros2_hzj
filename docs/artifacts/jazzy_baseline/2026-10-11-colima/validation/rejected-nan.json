@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "scripts/jazzy_baseline/run.py",
+    "--duration",
+    "nan"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T11:24:53.682316+00:00",
+  "finished_utc": "2026-10-11T11:24:53.736981+00:00",
+  "exit_code": 2,
+  "output": "[jazzy-baseline] ERROR: duration must be finite and positive\n"
+}

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/opt/homebrew/bin/colima",
+    "ssh",
+    "--",
+    "bash",
+    "-c",
+    "source /opt/ros/jazzy/setup.bash && cd /Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work && python3 scripts/jazzy_baseline/run.py --mode rtt --sizes 1024,4194304 --qos reliable,best_effort --repeats 1 --duration 1 --warmup 0.2 --margin 0.5 --hz 10 --topic-prefix /jazzy_baseline_codex_20261011_rtt --out docs/artifacts/jazzy_baseline/2026-10-11-colima/rtt"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T11:30:15.029523+00:00",
+  "finished_utc": "2026-10-11T11:30:40.013037+00:00",
+  "exit_code": 0,
+  "output": "[jazzy-baseline] rmw_fastrtps_cpp reliable rtt 1024B @10.0Hz repeat 1\n[jazzy-baseline] rmw_fastrtps_cpp reliable rtt 4194304B @10.0Hz repeat 1\n[jazzy-baseline] rmw_fastrtps_cpp best_effort rtt 1024B @10.0Hz repeat 1\n[jazzy-baseline] rmw_fastrtps_cpp best_effort rtt 4194304B @10.0Hz repeat 1\n[jazzy-baseline] rmw_cyclonedds_cpp reliable rtt 1024B @10.0Hz repeat 1\n[jazzy-baseline] rmw_cyclonedds_cpp reliable rtt 4194304B @10.0Hz repeat 1\n[jazzy-baseline] rmw_cyclonedds_cpp best_effort rtt 1024B @10.0Hz repeat 1\n[jazzy-baseline] rmw_cyclonedds_cpp best_effort rtt 4194304B @10.0Hz repeat 1\n[jazzy-baseline] STATUS=ok out=docs/artifacts/jazzy_baseline/2026-10-11-colima/rtt\n"
+}

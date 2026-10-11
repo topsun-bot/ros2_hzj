@@ -1,0 +1,1609 @@
+{
+  "expected_repeats": 3,
+  "groups": [
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.6688575088298386,
+          "max": 5873.56,
+          "mean": 3351.605666666667,
+          "min": 1585.418,
+          "n": 3,
+          "sample_stdev": 2241.7466167866373
+        },
+        "p50_us": {
+          "cv": 0.20323230456632918,
+          "max": 1009.963,
+          "mean": 820.2363333333333,
+          "min": 697.244,
+          "n": 3,
+          "sample_stdev": 166.69852031236908
+        },
+        "p99_us": {
+          "cv": 0.6220626942718279,
+          "max": 5146.662240000002,
+          "mean": 3027.9126933333346,
+          "min": 1543.16558,
+          "n": 3,
+          "sample_stdev": 1883.551528034801
+        },
+        "pub_cpu_percent": {
+          "cv": 0.21167053970228888,
+          "max": 9.66422213762841,
+          "mean": 7.774110830683448,
+          "min": 6.66039868547426,
+          "n": 3,
+          "sample_stdev": 1.6455502352361748
+        },
+        "pub_rss_kb_peak": {
+          "cv": 5.867855885459453e-05,
+          "max": 68172.0,
+          "mean": 68168.0,
+          "min": 68164.0,
+          "n": 3,
+          "sample_stdev": 4.0
+        },
+        "sub_cpu_percent": {
+          "cv": 0.10360699306888918,
+          "max": 8.992941755132517,
+          "mean": 8.103117174890453,
+          "min": 7.325059405106538,
+          "n": 3,
+          "sample_stdev": 0.839539604975272
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.0003058899407021035,
+          "max": 67972.0,
+          "mean": 67948.0,
+          "min": 67936.0,
+          "n": 3,
+          "sample_stdev": 20.784609690826528
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.07922057718272212,
+          "max": 3184.758,
+          "mean": 2917.8469999999998,
+          "min": 2783.475,
+          "n": 3,
+          "sample_stdev": 231.15352347087415
+        },
+        "p50_us": {
+          "cv": 0.07855961184767696,
+          "max": 892.926,
+          "mean": 822.0706666666667,
+          "min": 766.508,
+          "n": 3,
+          "sample_stdev": 64.58155248469437
+        },
+        "p99_us": {
+          "cv": 0.11975693382274163,
+          "max": 3020.68093,
+          "mean": 2668.5036466666675,
+          "min": 2396.997420000001,
+          "n": 3,
+          "sample_stdev": 319.5718146196048
+        },
+        "pub_cpu_percent": {
+          "cv": 0.06768726562503902,
+          "max": 8.008616790940348,
+          "mean": 7.556819225434188,
+          "min": 7.001463450132755,
+          "n": 3,
+          "sample_stdev": 0.5115004301923655
+        },
+        "pub_rss_kb_peak": {
+          "cv": 3.387940708021433e-05,
+          "max": 68168.0,
+          "mean": 68165.33333333333,
+          "min": 68164.0,
+          "n": 3,
+          "sample_stdev": 2.309401076758503
+        },
+        "sub_cpu_percent": {
+          "cv": 0.08792174913822226,
+          "max": 8.663700027780797,
+          "mean": 7.8866899293067245,
+          "min": 7.330819739107122,
+          "n": 3,
+          "sample_stdev": 0.6934115734954497
+        },
+        "sub_rss_kb_peak": {
+          "cv": 5.885815185403178e-05,
+          "max": 67964.0,
+          "mean": 67960.0,
+          "min": 67956.0,
+          "n": 3,
+          "sample_stdev": 4.0
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.65536,
+          "mean": 0.65536,
+          "min": 0.65536,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 65536,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.32818577429923895,
+          "max": 37523.086,
+          "mean": 30153.528000000002,
+          "min": 18905.865,
+          "n": 3,
+          "sample_stdev": 9895.958934533783
+        },
+        "p50_us": {
+          "cv": 0.5160114327756877,
+          "max": 16119.952,
+          "mean": 11981.314166666667,
+          "min": 4874.436,
+          "n": 3,
+          "sample_stdev": 6182.4950896773125
+        },
+        "p99_us": {
+          "cv": 0.26671159356764895,
+          "max": 32446.176930000016,
+          "mean": 26978.487263333343,
+          "min": 18826.788379999998,
+          "n": 3,
+          "sample_stdev": 7195.475330048156
+        },
+        "pub_cpu_percent": {
+          "cv": 0.00021810329568630656,
+          "max": 9.00236454547016,
+          "mean": 9.000914329143308,
+          "min": 8.998680403483863,
+          "n": 3,
+          "sample_stdev": 0.0019631290793762565
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0001376727226111116,
+          "max": 73128.0,
+          "mean": 73118.66666666667,
+          "min": 73108.0,
+          "n": 3,
+          "sample_stdev": 10.066445913694333
+        },
+        "sub_cpu_percent": {
+          "cv": 0.07021776394747618,
+          "max": 10.67207506452978,
+          "mean": 9.8923121406629,
+          "min": 9.339738397833244,
+          "n": 3,
+          "sample_stdev": 0.6946160387878203
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.00012001072310852657,
+          "max": 69392.0,
+          "mean": 69382.66666666667,
+          "min": 69376.0,
+          "n": 3,
+          "sample_stdev": 8.32666399786453
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 10.48576,
+          "mean": 10.48576,
+          "min": 10.48576,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 1048576,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.5348739172721084,
+          "max": 82059.135,
+          "mean": 51526.65333333333,
+          "min": 28489.07,
+          "n": 3,
+          "sample_stdev": 27560.26291232194
+        },
+        "p50_us": {
+          "cv": 0.06506060043593156,
+          "max": 22794.016,
+          "mean": 21272.651833333333,
+          "min": 20088.2055,
+          "n": 3,
+          "sample_stdev": 1384.0115011411872
+        },
+        "p99_us": {
+          "cv": 0.43686236777513876,
+          "max": 66818.05972000005,
+          "mean": 45538.25406000002,
+          "min": 27405.245750000006,
+          "n": 3,
+          "sample_stdev": 19893.949492997435
+        },
+        "pub_cpu_percent": {
+          "cv": 0.058078039874994346,
+          "max": 12.66886985939647,
+          "mean": 11.900211505741371,
+          "min": 11.330008511962784,
+          "n": 3,
+          "sample_stdev": 0.6911409583513138
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.00020385703911253458,
+          "max": 88496.0,
+          "mean": 88478.66666666667,
+          "min": 88460.0,
+          "n": 3,
+          "sample_stdev": 18.036999011291577
+        },
+        "sub_cpu_percent": {
+          "cv": 0.032327158413651004,
+          "max": 15.665566034643518,
+          "mean": 15.12604767400464,
+          "min": 14.71208902598895,
+          "n": 3,
+          "sample_stdev": 0.48898213932998535
+        },
+        "sub_rss_kb_peak": {
+          "cv": 3.187021928660049e-05,
+          "max": 72464.0,
+          "mean": 72462.66666666667,
+          "min": 72460.0,
+          "n": 3,
+          "sample_stdev": 2.309401076758503
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 41.94304,
+          "mean": 41.94304,
+          "min": 41.94304,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.16318872762112674,
+          "max": 3420.959,
+          "mean": 3104.5513333333333,
+          "min": 2520.218,
+          "n": 3,
+          "sample_stdev": 506.62778192113916
+        },
+        "p50_us": {
+          "cv": 0.22604295168088592,
+          "max": 851.5295,
+          "mean": 700.6973333333333,
+          "min": 535.705,
+          "n": 3,
+          "sample_stdev": 158.38769346159228
+        },
+        "p99_us": {
+          "cv": 0.16412913130152396,
+          "max": 3353.32743,
+          "mean": 2941.5382733333336,
+          "min": 2410.20476,
+          "n": 3,
+          "sample_stdev": 482.79212149238475
+        },
+        "pub_cpu_percent": {
+          "cv": 0.029177263762416004,
+          "max": 6.669850978193448,
+          "mean": 6.556033609943796,
+          "min": 6.335189060286613,
+          "n": 3,
+          "sample_stdev": 0.1912871218725945
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0001476307085504644,
+          "max": 68196.0,
+          "mean": 68186.66666666667,
+          "min": 68176.0,
+          "n": 3,
+          "sample_stdev": 10.066445913694333
+        },
+        "sub_cpu_percent": {
+          "cv": 0.030209446437180477,
+          "max": 6.669483981158179,
+          "mean": 6.4446779173589634,
+          "min": 6.331310167296087,
+          "n": 3,
+          "sample_stdev": 0.19469015234933543
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.00011778563015312132,
+          "max": 67928.0,
+          "mean": 67920.0,
+          "min": 67912.0,
+          "n": 3,
+          "sample_stdev": 8.0
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.1718171212144751,
+          "max": 2855.302,
+          "mean": 2550.191333333333,
+          "min": 2048.107,
+          "n": 3,
+          "sample_stdev": 438.16653343943716
+        },
+        "p50_us": {
+          "cv": 0.19145269356254643,
+          "max": 950.267,
+          "mean": 778.5351666666667,
+          "min": 682.7785,
+          "n": 3,
+          "sample_stdev": 149.05265469149936
+        },
+        "p99_us": {
+          "cv": 0.18014918871633862,
+          "max": 2706.0465400000003,
+          "mean": 2362.2459100000005,
+          "min": 1886.2907700000005,
+          "n": 3,
+          "sample_stdev": 425.5566842349891
+        },
+        "pub_cpu_percent": {
+          "cv": 0.08679334367275615,
+          "max": 7.333503612493885,
+          "mean": 6.665487137111222,
+          "min": 6.330593188535777,
+          "n": 3,
+          "sample_stdev": 0.5785199158376297
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0004229881834190508,
+          "max": 68224.0,
+          "mean": 68192.0,
+          "min": 68168.0,
+          "n": 3,
+          "sample_stdev": 28.844410203711913
+        },
+        "sub_cpu_percent": {
+          "cv": 0.029306982284354306,
+          "max": 6.661881965269285,
+          "mean": 6.4438255302201535,
+          "min": 6.333210298051456,
+          "n": 3,
+          "sample_stdev": 0.18884908065763203
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.00012254946130022955,
+          "max": 67952.0,
+          "mean": 67945.33333333333,
+          "min": 67936.0,
+          "n": 3,
+          "sample_stdev": 8.32666399786453
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.65536,
+          "mean": 0.65536,
+          "min": 0.65536,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 65536,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.1986852142687784,
+          "max": 4927.921,
+          "mean": 4379.841666666667,
+          "min": 3376.438,
+          "n": 3,
+          "sample_stdev": 870.2097800049902
+        },
+        "p50_us": {
+          "cv": 0.08753835262851938,
+          "max": 2486.992,
+          "mean": 2259.2885,
+          "min": 2130.3355,
+          "n": 3,
+          "sample_stdev": 197.77439340255862
+        },
+        "p99_us": {
+          "cv": 0.1861554641280971,
+          "max": 4748.631399999999,
+          "mean": 4275.624306666667,
+          "min": 3356.6956,
+          "n": 3,
+          "sample_stdev": 795.9308272449067
+        },
+        "pub_cpu_percent": {
+          "cv": 0.07912100587055612,
+          "max": 8.003800810013201,
+          "mean": 7.33378554944043,
+          "min": 6.996084117202604,
+          "n": 3,
+          "sample_stdev": 0.5802564895106759
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.00013770285507634465,
+          "max": 73112.0,
+          "mean": 73102.66666666667,
+          "min": 73092.0,
+          "n": 3,
+          "sample_stdev": 10.066445913694333
+        },
+        "sub_cpu_percent": {
+          "cv": 0.000645282050913392,
+          "max": 7.3424473099062775,
+          "mean": 7.3369809470105025,
+          "min": 7.3341852334682045,
+          "n": 3,
+          "sample_stdev": 0.004734422112999418
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.00021835236641803572,
+          "max": 69372.0,
+          "mean": 69354.66666666667,
+          "min": 69344.0,
+          "n": 3,
+          "sample_stdev": 15.14375558880073
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.12489995996796796,
+          "max": 6.640981333333333,
+          "mean": 5.8254222222222225,
+          "min": 5.24288,
+          "n": 3,
+          "sample_stdev": 0.7275950023520665
+        },
+        "throughput_msg_s": {
+          "cv": 0.12489995996796796,
+          "max": 6.333333333333333,
+          "mean": 5.555555555555555,
+          "min": 5.0,
+          "n": 3,
+          "sample_stdev": 0.6938886664887108
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 1048576,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.09083156913618887,
+          "max": 13924.25,
+          "mean": 13085.942333333332,
+          "min": 11725.651,
+          "n": 3,
+          "sample_stdev": 1188.6166757623473
+        },
+        "p50_us": {
+          "cv": 0.08665411440209668,
+          "max": 9079.162,
+          "mean": 8346.518,
+          "min": 7633.022,
+          "n": 3,
+          "sample_stdev": 723.2601256311592
+        },
+        "p99_us": {
+          "cv": 0.0774938768926924,
+          "max": 13682.325799999999,
+          "mean": 12778.062906666664,
+          "min": 11719.903119999999,
+          "n": 3,
+          "sample_stdev": 990.2216338163056
+        },
+        "pub_cpu_percent": {
+          "cv": 0.053790109291831825,
+          "max": 9.99893110418589,
+          "mean": 9.44520271374821,
+          "min": 9.000522912359285,
+          "n": 3,
+          "sample_stdev": 0.5080584862560228
+        },
+        "pub_rss_kb_peak": {
+          "cv": 6.90604571546784e-05,
+          "max": 88480.0,
+          "mean": 88474.66666666667,
+          "min": 88468.0,
+          "n": 3,
+          "sample_stdev": 6.110100926607787
+        },
+        "sub_cpu_percent": {
+          "cv": 0.0580481666189255,
+          "max": 9.33428966304076,
+          "mean": 8.778042619541868,
+          "min": 8.33383963104351,
+          "n": 3,
+          "sample_stdev": 0.5095492805671956
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.0003993620965756529,
+          "max": 72476.0,
+          "mean": 72457.33333333333,
+          "min": 72424.0,
+          "n": 3,
+          "sample_stdev": 28.93671255228094
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.08056050267762227,
+          "max": 20.97152,
+          "mean": 20.039452444444446,
+          "min": 18.175317333333332,
+          "n": 3,
+          "sample_stdev": 1.614388362308751
+        },
+        "throughput_msg_s": {
+          "cv": 0.08056050267762224,
+          "max": 5.0,
+          "mean": 4.777777777777778,
+          "min": 4.333333333333333,
+          "n": 3,
+          "sample_stdev": 0.3849001794597507
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "8.4.4-1noble.20260902.140744",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.5113680173813414,
+          "max": 4507.669,
+          "mean": 3183.0903333333335,
+          "min": 1365.974,
+          "n": 3,
+          "sample_stdev": 1627.7305929023798
+        },
+        "p50_us": {
+          "cv": 0.040504582262999696,
+          "max": 584.1885,
+          "mean": 564.3028333333333,
+          "min": 539.3315,
+          "n": 3,
+          "sample_stdev": 22.856850533993804
+        },
+        "p99_us": {
+          "cv": 0.4512540924728591,
+          "max": 3703.4598500000025,
+          "mean": 2738.584326666668,
+          "min": 1345.67603,
+          "n": 3,
+          "sample_stdev": 1235.797384990363
+        },
+        "pub_cpu_percent": {
+          "cv": 0.056154320798718294,
+          "max": 7.3315005563307025,
+          "mean": 6.885067032997398,
+          "min": 6.660207380374102,
+          "n": 3,
+          "sample_stdev": 0.38662626289161545
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0002548993478588893,
+          "max": 56596.0,
+          "mean": 56580.0,
+          "min": 56568.0,
+          "n": 3,
+          "sample_stdev": 14.422205101855956
+        },
+        "sub_cpu_percent": {
+          "cv": 0.053654418152545985,
+          "max": 7.33414242318878,
+          "mean": 7.1129341340073085,
+          "min": 6.672254966910615,
+          "n": 3,
+          "sample_stdev": 0.3816403423175457
+        },
+        "sub_rss_kb_peak": {
+          "cv": 4.084351186287352e-05,
+          "max": 56544.0,
+          "mean": 56542.666666666664,
+          "min": 56540.0,
+          "n": 3,
+          "sample_stdev": 2.309401076758503
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.53919662917178,
+          "max": 6884.732,
+          "mean": 4258.642333333333,
+          "min": 2628.606,
+          "n": 3,
+          "sample_stdev": 2296.245590981577
+        },
+        "p50_us": {
+          "cv": 0.4007008286943976,
+          "max": 1632.941,
+          "mean": 1121.8661666666667,
+          "min": 787.706,
+          "n": 3,
+          "sample_stdev": 449.5327026675405
+        },
+        "p99_us": {
+          "cv": 0.48894751717165075,
+          "max": 6141.912370000003,
+          "mean": 3936.9963733333343,
+          "min": 2590.97154,
+          "n": 3,
+          "sample_stdev": 1924.9846018551273
+        },
+        "pub_cpu_percent": {
+          "cv": 0.0257461096019264,
+          "max": 7.669829489139558,
+          "mean": 7.448398919575642,
+          "min": 7.3366479917937015,
+          "n": 3,
+          "sample_stdev": 0.1917672949422647
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.00022731592402868553,
+          "max": 56580.0,
+          "mean": 56565.333333333336,
+          "min": 56556.0,
+          "n": 3,
+          "sample_stdev": 12.858201014657274
+        },
+        "sub_cpu_percent": {
+          "cv": 0.0267852616964276,
+          "max": 7.335570266621392,
+          "mean": 7.223330421045125,
+          "min": 6.999921206418112,
+          "n": 3,
+          "sample_stdev": 0.19347879564746023
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.000250873314463122,
+          "max": 57504.0,
+          "mean": 57488.0,
+          "min": 57476.0,
+          "n": 3,
+          "sample_stdev": 14.422205101855956
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.65536,
+          "mean": 0.65536,
+          "min": 0.65536,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 65536,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.03787507656160426,
+          "max": 117654.006,
+          "mean": 112878.20266666666,
+          "min": 109407.843,
+          "n": 3,
+          "sample_stdev": 4275.270568136281
+        },
+        "p50_us": {
+          "cv": 0.16502264301297445,
+          "max": 7702.995,
+          "mean": 6706.0455,
+          "min": 5515.298,
+          "n": 3,
+          "sample_stdev": 1106.6493525752637
+        },
+        "p99_us": {
+          "cv": 0.18086512945704328,
+          "max": 116334.70465,
+          "mean": 102761.92241666668,
+          "min": 81578.45236000007,
+          "n": 3,
+          "sample_stdev": 18586.048401145057
+        },
+        "pub_cpu_percent": {
+          "cv": 0.1137967692361846,
+          "max": 13.338487520471915,
+          "mean": 11.887340801275474,
+          "min": 10.66122967779733,
+          "n": 3,
+          "sample_stdev": 1.352740977994627
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0019579865177609024,
+          "max": 59620.0,
+          "mean": 59537.333333333336,
+          "min": 59404.0,
+          "n": 3,
+          "sample_stdev": 116.57329597010343
+        },
+        "sub_cpu_percent": {
+          "cv": 0.08936328213370155,
+          "max": 11.012532246869398,
+          "mean": 9.999041794848257,
+          "min": 9.324802050036665,
+          "n": 3,
+          "sample_stdev": 0.8935471929796983
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.0038604543687495736,
+          "max": 61720.0,
+          "mean": 61448.0,
+          "min": 61284.0,
+          "n": 3,
+          "sample_stdev": 237.2172000509238
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 10.48576,
+          "mean": 10.48576,
+          "min": 10.48576,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 1048576,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.6164587961629447,
+          "max": 322194.976,
+          "mean": 188220.17466666666,
+          "min": 120222.207,
+          "n": 3,
+          "sample_stdev": 116029.98228859252
+        },
+        "p50_us": {
+          "cv": 0.10689269587960332,
+          "max": 20929.0425,
+          "mean": 18740.761333333332,
+          "min": 16997.3275,
+          "n": 3,
+          "sample_stdev": 2003.250501756229
+        },
+        "p99_us": {
+          "cv": 0.5600152675501755,
+          "max": 294495.4734600001,
+          "mean": 178849.42197000002,
+          "min": 119931.15517,
+          "n": 3,
+          "sample_stdev": 100158.40689572379
+        },
+        "pub_cpu_percent": {
+          "cv": 0.06785671341546501,
+          "max": 21.98925530930208,
+          "mean": 20.435404353679587,
+          "min": 19.32375496022162,
+          "n": 3,
+          "sample_stdev": 1.3866793767567818
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.08374724412057935,
+          "max": 81024.0,
+          "mean": 75553.33333333333,
+          "min": 68624.0,
+          "n": 3,
+          "sample_stdev": 6327.383450790171
+        },
+        "sub_cpu_percent": {
+          "cv": 0.02968362030874402,
+          "max": 17.656207234847443,
+          "mean": 17.210411231242702,
+          "min": 16.652946564632405,
+          "n": 3,
+          "sample_stdev": 0.510867312345552
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.0813146988284928,
+          "max": 83032.0,
+          "mean": 76241.33333333333,
+          "min": 70884.0,
+          "n": 3,
+          "sample_stdev": 6199.541058282729
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 41.94304,
+          "mean": 41.94304,
+          "min": 41.94304,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "reliable",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.47235143750466924,
+          "max": 3703.601,
+          "mean": 2468.011,
+          "min": 1387.61,
+          "n": 3,
+          "sample_stdev": 1165.7685436273362
+        },
+        "p50_us": {
+          "cv": 0.014270625628015671,
+          "max": 597.8615,
+          "mean": 589.5863333333333,
+          "min": 581.0405,
+          "n": 3,
+          "sample_stdev": 8.413765838394456
+        },
+        "p99_us": {
+          "cv": 0.4856145221255786,
+          "max": 3590.8675600000006,
+          "mean": 2375.0880400000005,
+          "min": 1296.35947,
+          "n": 3,
+          "sample_stdev": 1153.3772435507774
+        },
+        "pub_cpu_percent": {
+          "cv": 0.007108879771958072,
+          "max": 6.6716003684988285,
+          "mean": 6.6424878922418,
+          "min": 6.588005004185163,
+          "n": 3,
+          "sample_stdev": 0.04722064781263414
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.00040214814373823004,
+          "max": 56584.0,
+          "mean": 56558.666666666664,
+          "min": 56540.0,
+          "n": 3,
+          "sample_stdev": 22.744962812309307
+        },
+        "sub_cpu_percent": {
+          "cv": 0.05391389844435552,
+          "max": 6.996954409721323,
+          "mean": 6.752004711422163,
+          "min": 6.333699986816132,
+          "n": 3,
+          "sample_stdev": 0.3640268963074245
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.0002159911245943412,
+          "max": 56588.0,
+          "mean": 56577.333333333336,
+          "min": 56564.0,
+          "n": 3,
+          "sample_stdev": 12.220201853215574
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.01024,
+          "mean": 0.01024,
+          "min": 0.01024,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 1024,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.7069615196825361,
+          "max": 6435.049,
+          "mean": 3545.063,
+          "min": 1969.15,
+          "n": 3,
+          "sample_stdev": 2506.2231258503302
+        },
+        "p50_us": {
+          "cv": 0.050739978910375315,
+          "max": 698.12,
+          "mean": 660.0383333333333,
+          "min": 635.1715,
+          "n": 3,
+          "sample_stdev": 33.490331113372605
+        },
+        "p99_us": {
+          "cv": 0.6191464141878187,
+          "max": 5236.218290000003,
+          "mean": 3054.0369333333347,
+          "min": 1899.2977,
+          "n": 3,
+          "sample_stdev": 1890.8960160704964
+        },
+        "pub_cpu_percent": {
+          "cv": 0.028003377965179523,
+          "max": 7.007149693721486,
+          "mean": 6.888382011343063,
+          "min": 6.6658102320873365,
+          "n": 3,
+          "sample_stdev": 0.19289796503218334
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0002549894819988677,
+          "max": 56576.0,
+          "mean": 56560.0,
+          "min": 56548.0,
+          "n": 3,
+          "sample_stdev": 14.422205101855956
+        },
+        "sub_cpu_percent": {
+          "cv": 0.05348324267811879,
+          "max": 7.667173906595785,
+          "mean": 7.221263953678851,
+          "min": 6.99226686081148,
+          "n": 3,
+          "sample_stdev": 0.38621661247735756
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.00026332691949366006,
+          "max": 57520.0,
+          "mean": 57509.333333333336,
+          "min": 57492.0,
+          "n": 3,
+          "sample_stdev": 15.14375558880073
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.0,
+          "max": 0.65536,
+          "mean": 0.65536,
+          "min": 0.65536,
+          "n": 3,
+          "sample_stdev": 0.0
+        },
+        "throughput_msg_s": {
+          "cv": 0.0,
+          "max": 10.0,
+          "mean": 10.0,
+          "min": 10.0,
+          "n": 3,
+          "sample_stdev": 0.0
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 65536,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.09235846470667833,
+          "max": 9943.887,
+          "mean": 9410.592333333334,
+          "min": 8407.66,
+          "n": 3,
+          "sample_stdev": 869.1478598871043
+        },
+        "p50_us": {
+          "cv": 0.05363274456658296,
+          "max": 5380.355,
+          "mean": 5214.9115,
+          "min": 4891.986,
+          "n": 3,
+          "sample_stdev": 279.690016416836
+        },
+        "p99_us": {
+          "cv": 0.0963861173311858,
+          "max": 9868.860879999998,
+          "mean": 9191.683053333334,
+          "min": 8189.03,
+          "n": 3,
+          "sample_stdev": 885.9506412496588
+        },
+        "pub_cpu_percent": {
+          "cv": 0.09339554838331172,
+          "max": 11.667085911673464,
+          "mean": 10.66599977379309,
+          "min": 9.674846397479822,
+          "n": 3,
+          "sample_stdev": 0.9961568979296843
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0022303602704181807,
+          "max": 56516.0,
+          "mean": 56372.0,
+          "min": 56284.0,
+          "n": 3,
+          "sample_stdev": 125.72986916401369
+        },
+        "sub_cpu_percent": {
+          "cv": 0.1044960862551113,
+          "max": 10.334093261098898,
+          "mean": 9.221438043266456,
+          "min": 8.659471255258158,
+          "n": 3,
+          "sample_stdev": 0.9636041851653363
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.00010138666109771987,
+          "max": 60272.0,
+          "mean": 60265.333333333336,
+          "min": 60260.0,
+          "n": 3,
+          "sample_stdev": 6.110100926607787
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.08217102629471573,
+          "max": 9.437184,
+          "mean": 8.854641777777777,
+          "min": 8.039082666666667,
+          "n": 3,
+          "sample_stdev": 0.7275950023520662
+        },
+        "throughput_msg_s": {
+          "cv": 0.08217102629471573,
+          "max": 9.0,
+          "mean": 8.444444444444445,
+          "min": 7.666666666666667,
+          "n": 3,
+          "sample_stdev": 0.6938886664887106
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 1048576,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    },
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 3.0,
+      "expected_repeats": 3,
+      "host_class": "colima-local-vm",
+      "hz_offered": 10.0,
+      "metrics": {
+        "max_us": {
+          "cv": 0.11685353702710288,
+          "max": 25489.53,
+          "mean": 22744.255666666664,
+          "min": 20183.671,
+          "n": 3,
+          "sample_stdev": 2657.7467216987275
+        },
+        "p50_us": {
+          "cv": 0.06393030635649719,
+          "max": 17853.985,
+          "mean": 16744.041666666668,
+          "min": 15718.022,
+          "n": 3,
+          "sample_stdev": 1070.451713395954
+        },
+        "p99_us": {
+          "cv": 0.1021456802764143,
+          "max": 24636.96645,
+          "mean": 22277.781483333332,
+          "min": 20096.21836,
+          "n": 3,
+          "sample_stdev": 2275.5791446643893
+        },
+        "pub_cpu_percent": {
+          "cv": 0.05894492725794686,
+          "max": 19.334422228974816,
+          "mean": 18.114677304020894,
+          "min": 17.34893323453145,
+          "n": 3,
+          "sample_stdev": 1.0677683359866925
+        },
+        "pub_rss_kb_peak": {
+          "cv": 0.0020276446112022367,
+          "max": 56528.0,
+          "mean": 56456.0,
+          "min": 56324.0,
+          "n": 3,
+          "sample_stdev": 114.47270417003348
+        },
+        "sub_cpu_percent": {
+          "cv": 0.053569140396029356,
+          "max": 13.668553674462853,
+          "mean": 12.892801272821686,
+          "min": 12.344730634952358,
+          "n": 3,
+          "sample_stdev": 0.6906562814818908
+        },
+        "sub_rss_kb_peak": {
+          "cv": 0.006665832193809666,
+          "max": 75244.0,
+          "mean": 74798.66666666667,
+          "min": 74260.0,
+          "n": 3,
+          "sample_stdev": 498.5953603207047
+        },
+        "throughput_mbyte_s": {
+          "cv": 0.14523251159066045,
+          "max": 22.36962133333333,
+          "mean": 20.039452444444443,
+          "min": 16.777216,
+          "n": 3,
+          "sample_stdev": 2.910380009408266
+        },
+        "throughput_msg_s": {
+          "cv": 0.14523251159066042,
+          "max": 5.333333333333333,
+          "mean": 4.777777777777778,
+          "min": 4.0,
+          "n": 3,
+          "sample_stdev": 0.6938886664887108
+        }
+      },
+      "missing_successful_repeat_ids": [],
+      "mode": "oneway",
+      "observed_runs": 3,
+      "qos": "best_effort",
+      "rmw": "rmw_cyclonedds_cpp",
+      "rmw_version": "2.2.4-1noble.20260902.140937",
+      "ros_distro": "jazzy",
+      "size_bytes": 4194304,
+      "status": "complete",
+      "successful_repeat_ids": [
+        1,
+        2,
+        3
+      ],
+      "successful_runs": 3,
+      "topology": "same-host",
+      "valid_successful_runs": 3,
+      "warmup_s": 0.5,
+      "warnings": []
+    }
+  ],
+  "method": "Across-run statistics of each run's metric; percentiles are not pooled.",
+  "not_final_baseline": true,
+  "status": "complete",
+  "warnings": []
+}

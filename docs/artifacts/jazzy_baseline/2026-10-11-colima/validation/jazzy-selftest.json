@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/opt/homebrew/bin/colima",
+    "ssh",
+    "--",
+    "bash",
+    "-c",
+    "source /opt/ros/jazzy/setup.bash && cd /Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work && python3 -B scripts/jazzy_baseline/selftest.py"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T11:32:28.735530+00:00",
+  "finished_utc": "2026-10-11T11:32:31.518948+00:00",
+  "exit_code": 0,
+  "output": "  ok percentiles\n  ok wire rejects short size\n  ok hz defaults\n  ok smoke matrix 4 cases\n  ok blocked report artifacts\n  ok env render\n  ok csv schema / summary sections\n  ok write_reports roundtrip\n.................................\n----------------------------------------------------------------------\nRan 33 tests in 0.082s\n\nOK\njazzy baseline selftest: PASS\n"
+}

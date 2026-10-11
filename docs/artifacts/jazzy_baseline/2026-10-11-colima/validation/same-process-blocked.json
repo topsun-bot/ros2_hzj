@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "scripts/jazzy_baseline/run.py",
+    "--topology",
+    "same-process",
+    "--rmw",
+    "rmw_fastrtps_cpp",
+    "--sizes",
+    "1024",
+    "--qos",
+    "reliable",
+    "--repeats",
+    "1",
+    "--out",
+    "docs/artifacts/jazzy_baseline/2026-10-11-colima/same-process-blocked"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T11:24:53.834839+00:00",
+  "finished_utc": "2026-10-11T11:24:54.522441+00:00",
+  "exit_code": 2,
+  "output": "[jazzy-baseline] STATUS=blocked out=docs/artifacts/jazzy_baseline/2026-10-11-colima/same-process-blocked\n"
+}

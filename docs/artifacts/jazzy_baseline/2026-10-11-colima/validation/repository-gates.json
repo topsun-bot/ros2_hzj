@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "scripts/run_all_gates.py"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T09:22:41.726003+00:00",
+  "finished_utc": "2026-10-11T09:22:43.097261+00:00",
+  "exit_code": 0,
+  "output": "# run_all_gates @ ros2-jazzy-work\n\n| script | exit | marker |\n| --- | --- | --- |\n| `scripts/prove_rmw.py` | 0 | ok |\n| `scripts/print_bench_gates.py` | 0 | ok |\n| `scripts/check_source_map.py` | 0 | ok |\n| `scripts/check_risk_matrix.py` | 0 | ok |\n| `scripts/check_executor_map.py` | 0 | ok |\n| `scripts/check_runtime_provenance.py` | 0 | ok |\n| `scripts/check_unitree_cyclone_swap.py` | 0 | ok |\n| `scripts/check_three_chain_repro.py` | 0 | ok |\n| `scripts/check_sink_layers.py` | 0 | ok |\n| `scripts/check_dual_chain_baseline.py` | 0 | ok |\n| `scripts/check_dod_evidence.py` | 0 | ok |\n| `scripts/check_cega_bridge_hold.py` | 0 | ok |\n| `scripts/check_frozen_path_literals.py` | 0 | ok |\n\n- gates: 13\n- exit-0: 13\n- non-zero: 0\n- zero-but-missing-marker: 0\n\nrun_all_gates: all gates green\n"
+}

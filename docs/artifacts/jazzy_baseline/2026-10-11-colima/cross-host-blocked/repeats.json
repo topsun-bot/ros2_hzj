@@ -1,0 +1,112 @@
+{
+  "expected_repeats": 1,
+  "groups": [
+    {
+      "duplicate_repeat_ids": [],
+      "duration_s": 10.0,
+      "expected_repeats": 1,
+      "host_class": "unknown",
+      "hz_offered": 100.0,
+      "metrics": {
+        "max_us": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "p50_us": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "p99_us": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "pub_cpu_percent": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "pub_rss_kb_peak": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "sub_cpu_percent": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "sub_rss_kb_peak": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "throughput_mbyte_s": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        },
+        "throughput_msg_s": {
+          "cv": null,
+          "max": null,
+          "mean": null,
+          "min": null,
+          "n": 0,
+          "sample_stdev": null
+        }
+      },
+      "missing_successful_repeat_ids": [
+        1
+      ],
+      "mode": "oneway",
+      "observed_runs": 1,
+      "qos": "reliable",
+      "rmw": "rmw_fastrtps_cpp",
+      "rmw_version": "",
+      "ros_distro": "",
+      "size_bytes": 1024,
+      "status": "blocked",
+      "successful_repeat_ids": [],
+      "successful_runs": 0,
+      "topology": "cross-host",
+      "valid_successful_runs": 0,
+      "warmup_s": 2.0,
+      "warnings": [
+        "missing grouping fields: ['rmw_version', 'ros_distro']",
+        "repeat 1: status=blocked; cross-host requires two machines. Start the subscriber/echo with --role sub|echo on host B, then --role pub|client on host A. A single VM records STATUS: blocked (no invented percentiles).",
+        "missing successful repeats: [1]",
+        "at least 3 fully measured unique successful repeats required; got 0"
+      ]
+    }
+  ],
+  "method": "Across-run statistics of each run's metric; percentiles are not pooled.",
+  "not_final_baseline": true,
+  "status": "blocked",
+  "warnings": []
+}

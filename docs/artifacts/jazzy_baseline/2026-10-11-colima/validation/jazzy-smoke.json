@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/opt/homebrew/bin/colima",
+    "ssh",
+    "--",
+    "bash",
+    "-c",
+    "source /opt/ros/jazzy/setup.bash && cd /Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work && python3 scripts/jazzy_baseline/run.py --smoke --margin 0.5 --topic-prefix /jazzy_baseline_codex_20261011_smoke --out docs/artifacts/jazzy_baseline/2026-10-11-colima/smoke"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T09:18:06.656097+00:00",
+  "finished_utc": "2026-10-11T09:18:58.547442+00:00",
+  "exit_code": 0,
+  "output": "[jazzy-baseline] rmw_fastrtps_cpp reliable oneway 1024B @20.0Hz repeat 1\n[jazzy-baseline] rmw_fastrtps_cpp reliable oneway 65536B @20.0Hz repeat 1\n[jazzy-baseline] rmw_cyclonedds_cpp reliable oneway 1024B @20.0Hz repeat 1\n[jazzy-baseline] rmw_cyclonedds_cpp reliable oneway 65536B @20.0Hz repeat 1\n[jazzy-baseline] STATUS=ok out=docs/artifacts/jazzy_baseline/2026-10-11-colima/smoke\n"
+}

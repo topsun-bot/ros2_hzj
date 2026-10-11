@@ -5,6 +5,8 @@
 
 对应 [Notion 任务①](https://app.notion.com/p/3f6567e95a6a8166bde4cd97a4950441)；初始实现见 [PR #205](https://github.com/topsun-bot/ros2_hzj/pull/205)。工具使用发行版 `rclpy`，时延包含 Python、消息构造和拷贝、调度、RMW／DDS 开销，不能解释成纯 DDS 或 C++ 客户端性能。同进程和跨机仍是未满足的验收项。
 
+[2026-10-11 Colima 验证记录](../../docs/artifacts/jazzy_baseline/2026-10-11-colima/README.md)包含 48 项三次重复矩阵、8 项本机 RTT、原始结果、失败证据和未完成验收项。
+
 这套工具**不是** Humble 双链 bench，也**不是** [`docs/artifacts/bench/SCOREBOARD.md`](../../docs/artifacts/bench/SCOREBOARD.md)。
 
 - 不 `source config/env/chain_a.sh` / `chain_b.sh`

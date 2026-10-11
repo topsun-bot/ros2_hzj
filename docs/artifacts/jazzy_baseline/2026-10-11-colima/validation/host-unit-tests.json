@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "scripts/jazzy_baseline",
+    "-p",
+    "test_*.py",
+    "-v"
+  ],
+  "cwd": "/Users/zhang/Documents/Codex/2026-10-11/task/ros2-jazzy-work",
+  "started_utc": "2026-10-11T09:17:20.884451+00:00",
+  "finished_utc": "2026-10-11T09:17:21.386660+00:00",
+  "exit_code": 0,
+  "output": "test_all_roles_derive_identical_bounds (test_measurement.MeasurementTests) ... ok\ntest_duplicate_and_malformed_messages_are_excluded (test_measurement.MeasurementTests) ... ok\ntest_half_open_send_window_excludes_warmup_and_accepts_drain (test_measurement.MeasurementTests) ... ok\ntest_nonfinite_and_unbounded_worker_values_rejected (test_measurement.MeasurementTests) ... ok\ntest_proc_stat_comm_may_contain_spaces_and_parentheses (test_measurement.MeasurementTests) ... ok\ntest_resources_exclude_warmup_and_drain (test_measurement.MeasurementTests) ... ok\ntest_rtt_requires_matching_sequence_and_send_stamp (test_measurement.MeasurementTests) ... ok\ntest_throughput_uses_full_window_even_with_missing_tail (test_measurement.MeasurementTests) ... ok\ntest_zero_samples_are_blocked (test_measurement.MeasurementTests) ... ok\ntest_duplicate_repeat_excludes_all_copies (test_report.RepeatReportsTest) ... ok\ntest_empty_and_all_failed_are_blocked (test_report.RepeatReportsTest) ... ok\ntest_every_grouping_dimension_stays_separate (test_report.RepeatReportsTest) ... ok\ntest_failure_preserves_reason_and_cannot_complete (test_report.RepeatReportsTest) ... ok\ntest_markdown_repeat_status_reason_columns_align (test_report.RepeatReportsTest) ... ok\ntest_missing_repeat_and_larger_expected_count (test_report.RepeatReportsTest) ... ok\ntest_nonfinite_missing_or_nonnumeric_metric_is_visible (test_report.RepeatReportsTest) ... ok\ntest_one_run_does_not_invent_variability (test_report.RepeatReportsTest) ... ok\ntest_three_distinct_runs_use_sample_standard_deviation (test_report.RepeatReportsTest) ... ok\ntest_unknown_expected_or_invalid_repeat_cannot_complete (test_report.RepeatReportsTest) ... ok\ntest_written_json_is_strict_and_csv_has_stats (test_report.RepeatReportsTest) ... ok\ntest_zero_mean_has_no_cv (test_report.RepeatReportsTest) ... ok\ntest_bad_config_is_rejected (test_runner.RunnerTests) ... ok\ntest_default_matrix_has_three_repeats (test_runner.RunnerTests) ... ok\ntest_existing_output_is_preserved (test_runner.RunnerTests) ... ok\ntest_invalid_results_cannot_be_ok (test_runner.RunnerTests) ... ok\ntest_only_jazzy_is_accepted (test_runner.RunnerTests) ... ok\ntest_partial_matrix_exits_nonzero (test_runner.RunnerTests) ... ok\ntest_rtt_zero_received_does_not_fall_back_to_echo_count (test_runner.RunnerTests) ... ok\ntest_stock_child_does_not_inherit_profiles_or_peers (test_runner.RunnerTests) ... ok\ntest_worker_nonzero_dominates_valid_json_and_is_logged (test_runner.RunnerTests) ... ok\n\n----------------------------------------------------------------------\nRan 30 tests in 0.180s\n\nOK\n"
+}
