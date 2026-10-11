@@ -67,7 +67,7 @@ Cited R0 evidence (not present on current `topsun_dimos` `main`; see [Live-tree 
 
 Live-tree ROS Docker that *does* exist in `topsun_dimos`: `docker/ros/Dockerfile` installs ROS 2 Humble (`ROS_DISTRO=humble`) plus `foxglove-bridge`, `joy`, `teleop-twist-joy`, and Nav2 packages. It does **not** set `RMW_IMPLEMENTATION`, `ROS_DOMAIN_ID`, or `FASTRTPS_DEFAULT_PROFILES_FILE`. Humble's distro default RMW is Fast DDS (`rmw_fastrtps_cpp`); that is a ROS distro fact, not a value encoded in `topsun_dimos` or in this repository.
 
-This repo (`ros2_hzj`) vendors public ROS 2 / rmw / Fast-DDS **and** CycloneDDS / `rmw_cyclonedds` as **plain directory copies** under `vendor/` (see [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)). It still does **not** invent a custom RMW. Use distro or in-tree `rmw_fastrtps_cpp` for Chain A and `rmw_cyclonedds_cpp` / native Cyclone for Chain B. Vendoring a tree is not a measured latency result.
+This repo (`ros2_hzj`) vendors public ROS 2 / rmw / Fast-DDS **and** CycloneDDS / `rmw_cyclonedds` as **plain directory copies** under `vendor/` (see [`vendor/VERSIONS.md`](../../vendor/VERSIONS.md)). It still does **not** invent a custom RMW. Use distro or in-tree `rmw_fastrtps_cpp` for Chain A and `rmw_cyclonedds_cpp` / native Cyclone for Chain B. Vendoring a tree is not a measured latency result. The only later waiver is [`AGENTS.md`](../../AGENTS.md#rust-rmw-exception) (`rmw_hzj_rust/`, 张益新 2026-10-11); zenoh / Agnocast / `rmw_zenoh` are **not** waived.
 
 ### Chain B — DimOS native DDS / Unitree Cyclone
 

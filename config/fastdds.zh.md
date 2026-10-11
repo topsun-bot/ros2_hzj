@@ -49,6 +49,6 @@ Humble Fast-DDS 2.6 的 XMLPARSER **不接受** `<qos><history>`（2026-09-10 �
 
 ## 不是什么
 
-- 不是自定义 RMW
+- 不是自定义 RMW（政策例外见 [AGENTS.md](../AGENTS.md#rust-rmw-exception)，不在本 XML）
 - 不是链 B（Cyclone 域 0）的配置
 - 不是已测时延根因

@@ -18,7 +18,7 @@ Status: **指针 — 不是重测、不是飞书现场、不是跨机根因。**
 5. **跨机 UDP 仍 `STATUS: blocked`。** 单机 / 无第二台，禁止填假分位数。见 [`2026-09-11-cross-host/`](../artifacts/bench/2026-09-11-cross-host/README.md)。
 6. **三条链仍是地图，不是复现。** wiki3 §13(2) publish / ingress→History / wait→callback = **three-chain map≠reproduce**。只认 [ros2-source-map.md](ros2-source-map.md) + [feishu-three-chain-repro.md](feishu-three-chain-repro.md)（`STATUS: blocked`）+ ADR。
 7. **Unitree 0.10.2 vs vendor 11.0.1 = drop-in FAIL。** 见 [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md)。线缆互通仍 UNPROVEN。
-8. **《3》–《6》仍 Hold。** 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE。Agnocast / zenoh / Cega / 自定义 RMW 仍 Hold。不改 `dimos_bridge` 运行时模块。
+8. **《3》–《6》仍 Hold。** 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE。Agnocast / zenoh / Cega / 自定义 RMW 仍 Hold。不改 `dimos_bridge` 运行时模块。自定义 RMW 例外仅 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（`rmw_hzj_rust/`）；zenoh 不在豁免内。
 
 核对本页 + 双链契约脚本仍一致：[`scripts/check_dual_chain_baseline.py`](../../scripts/check_dual_chain_baseline.py)。  
 核对三条链仍 blocked / map≠reproduce：[`scripts/check_three_chain_repro.py`](../../scripts/check_three_chain_repro.py)。  

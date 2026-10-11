@@ -17,7 +17,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 
 ## 1. 决策
 
-**保持 ROS 2 应用 API。** 本切不发明自定义 RMW，不抽 module 双堆接口，不接 Cega，不 vendor Agnocast / zenoh / eCAL / DPDK / Isaac。
+**保持 ROS 2 应用 API。** 本切不发明自定义 RMW，不抽 module 双堆接口，不接 Cega，不 vendor Agnocast / zenoh / eCAL / DPDK / Isaac。自定义 RMW 的**唯一**后续例外见 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（张益新 2026-10-11，仅 `rmw_hzj_rust/`）。**不用 zenoh** 不在豁免内。
 
 双链用**已有** `config/env` helper 切换（必须操作员显式 `source` / apply，import **不**改默认）：
 
@@ -55,7 +55,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 
 | 选型 | 飞书 / 行业在说什么 | 本仓 |
 |------|---------------------|------|
-| 换 / 调优现有 RMW | 先量化，再谈自研 | 用 `RMW_IMPLEMENTATION` + `config/env`；无自定义 RMW |
+| 换 / 调优现有 RMW | 先量化，再谈自研 | 用 `RMW_IMPLEMENTATION` + `config/env`；无自定义 RMW（例外见 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)） |
 | 自研 DDS 经 RMW 接入 | 应用不感知 | **未开始**；本切只冻契约与证明脚本 |
 | 上层 module 双堆 | 《通信中间件》次优 | **不做** |
 | Agnocast | 同机真零拷 IPC，不是 RMW | **Hold**（cn-jp 已写） |
@@ -77,7 +77,7 @@ Status: **已决 — 本切只落地文档 + 证明脚本，不改 XML / 不自�
 | 跨机 UDP | 仍 **blocked**（单机 / yixin Docker DOWN）；无假分位数 |
 | 《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE | 仍 **Hold** |
 | Rolling / master vendor 文件直接覆盖 Humble 发行版树 | **严禁**（见 MANIFEST） |
-| 自定义 RMW、Cega、Agnocast / zenoh / eCAL / DPDK / Isaac 进 `vendor/` | 本切 **不**做 |
+| 自定义 RMW、Cega、Agnocast / zenoh / eCAL / DPDK / Isaac 进 `vendor/` | 本切 **不**做。自研树若落地只在 `rmw_hzj_rust/`，不进 `vendor/`；见 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)。zenoh 仍 Hold |
 | 改 `dimos_bridge` 运行时 Python 模块 | **禁止**（本切） |
 | 飞书现场 / 实机根因 | **不是。** |
 | 用 vendor Cyclone 11.0.1 drop-in / in-place overwrite Unitree SDK2 自带 0.10.2 `libddsc` / `libddscxx` | **FAIL**（主版本 / ABI）。默认保持 **bundled 0.10.2**。合法路径：[`unitree_sdk2_hzj`](https://github.com/topsun-bot/unitree_sdk2_hzj) + opt-in `UNITREE_DDS_PROVIDER=external`。线缆互通 **UNPROVEN**。见 [unitree-sdk2-dds-swap.md](unitree-sdk2-dds-swap.md) |

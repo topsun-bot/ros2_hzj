@@ -16,7 +16,7 @@ Status: **分层记录 — 不是已加载 `.so` 证明、不是飞书现场、�
 3. **Vendor snapshot 只对照阅读。** `vendor/**` 是 rolling / master 快照，SHA **只**在 [VERSIONS.md](../../vendor/VERSIONS.md)。**不要**把 vendor 路径写成已加载 `.so`。
 4. **身份闸是 `prove_rmw.py`，不是 vendor 路径。** wiki3 §6.3：[scripts/prove_rmw.py](../../scripts/prove_rmw.py) 看进程里的 identifier / `librmw_*.so`。
 5. **Rolling ≠ Humble。严禁覆盖。** 见 [vendor/MANIFEST.md](../../vendor/MANIFEST.md)。不要把 rolling / master 文件直接铺进 `/opt/ros/humble` 或 Humble 工作区。
-6. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、SCOREBOARD 已记账表、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》–《6》仍 Hold。跨机 UDP 仍 **blocked**。
+6. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、SCOREBOARD 已记账表、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》–《6》仍 Hold。跨机 UDP 仍 **blocked**。自定义 RMW 例外仅 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（`rmw_hzj_rust/`）；zenoh 不在豁免内。
 
 核对本页 + MANIFEST / VERSIONS / Dockerfile 钉扎仍一致：[`scripts/check_runtime_provenance.py`](../../scripts/check_runtime_provenance.py)。  
 核对「加载了哪个 RMW」：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)。

@@ -14,6 +14,7 @@
 - **ok absent:** `vendor/rclpy` (Humble rcl* not in vendor)
 - **ok markers:** 16 identity strings
 - **ok Feishu URLs:** 3
+- **ok file:** `AGENTS.md`
 - **ok file:** `config/env/chain_a.sh`
 - **ok file:** `config/env/chain_b.sh`
 - **ok file:** `config/fastdds.xml`
@@ -64,8 +65,8 @@
   - **ok symbol:** `get_first_untaken_info` at L41 (+5)
 - **ok file:** `vendor/rmw_implementation/rmw_implementation/src/functions.cpp`
 
-- **cited paths:** 33
-- **paths on disk:** 33
+- **cited paths:** 34
+- **paths on disk:** 34
 - **allowlisted symbols ok:** 16
 - **warnings:** 0
 - **WaitSet -> callback: mapped**

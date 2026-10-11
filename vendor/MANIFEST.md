@@ -19,7 +19,7 @@
 | 链 B | 原生 Cyclone 域 **0**；ROS 侧名 `rmw_cyclonedds_cpp`。Cyclone **发行标签 11.0.1**（见 VERSIONS，不要用拷贝当日 `master` HEAD） |
 | 本仓 `vendor/` 树 | **rolling**（`rmw` / `rmw_implementation` / `rmw_fastrtps` / `rmw_cyclonedds`）与 Fast-DDS **`master`** 快照，按 VERSIONS 浅克隆后去 `.git` |
 
-未发明自定义 RMW。未使用 git LFS。CI **不**编译这些树。
+未发明自定义 RMW（`vendor/` 语义不变；Rust 自研例外只在 [AGENTS.md](../AGENTS.md#rust-rmw-exception) 的 `rmw_hzj_rust/`，不进本树。zenoh 不在豁免内）。未使用 git LFS。CI **不**编译这些树。
 
 ---
 

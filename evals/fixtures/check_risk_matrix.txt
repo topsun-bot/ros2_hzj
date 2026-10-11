@@ -15,6 +15,8 @@ not a percentile, and not Feishu field proof.
 Do not invent risk percentages. SCOREBOARD is the current-best
 **pointer**; this script does not copy its numbers.
 fastdds.xml is read-only; Agnocast / zenoh / Cega / custom RMW
-stay Hold. Rolling ≠ Humble. Cross-host stays blocked.
+stay Hold except the AGENTS.md Rust rewrite waiver
+(rmw_hzj_rust/ only; zenoh is not waived).
+Rolling ≠ Humble. Cross-host stays blocked.
 
 Risk matrix healthy: required docs + §9.4 layer/Hold markers exist. Exit 0.

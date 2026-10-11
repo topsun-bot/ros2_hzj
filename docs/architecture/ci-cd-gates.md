@@ -41,8 +41,8 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 |-------------------|------|
 | 改 `config/fastdds.xml` | 链 A 契约种子（iter7）。内容冻结 |
 | 改 `docs/artifacts/bench/SCOREBOARD.md` | 已记账 current best。内容冻结 |
-| 路径名带 `agnocast` / `zenoh` | 包括 `vendor/agnocast`、`rmw_zenoh`、kmod / heaphook 树。文档**正文**提到这些词不算；只看 **路径** |
-| 启用 Agnocast / zenoh | 不 vendor、不装 kmod、不把 `ZenohTransport` stub 当可用路径 |
+| 路径名带 `agnocast` / `zenoh` | 包括 `vendor/agnocast`、`rmw_zenoh`、kmod / heaphook 树。文档**正文**提到这些词不算；只看 **路径**。2026-10-11 Rust RMW 例外（[AGENTS.md](../../AGENTS.md#rust-rmw-exception) `rmw_hzj_rust/`）**不**放开这些路径 |
+| 启用 Agnocast / zenoh | 不 vendor、不装 kmod、不把 `ZenohTransport` stub 当可用路径。**不用 zenoh** 不在该例外内 |
 
 现有文档可以继续写 Agnocast / zenoh 对照（[cn-jp-ros2-absorb.md](cn-jp-ros2-absorb.md)、ADR）。那不是「引入」。
 

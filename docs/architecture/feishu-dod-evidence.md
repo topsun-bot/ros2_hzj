@@ -17,7 +17,7 @@ Status: **DoD: unmet — `STATUS: blocked`。**
 2. **`prove_rmw.py` 是 env / 字符串身份闸，不是 modified `.so` 证明。** 它打印 `ROS_DISTRO` / `RMW_IMPLEMENTATION` / 可选 identifier / 搜索路径上的 `librmw_*.so`。无 ROS 时打印 `ROS not loaded` 并 exit 0 — 那是诚实，**不是**「改过的库已加载」。
 3. **本自动化主机没有 Humble 运行时。** 没有 `/opt/ros/humble`、没有已加载发行版 `.so`、没有对本仓改过的库做实编 / 实跑。Docker 配方在 [`docker/ros/`](../../docker/ros/)，本切不启。不要写「本机跑过 Humble」。
 4. **不发明分位数 / 本机 delta / PASS / PROVEN。** [SCOREBOARD.md](../artifacts/bench/SCOREBOARD.md) 是 iter7 种子 + 已记账 same-host 表的 **pointer only**；本切不重测、不重记账、不把旧表当「本机 baseline-vs-change」。跨机 UDP 仍 **blocked**。
-5. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE 仍 Hold。
+5. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》90%/LLM、《4》Mac/preprod、《5》Promptfoo、《6》CVE 仍 Hold。自定义 RMW 例外仅 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（`rmw_hzj_rust/`）；zenoh 不在豁免内。该例外**不是** DoD 已满足。
 
 核对本页仍写 unmet / blocked：[`scripts/check_dod_evidence.py`](../../scripts/check_dod_evidence.py)。  
 身份闸（env / 字符串，不是 modified `.so`）：[`scripts/prove_rmw.py`](../../scripts/prove_rmw.py)。

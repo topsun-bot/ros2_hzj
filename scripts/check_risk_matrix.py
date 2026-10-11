@@ -109,7 +109,9 @@ def render(root: Path | None = None) -> tuple[str, int]:
             "Do not invent risk percentages. SCOREBOARD is the current-best",
             "**pointer**; this script does not copy its numbers.",
             "fastdds.xml is read-only; Agnocast / zenoh / Cega / custom RMW",
-            "stay Hold. Rolling ≠ Humble. Cross-host stays blocked.",
+            "stay Hold except the AGENTS.md Rust rewrite waiver",
+            "(rmw_hzj_rust/ only; zenoh is not waived).",
+            "Rolling ≠ Humble. Cross-host stays blocked.",
             "",
         ]
     )

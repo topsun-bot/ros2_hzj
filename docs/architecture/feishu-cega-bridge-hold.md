@@ -14,7 +14,7 @@ Status: **Hold** — `STATUS: Hold`。不接 Cega，不改 `dimos_bridge` 运行
 ## 0. 硬规则
 
 1. **`STATUS: Hold`。** 飞书 §13(4) 把 Cega / Bridge 放在 FastDDS + Cyclone 基线**之后**。本仓这一刀只登记 Hold，不接、不集成、不 vendor Cega。
-2. **不接 Cega。** 不发明自定义 RMW，不抽《通信中间件》次优「上层 module 双堆」，不把 Cega 当第三条链。`no Cega` 是闸门原文，不是「以后再静默合进去」。
+2. **不接 Cega。** 不发明自定义 RMW，不抽《通信中间件》次优「上层 module 双堆」，不把 Cega 当第三条链。`no Cega` 是闸门原文，不是「以后再静默合进去」。自定义 RMW 的**唯一**例外见 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（`rmw_hzj_rust/`，不是 Cega）。Cega / zenoh **不在**豁免内。
 3. **不改 `dimos_bridge` 运行时 Python 模块。** `no dimos_bridge runtime edits this cut`。对照阅读可以，改 `ROSTransport` / `DDSTransport` / `DDSService` / Unitree DDS 绑定不行。
 4. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)。`no XML/SCOREBOARD`：本切 diff 不得含这两份内容变更。内容冻结由 CI **`boundary`** 管。
 5. **不**启用 Agnocast / zenoh / eCAL / DPDK / Isaac。不 vendor `rmw_zenoh`，不装 kmod。`ZenohTransport` 仍是空 stub，不是 Cega 落点。
@@ -32,7 +32,7 @@ Status: **Hold** — `STATUS: Hold`。不接 Cega，不改 `dimos_bridge` 运行
 
 | 词 | 飞书 / ADR 在说什么 | 本仓若做（**本切不做**）会碰到谁 |
 |----|---------------------|----------------------------------|
-| **Cega** | §13 执行顺序里，排在双链基线之后的接入 / 自研桥。ADR：**不接 Cega**，不进 `vendor/`，不自定义 RMW | 新 transport、新 RMW、或改 DimOS 桥去对接 Cega。本仓没有 Cega 树 |
+| **Cega** | §13 执行顺序里，排在双链基线之后的接入 / 自研桥。ADR：**不接 Cega**，不进 `vendor/`，不自定义 RMW | 新 transport、新 RMW、或改 DimOS 桥去对接 Cega。本仓没有 Cega 树。`rmw_hzj_rust/` 例外（[AGENTS.md](../../AGENTS.md#rust-rmw-exception)）**不是** Cega 接入 |
 | **Bridge** | DimOS 双链桥：应用仍写 `ROSTransport` / `DDSTransport`，底下换 `.so` | [`dimos_bridge/`](../../dimos_bridge/) 运行时 Python。改这些才叫「动 Bridge」 |
 | **后置** | 先冻 distro、画三条链、落 FastDDS + Cyclone 基线，**再**谈 Cega / 改桥 | 三条链仍是地图、DoD 未现场验收 → 本步保持 Hold |
 

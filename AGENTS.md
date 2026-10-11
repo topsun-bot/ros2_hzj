@@ -1,6 +1,6 @@
 # AGENTS
 
-`ros2_hzj` is TOPSUN / 桦之坚's independent ROS 2 / DDS dual-chain workspace (not `topsun_dimos`). Chain A: `rmw_fastrtps_cpp`, domain **42**, `config/fastdds.xml`. Chain B: Cyclone domain **0**. No custom RMW. LCM is out of scope.
+`ros2_hzj` is TOPSUN / 桦之坚's independent ROS 2 / DDS dual-chain workspace (not `topsun_dimos`). Chain A: `rmw_fastrtps_cpp`, domain **42**, `config/fastdds.xml`. Chain B: Cyclone domain **0**. No custom RMW (see the scoped exception below). LCM is out of scope.
 
 ## Commands
 
@@ -31,6 +31,39 @@ python3 config/env/load.py print-b
 - 《3》–《6》 (bench score loops, Mac HIL, Promptfoo, CVE) stay out of scope.
 - Do not change `dimos_bridge` DDS behavior or vendor sources.
 - Do not integrate Cega / rewrite Bridge runtime (wiki3 §13(4) Hold).
+- Do not invent a custom RMW, except the scoped Rust rewrite waiver below.
+
+<a id="rust-rmw-exception"></a>
+
+## Exception — Rust RMW rewrite (2026-10-11)
+
+Owner **张益新** (2026-10-11) waived the **custom RMW** Hold **only** for the
+project 「用 Rust 重写 ROS 2 中间件（对标 ROS 2 Jazzy + DDS 1.4）」.
+
+This is **not** a general license to write arbitrary RMWs.
+
+**In scope (all must hold):**
+
+- Directory: `rmw_hzj_rust/` at the repo root (that tree only; tests and
+  docs for this RMW stay under it). Do **not** drop it into `vendor/` as a
+  replacement for the public Fast-DDS / Cyclone / rmw snapshots.
+- Implementation / `RMW_IMPLEMENTATION` name: `rmw_hzj_rust` or
+  `rmw_hzj_rust_*` (prefix `rmw_hzj_rust`).
+- Target: ROS 2 Jazzy + DDS 1.4 wire (stock Fast DDS / Cyclone
+  interoperability), not a third transport.
+
+**Still Hold (not waived):**
+
+- Agnocast / zenoh / `rmw_zenoh` / kmod / heaphook (the zenoh ban is
+  **unchanged** and is outside this exception)
+- Cega / `dimos_bridge` runtime rewrite
+- Edits to `config/fastdds.xml` or `docs/artifacts/bench/SCOREBOARD.md`
+- 《3》–《6》
+- Any custom RMW outside `rmw_hzj_rust/` or not named `rmw_hzj_rust*`
+
+This waiver does **not** claim product DoD is met, and does **not** turn
+`prove_rmw.py` into a modified-`.so` proof. It does not weaken any other
+rule. Other work still follows 「No custom RMW」.
 
 ## Docs
 
@@ -46,3 +79,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone baseline pointer (no XML rewrite; SCOREBOARD pointer only; same-topology XML tuning is paused)
 - [docs/architecture/feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) — wiki3 §6.3 product DoD honesty (`DoD: unmet` / `STATUS: blocked`; `prove_rmw.py` is env/string, not modified `.so`)
 - [docs/architecture/feishu-cega-bridge-hold.md](docs/architecture/feishu-cega-bridge-hold.md) — wiki3 §13(4) Cega / Bridge deferred Hold (no Cega; no `dimos_bridge` runtime edits)
+- [#rust-rmw-exception](#rust-rmw-exception) — 张益新 2026-10-11：仅 `rmw_hzj_rust/` 的 Rust 自研 RMW 例外；zenoh 不在此列
