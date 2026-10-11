@@ -40,6 +40,7 @@ jobs:
           test -f docs/architecture/feishu-dual-chain-baseline.md
           test -f docs/architecture/feishu-dod-evidence.md
           test -f docs/architecture/feishu-cega-bridge-hold.md
+          test -f docs/architecture/rust-rewrite-scope.md
           test -f vendor/MANIFEST.md
           test -f scripts/prove_rmw.py
           test -f scripts/check_source_map.py
@@ -53,6 +54,7 @@ jobs:
           test -f scripts/check_dual_chain_baseline.py
           test -f scripts/check_dod_evidence.py
           test -f scripts/check_cega_bridge_hold.py
+          test -f scripts/check_rust_rewrite_scope.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -213,6 +215,13 @@ jobs:
           python3 scripts/check_cega_bridge_hold.py | grep -F '§13(4) Cega / Bridge: Hold'
           # Docs + Hold markers only. Do not integrate Cega or edit dimos_bridge runtime.
 
+      - name: check_rust_rewrite_scope.py (task ③ rewrite scope)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_rust_rewrite_scope.py
+          python3 scripts/check_rust_rewrite_scope.py | grep -F 'rust rewrite scope: decided (10× unmet)'
+          # Docs + scope markers only. Do not vendor Rust, adopt rmw_zenoh, or replace FastDDS 42 / Cyclone 0.
+
   contracts:
     name: contracts
     runs-on: ubuntu-latest
@@ -291,6 +300,7 @@ jobs:
               Path("docs/architecture/feishu-dual-chain-baseline.md"),
               Path("docs/architecture/feishu-dod-evidence.md"),
               Path("docs/architecture/feishu-cega-bridge-hold.md"),
+              Path("docs/architecture/rust-rewrite-scope.md"),
               Path("vendor/MANIFEST.md"),
               Path("docs/usage/transports/dds.md"),
               Path("docs/usage/transports/index.md"),

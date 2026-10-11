@@ -1,0 +1,27 @@
+# check_rust_rewrite_scope (task ③ rewrite scope)
+
+- **ok file:** `docs/architecture/rust-rewrite-scope.md` (layer decisions + 10× unmet + Holds)
+- **ok file:** `docs/architecture/feishu-middleware-adr.md` (no custom RMW; points at this scope doc)
+- **ok file:** `config/fastdds.xml` (existence only; content freeze is boundary)
+- **ok file:** `docs/artifacts/bench/SCOREBOARD.md` (existence only; numbers not read; freeze is boundary)
+- **ok status header:** first `Status:` keeps `10× unmet` and `user confirmation open`
+- **ok layers:** client=reference rclrs; codegen=reference rosidl_rust; rcl=keep C rcl; rmw=no custom RMW; DDS=study-only; executor=keep C wait set; memory=no SHM rewrite
+- **ok DDS:** `DDS interop is study-only`
+- **ok zenoh:** `do not adopt rmw_zenoh`
+- **ok 10×:** `10×: unmet`
+- **ok absent:** `Cargo.toml`
+- **ok absent:** `vendor/rmw_zenoh`
+- **ok absent:** `vendor/agnocast`
+
+Filesystem + scope markers only. This is **not** a Rust
+middleware, not a percentile, and not Feishu field proof.
+Client/codegen may reference rclrs + rosidl_rust. DDS
+interop is study-only. do not adopt rmw_zenoh. do not
+replace FastDDS 42 / Cyclone 0. Tasks ⑤ and ⑥ stay out of
+this change. 10× stays unmet until a measured baseline
+exists. fastdds.xml / SCOREBOARD are existence-only; the
+boundary job owns the content freeze.
+
+- **rust rewrite scope: decided (10× unmet)**
+
+Rust rewrite scope healthy: reference rclrs, reference rosidl_rust, DDS study-only, no custom RMW, do not adopt rmw_zenoh, do not replace FastDDS 42 / Cyclone 0, 10× unmet, user confirmation open. Exit 0.

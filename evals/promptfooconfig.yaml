@@ -206,7 +206,7 @@ tests:
         value: 'ROS_DOMAIN_ID=0'
 
   # Full-stdout fingerprint regression (eval-only, not a CI gate): re-runs all
-  # 13 gates + load.py print-a|b and compares normalized stdout byte-for-byte
+  # 14 gates + load.py print-a|b and compares normalized stdout byte-for-byte
   # against committed evals/fixtures/. Catches unintended output drift that
   # exit-code + single-marker checks cannot see. Regenerate reviewed changes
   # with `python3 evals/fingerprint_check.py --update`.
@@ -218,7 +218,7 @@ tests:
         value: 'stdout fingerprint: stable'
       - type: contains
         # Locks the covered command count so dropping a command fails the eval.
-        value: '**commands:** 15'
+        value: '**commands:** 16'
 
   # Negative self-test for the frozen-path-literal guard (eval-only, not a CI
   # gate). The positive #14 run only proves the current tree is clean; it cannot
@@ -664,3 +664,14 @@ tests:
       - type: contains
         # Locks the fixture counts so weakening/removing a negative case fails.
         value: '31 negative, 3 non-flag, 2 healthy, 1 mutation'
+
+  # #43 task ③ Rust rewrite-scope decision. Positive gate only: the scope doc
+  # names the survey handoff and keeps 10× unmet. DDS interop stays study-only.
+  - description: 'check_rust_rewrite_scope.py: Rust rewrite scope decided (rclrs + rosidl_rust reference, DDS study-only, 10× unmet)'
+    vars:
+      script: scripts/check_rust_rewrite_scope.py
+    assert:
+      - type: contains
+        value: 'Rust rewrite scope healthy'
+      - type: contains
+        value: 'rust rewrite scope: decided (10× unmet)'
