@@ -7,6 +7,10 @@ modules, vendor trees, QoS defaults, or domains.
 Do **not** put Chain A and Chain B numbers in one comparison table.
 Do **not** treat these numbers as a root-cause claim.
 
+Jazzy stock Fast-DDS / Cyclone as the Rust 10× **denominator** is a
+**different** tool: [`scripts/jazzy_baseline/README.md`](../jazzy_baseline/README.md).
+It does not load `config/fastdds.xml` and must not edit SCOREBOARD.
+
 ## Exact commands
 
 ### Chain B (Cyclone `DDS` / domain 0)

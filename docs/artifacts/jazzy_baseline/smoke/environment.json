@@ -1,0 +1,31 @@
+{
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "cyclonedds_uri": "",
+  "disclaimer": "Cloud / lab measurement only. Not the final 10\u00d7 denominator until repeated on the target robot or HIL host.",
+  "fastrtps_default_profiles_file": "",
+  "git_sha_ros2_hzj": "ca08e716f56a574767b94e010cc16a638658071e",
+  "host_class": "cursor-cloud-vm",
+  "hostname": "cursor",
+  "kernel": "6.12.94+",
+  "mem_kb": 16398384,
+  "not_final_baseline": true,
+  "nproc": 4,
+  "os": "Linux-6.12.94+-x86_64-with-glibc2.39",
+  "os_pretty": "Ubuntu 24.04.4 LTS",
+  "packages": {
+    "cyclonedds": "0.10.5-1noble.20260225.142613",
+    "fastdds": "not-installed",
+    "rclpy": "7.1.12-1noble.20260912.162354",
+    "rmw_cyclonedds_cpp": "2.2.4-1noble.20260911.095700",
+    "rmw_fastrtps_cpp": "8.4.4-1noble.20260911.100940"
+  },
+  "python": "3.12.3",
+  "rmw_implementation_env": "",
+  "ros2_which": "",
+  "ros_automatic_discovery_range": "SUBNET",
+  "ros_distro": "jazzy",
+  "ros_domain_id": "",
+  "ros_localhost_only": "",
+  "status": "ok",
+  "utc": "2026-10-11T08:53:02Z"
+}

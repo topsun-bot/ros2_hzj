@@ -46,3 +46,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone baseline pointer (no XML rewrite; SCOREBOARD pointer only; same-topology XML tuning is paused)
 - [docs/architecture/feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) — wiki3 §6.3 product DoD honesty (`DoD: unmet` / `STATUS: blocked`; `prove_rmw.py` is env/string, not modified `.so`)
 - [docs/architecture/feishu-cega-bridge-hold.md](docs/architecture/feishu-cega-bridge-hold.md) — wiki3 §13(4) Cega / Bridge deferred Hold (no Cega; no `dimos_bridge` runtime edits)
+- [scripts/jazzy_baseline/README.md](scripts/jazzy_baseline/README.md) — Jazzy Fast-DDS / Cyclone 10× denominator (not SCOREBOARD; no XML rewrite)
