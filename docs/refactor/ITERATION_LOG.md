@@ -4805,7 +4805,7 @@
 - 连续两次成熟复查结论一致，**继续等待新指令**：高价值深化应来自外部阻塞解除（ci.yml 接线、CVE 修复、Humble/跨机实测）后的真实新行为，或用户提出的新重构/功能主题。
 - 若后续触发仍无新指令且无外部变化，将再做完整 gate+eval 回归并标注，不制造同形/低价值提交。
 
-## 轮次 75 — 2026-10-12 21:08（Asia/Shanghai）— 修复 #33 local_script_provider_selftest 内部 60s harness 超时倒挂并补契约断言
+## 轮次 75 — 2026-10-12 21:08（Asia/Shanghai）— 修复 #33 local_script_provider_selftest 内部 60s harness 超时倒挂并补契约断言（功能 PR #208，main 3de95df）
 
 ### 改了什么
 
@@ -4827,9 +4827,15 @@
 
 ### 产物检查结果
 
-- `compileall` OK；`#33 local_script_provider_selftest.py` PASS；`#35 eval_registry_selftest.py` PASS（42/42 双向一致）；`#36 doc_link_selftest.py` PASS（35 md 文件、923 相对链接、0 断链）；
+- `compileall` OK；`#33 local_script_provider_selftest.py` PASS；`#35 eval_registry_selftest.py` PASS（42/42 双向一致）；`#36 doc_link_selftest.py` PASS（35 md 文件、925 相对链接、0 断链）；
 - `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；
 - `promptfoo eval` **42/42 passed (100%)、0 failed、0 errors**（`eval-n4K-2026-10-12T13:08:20`）。
+
+### 合并后权威回归（回填）
+
+- 功能 PR **#208**（分支 `test/provider-selftest-harness-timeout`）required 三检（`ci/structure`、`ci/contracts`、`ci/boundary`）+ CodeQL + Cursor Approval/Security Agent 全 pass，squash-merge 到 `main`，**mergeCommit `3de95df`**，远端分支已删。
+- 合并后回 `main` 定时巡检实测：`run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；25 个 selftest fail=0。
+- 合并后高负载下 promptfoo `eval-0yz-2026-10-12T13:31:50` **42/42 passed (100%)、0 failed、0 errors**（Duration 3m 24s），在整套耗时 >3m 的高负载场景下 `#33` 稳定通过，无 flaky。
 
 ### Hold 合规
 
@@ -4840,3 +4846,4 @@
 1. GitHub `workflow` scope：active `yixinzhangagent` 无 `workflow` scope，需用户本机 `gh auth refresh -h github.com -s workflow`，再用离线备份补 `ci.yml` 独立 PR（`structure` job 仍只枚举前 12 个 gate）。
 2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
 3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。
+
