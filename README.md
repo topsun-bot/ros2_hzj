@@ -18,10 +18,11 @@
 
 本仓库是 **TOPSUN / 桦之坚的 ROS 2 · DDS 工作线**，独立于 [`topsun_dimos`](https://github.com/topsun-bot/topsun_dimos)。目标是把公开 RMW / Fast-DDS / CycloneDDS 源码和 DimOS **双链相关**代码落到本仓自己的树里，并做 R1–R5 **行为不变**的结构抽出。`topsun_dimos` 只读：本工作流不在那边改代码、不开 PR。
 
-默认 DimOS 传输仍是 **LCM**（Linux）/ **SHM**（Darwin）。**LCM 不在本仓 DDS 范围**。本仓**没有**自定义 RMW。
+默认 DimOS 传输仍是 **LCM**（Linux）/ **SHM**（Darwin）。**LCM 不在本仓 DDS 范围**。本仓**没有**自定义 RMW（例外仅 [`rmw_hzj_rust/`](AGENTS.md#rust-rmw-exception)，张益新 2026-10-11；zenoh 不在此列）。
 
 # News
 
+- [2026.10.11] 所有者张益新批准：仅「Rust 重写 ROS 2 中间件（对标 Jazzy + DDS 1.4）」可写自研 RMW，范围 `rmw_hzj_rust/` / `rmw_hzj_rust*`。见 [AGENTS.md](AGENTS.md#rust-rmw-exception)。其他自定义 RMW 仍 Hold。**不用 zenoh** 不在豁免内。
 - [2026.09.12] 飞书 wiki3 §13(4) Cega / Bridge **后置 Hold**：[feishu-cega-bridge-hold.md](docs/architecture/feishu-cega-bridge-hold.md) · `python3 scripts/check_cega_bridge_hold.py`。不接 Cega，不改 `dimos_bridge` 运行时。三条链 / DoD 仍 unmet / blocked。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] 飞书 wiki3 §6.3 产品 DoD 仍 **unmet / STATUS: blocked**：[feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) · `python3 scripts/check_dod_evidence.py`。实编、modified `.so`、本机 baseline-vs-change、回滚、产品验收阈均未满足。`prove_rmw.py` 只是 env / 字符串身份闸。不改 XML / SCOREBOARD；不接 Agnocast / zenoh。
 - [2026.09.12] 飞书 §13(3) 双链基线指针：[feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) · `python3 scripts/check_dual_chain_baseline.py`。SCOREBOARD current-best pointer only；same-topology XML tuning is paused；跨机 UDP `STATUS: blocked`；three-chain map≠reproduce；Unitree 0.10.2 vs vendor 11.0.1 drop-in FAIL。不改 XML / SCOREBOARD。
@@ -86,7 +87,7 @@
 - 契约 QoS vs 库默认：冻结表导航 QoS 与 `DimosROS` / `RawROS`（`RELIABLE` / `KEEP_LAST` / `VOLATILE` / `depth=5000`）不一致时，评测到底测的是哪一层。
 - Fast-DDS XML 单旋钮：socket buffer、send-buffer 池、中包 SHM 对 **同链同拓扑同尺寸** 分位数的影响（见 iter1–iter5 产物；**不要**合成 A/B 对照表）。
 - IMU 尺度高频小包：64 B / 200 Hz 下以 **jitter**（RTT p95/p99 与到达间隔）为主指标，而不是 p50/均值（iter6）。
-- vendor 整树 vs 发行版 RMW：对照编译、中间件行为补丁仍 Hold；本仓没有自定义 RMW。
+- vendor 整树 vs 发行版 RMW：对照编译、中间件行为补丁仍 Hold；本仓没有自定义 RMW（Rust 重写例外只在 [AGENTS.md](AGENTS.md#rust-rmw-exception)；zenoh 仍 Hold）。
 - 缺件诚实记录：单机上 `cross-host-UDP` 必须标 blocked，而不是填假分位数。
 - 公开 Isaac NITROS（Humble 类型适配/协商、同进程 GPU 零拷贝）能帮 CPU↔加速器，**不能**代替跨机 UDP、域 42/0 隔离或 Fast-DDS XML 旋钮；Vendor Isaac = Hold。对照：[NITROS vs 双链](docs/architecture/nitros-vs-dual-chain.md)。
 

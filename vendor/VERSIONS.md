@@ -9,7 +9,7 @@ Humble Docker vs rolling / master 快照的**语义**（不要把 rolling 文件
 
 拷贝日期：2026-09-10。策略与链 A 相同：浅克隆后去掉 `.git`，禁止 gitlink。
 
-未使用 git LFS。未发明自定义 RMW。
+未使用 git LFS。未发明自定义 RMW（`vendor/` 仍是公开树快照；政策例外只在 [AGENTS.md](../AGENTS.md#rust-rmw-exception) 的 `rmw_hzj_rust/`，不进本目录。zenoh 不在豁免内）。
 
 | 链 | 本仓 vendor 树 |
 |----|----------------|
@@ -36,7 +36,7 @@ Humble Docker vs rolling / master 快照的**语义**（不要把 rolling 文件
 | `vendor/rmw_cyclonedds/` | https://github.com/ros2/rmw_cyclonedds | `rolling` | `4.2.1` | `19478b0a9aa523af62023812d05bfcb4295e8efb` |
 | `vendor/CycloneDDS/` | https://github.com/eclipse-cyclonedds/cyclonedds | tag `11.0.1` | `11.0.1` | `e54e991f75a3e67f8e628da3171122e36ea5b872` |
 
-链 B 契约：DimOS 原生 `DDSConfig.domain_id` / Unitree `ChannelFactoryInitialize(0)` 为 **域 0**。若走 ROS 2 RMW，实现名是 **`rmw_cyclonedds_cpp`**。本仓**没有**自定义 RMW。
+链 B 契约：DimOS 原生 `DDSConfig.domain_id` / Unitree `ChannelFactoryInitialize(0)` 为 **域 0**。若走 ROS 2 RMW，实现名是 **`rmw_cyclonedds_cpp`**。本仓**没有**自定义 RMW（例外见 [AGENTS.md](../AGENTS.md#rust-rmw-exception)；不把自研树放进 `vendor/`）。
 
 拷贝当日上游 `cyclonedds` `master` HEAD 为 `2f0d07d241f62f7121749b46721049e4dea5c58b`（**未**采用；本仓钉扎发行标签 `11.0.1`）。
 

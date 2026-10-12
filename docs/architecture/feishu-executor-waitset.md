@@ -14,7 +14,7 @@ Status: **身份地图 — 不是复现报告、不是时延数字、不是飞�
 1. **Humble `rclcpp` / `rclpy` 不在 vendor。** 本仓没有 `vendor/rcl`、`vendor/rclcpp`、`vendor/rclpy`。Executor 与订阅回调在 Humble 发行版（[`docker/ros/`](../../docker/ros/)，`ROS_DISTRO=humble`）。不要拿 rolling `rmw_*.h` 去覆盖 `/opt/ros/humble`。
 2. **本页只标本树里核对过存在的文件。** `rmw_wait` 返回就绪 ≠ 用户 callback 已跑；`rmw_take` / `dds_take` 取出样本 ≠ 端到端已送达。
 3. **不发明分段 µs / 分位数 / 风险分。** SCOREBOARD 只是 current-best **指针**；本文不抄数字。跨机 UDP 仍 **blocked**。
-4. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、SCOREBOARD 已记账表、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》–《6》仍 Hold。
+4. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、SCOREBOARD 已记账表、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》–《6》仍 Hold。自定义 RMW 例外仅 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（`rmw_hzj_rust/`）；zenoh 不在豁免内。
 5. **§9.4 层序（ADR，不是风险打分）：** env / XML 第一（本切只读契约）；RMW / DDS 旋钮其次；**Executor / WaitSet / callback 是这一层**；fork `rcl` / `rclcpp` / DDS core 最后（本仓甚至没有 vendor `rcl*`）。清单：[feishu-risk-matrix.md](feishu-risk-matrix.md)。
 6. **一次一层。** 本切 = wait→callback 身份地图 + vanilla 证明脚本。不编译 vendor。
 

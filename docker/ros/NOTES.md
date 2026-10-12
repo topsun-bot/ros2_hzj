@@ -24,5 +24,5 @@ docker build -f docker/ros/Dockerfile .
 ## 不是什么
 
 - 不是 `docker/navigation/`（DimOS main 上不存在，本仓不伪造）
-- 不是自定义 RMW
+- 不是自定义 RMW（政策例外见 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)，不在本镜像）
 - 不改变已拷 DimOS 模块的运行时默认

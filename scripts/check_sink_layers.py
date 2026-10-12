@@ -205,7 +205,9 @@ def render(root: Path | None = None) -> tuple[str, int]:
             "from the in-repo ADR + source map + executor map.",
             "fastdds.xml / SCOREBOARD are existence-only in this script;",
             "the boundary job owns the content freeze. Agnocast / zenoh",
-            "stay Hold. Three-chain stays map ≠ reproduce. Unitree 0.10.2",
+            "stay Hold. Custom RMW stays Hold except AGENTS.md",
+            "`rmw_hzj_rust/` (zenoh not waived). Three-chain stays",
+            "map ≠ reproduce. Unitree 0.10.2",
             "vs vendor 11.0.1 stays drop-in FAIL. Do not rewrite XML.",
             "",
         ]

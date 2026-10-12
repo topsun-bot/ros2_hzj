@@ -16,7 +16,7 @@ Status: **map ≠ reproduce — `STATUS: blocked`。**
 1. **地图 ≠ 复现。** [ros2-source-map.md](ros2-source-map.md) 标路径；[feishu-executor-waitset.md](feishu-executor-waitset.md) 加深 WaitSet → callback。路径存在 ≠ 本机跑过三条链。
 2. **本自动化主机：`STATUS: blocked`。** 没有 `/opt/ros/humble`、没有已加载 `librmw_*.so`、没有 Humble `rclcpp` / `rclpy` executor。无 ROS 时 [`scripts/prove_rmw.py`](../../scripts/prove_rmw.py) 打印 `ROS not loaded` — 那是身份闸诚实，**不是**复现 PASS。
 3. **不发明分段 µs / 分位数 / PASS / PROVEN。** `publish()` / `rmw_publish()` 返回 `RMW_RET_OK` ≠ 对端已入 History、已 callback。SCOREBOARD 只是 current-best **指针**；本文不抄数字。跨机 UDP 仍 **blocked**。
-4. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》–《6》仍 Hold。
+4. **不改** [`config/fastdds.xml`](../../config/fastdds.xml)、[`docs/artifacts/bench/SCOREBOARD.md`](../artifacts/bench/SCOREBOARD.md)、vendor 源码、`dimos_bridge` 运行时 Python 模块。Agnocast / zenoh / eCAL / DPDK / Isaac / Cega / 自定义 RMW 仍 **Hold**。《3》–《6》仍 Hold。自定义 RMW 例外仅 [AGENTS.md](../../AGENTS.md#rust-rmw-exception)（`rmw_hzj_rust/`）；zenoh 不在豁免内。
 5. **一次一层。** 本切 = 诚实 blocked 状态 + vanilla 证明脚本。不编译 vendor，不在本机假装复现已跑。
 
 核对地图还在：[`scripts/check_source_map.py`](../../scripts/check_source_map.py)、[`scripts/check_executor_map.py`](../../scripts/check_executor_map.py)。  
