@@ -55,10 +55,14 @@ assertion failures):
     past the budget must return an `error` labeled "code timeout" (node kills
     it with ETIMEDOUT / SIGTERM), distinct from an active non-zero exit; after
     the override is deleted a fast command succeeds again (env restored);
-  * 1 timeout-budget contract (static): the default DEFAULT_TIMEOUT_MS is at
+    * 1 timeout-budget contract (static): the default DEFAULT_TIMEOUT_MS is at
     least 60s (no regression to the too-tight 30s), the LOCAL_SCRIPT_TIMEOUT_MS
     override is wired, and the ETIMEDOUT/SIGTERM timeout classification exists.
-    A non-numeric override falls back to the default.
+    A non-numeric override falls back to the default. Furthermore (round 75),
+    this selftest's own `_run_harness()` subprocess timeout (`HARNESS_TIMEOUT_S`
+    = 120s) and `BlindProvider` timeout (120000ms) must be at least
+    `DEFAULT_TIMEOUT_MS` so the 7-subprocess Node harness never self-timeouts at
+    60s before the provider budget under heavy host load.
 """
 
 from __future__ import annotations
@@ -76,6 +80,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 PROVIDER_PATH = REPO_ROOT / "evals" / "localScriptProvider.mjs"
 
 SUCCESS_MARKER = "local-script provider selftest: PASS"
+HARNESS_TIMEOUT_S = 120
 
 # Node harness: imports the real provider, runs every branch against tempdir
 # python fixtures, builds a blind (failure-swallowing) provider for the
@@ -123,7 +128,7 @@ class BlindProvider {
     const repoRoot = path.resolve(here, '..');
     const argv = String(prompt || '').trim().split(/\s+/).filter(Boolean);
     try {
-      const stdout = cp.execFileSync('python3', argv, { cwd: repoRoot, timeout: 30000, encoding: 'utf8', env: { ...process.env } });
+      const stdout = cp.execFileSync('python3', argv, { cwd: repoRoot, timeout: 120000, encoding: 'utf8', env: { ...process.env } });
       return { output: stdout };
     } catch (e) {
       return { output: (e && e.stdout) ? String(e.stdout) : '' }; // no error -> miss
@@ -162,7 +167,7 @@ def _run_harness() -> dict:
             cwd=str(REPO_ROOT),
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=HARNESS_TIMEOUT_S,
         )
     if proc.returncode != 0:
         raise AssertionError(f"node harness exited {proc.returncode}\n{proc.stderr}")
@@ -246,6 +251,14 @@ def _check_timeout_budget_contract(_r: dict | None = None) -> None:
     assert default_ms >= 60000, (
         f"default per-script timeout {default_ms}ms regressed below 60s; the 15-process "
         "fingerprint case needs headroom under host load (was 30s, round 41 flake)"
+    )
+    assert HARNESS_TIMEOUT_S * 1000 >= default_ms, (
+        f"selftest _run_harness timeout ({HARNESS_TIMEOUT_S}s) must be >= provider "
+        f"DEFAULT_TIMEOUT_MS ({default_ms}ms) so the 7-subprocess Node harness does "
+        "not self-timeout at 60s before the provider budget under host load (round 75)"
+    )
+    assert "timeout: 30000" not in _HARNESS and "timeout: 120000" in _HARNESS, (
+        "BlindProvider inside _HARNESS must align with the 120s budget (no legacy 30000ms)"
     )
     assert "LOCAL_SCRIPT_TIMEOUT_MS" in src, "timeout budget must be env-overridable"
     assert "ETIMEDOUT" in src and "SIGTERM" in src, "timeout classification markers missing"
