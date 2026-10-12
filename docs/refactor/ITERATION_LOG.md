@@ -4805,3 +4805,38 @@
 - 连续两次成熟复查结论一致，**继续等待新指令**：高价值深化应来自外部阻塞解除（ci.yml 接线、CVE 修复、Humble/跨机实测）后的真实新行为，或用户提出的新重构/功能主题。
 - 若后续触发仍无新指令且无外部变化，将再做完整 gate+eval 回归并标注，不制造同形/低价值提交。
 
+## 轮次 75 — 2026-10-12 21:08（Asia/Shanghai）— 修复 #33 local_script_provider_selftest 内部 60s harness 超时倒挂并补契约断言
+
+### 改了什么
+
+- 基线实跑 `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml --no-cache`（`eval-dd1-2026-10-12T12:53:20`，宿主机负载 `loadavg: 58.07 147.79 202.50`）暴露出真实瓶颈：15 子进程的 `#17 fingerprint_check.py` 因轮次43 将 `evals/localScriptProvider.mjs` 的 `DEFAULT_TIMEOUT_MS` 提至 `120000`（120s）而稳定通过，但 `#33 evals/local_script_provider_selftest.py` 报错 `subprocess.TimeoutExpired: Command '[.../node, .../harness.mjs, .../localScriptProvider.mjs]' timed out after 60 seconds`（`41/42 passed (97.62%), 0 failed, 1 error`）。
+- 根因定位：轮次43 把外层 provider 每脚本预算从 30s 提到 120s 时，`evals/local_script_provider_selftest.py` 自身的 `_run_harness()` 仍硬编码 `timeout=60`（且 `_HARNESS` 内联的 `BlindProvider` 仍硬编码旧的 `timeout: 30000`）。由于 `harness.mjs` 串行拉起 **7 个 `python3` 子进程**（含 `load.py print-a`、`fail.py`×2、`does_not_exist.py`、`okstderr.py`×2 与 `slow.py`），在 `concurrency: 4` + 高负载下总耗时偶发超过 60s，导致 `_run_harness()` 在外层 provider 120s 预算到达前先把自己的 `node` 子进程杀死（预算倒挂）。
+- 本轮只做这一项重点改进（行为不变，仅对齐自测 harness 超时预算并钉死契约）：
+  1. 在 [`evals/local_script_provider_selftest.py`](../../evals/local_script_provider_selftest.py) 定义 `HARNESS_TIMEOUT_S = 120` 并用于 `_run_harness()`，同时把 `_HARNESS` 内 `BlindProvider` 的 `timeout: 30000` 对齐为 `timeout: 120000`；
+  2. 在 `_check_timeout_budget_contract` 增加两条静态契约断言：`HARNESS_TIMEOUT_S * 1000 >= default_ms`（防自测 harness 超时再次低于 provider 预算）且 `_HARNESS` 不含遗留 `timeout: 30000`；
+  3. 同步更新 [`evals/README.md`](../../evals/README.md) 中 `#33` 的超时预算契约说明。场景类别与收尾串不变（仍 `4 negative, 2 non-flag, 1 healthy, 1 mutation, 1 timeout-budget contract`），case 总数保持 42。
+
+### 分数前后对比
+
+| 项 | 轮次75 改前（高负载基线） | 轮次75 改后 |
+|---|---|---|
+| gate (`run_all_gates.py`) | 13/13 exit 0 (100%) | **13/13 exit 0 (100%)** |
+| fingerprint (`fingerprint_check.py`) | 15/15 stable (100%) | **15/15 stable (100%)**（fixtures 零改动） |
+| promptfoo (`promptfooconfig.yaml`) | 41/42 (97.62%)、0 failed、**1 error**（`eval-dd1-2026-10-12T12:53:20`） | **42/42 (100%)、0 failed、0 errors**（`eval-n4K-2026-10-12T13:08:20`，Duration 1m 33s） |
+| `local_script_provider_selftest.py` | `_run_harness` 60s < provider 120s（倒挂） | **`HARNESS_TIMEOUT_S = 120` >= `DEFAULT_TIMEOUT_MS`（契约钉死）** |
+
+### 产物检查结果
+
+- `compileall` OK；`#33 local_script_provider_selftest.py` PASS；`#35 eval_registry_selftest.py` PASS（42/42 双向一致）；`#36 doc_link_selftest.py` PASS（35 md 文件、923 相对链接、0 断链）；
+- `run_all_gates.py` **13/13 all gates green**；`fingerprint_check.py` **15/15 stable**；
+- `promptfoo eval` **42/42 passed (100%)、0 failed、0 errors**（`eval-n4K-2026-10-12T13:08:20`）。
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `SCOREBOARD.md`；未启用 Agnocast/zenoh、未集成 Cega；未改 `dimos_bridge` / `vendor` / shell / `load.py` / `ci.yml` / guard 代码 / 15 个指纹 fixtures；受保护旧草稿 `docs/01-dds-request-flow.md` 保持未跟踪未提交。
+
+### 剩余风险 / 阻塞
+
+1. GitHub `workflow` scope：active `yixinzhangagent` 无 `workflow` scope，需用户本机 `gh auth refresh -h github.com -s workflow`，再用离线备份补 `ci.yml` 独立 PR（`structure` job 仍只枚举前 12 个 gate）。
+2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
+3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。

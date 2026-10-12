@@ -219,7 +219,7 @@
   - **1 个健康对照**：`id()=='local-script'`，且 `config/env/load.py print-a`（带参数）exit 0、无 error、stdout 含 Chain A 契约（证明 argv 空白拆分传参与 cwd=repoRoot）；
   - **1 个变异**：内联定义一个 catch 里不返回 error 的「盲 provider」，其对 exit 1 夹具**漏报**（hasError=false，sanity 自检），而真实 provider 对同一夹具报 error——证明本测试能区分「吞掉非零退出」的退化。
   - **1 个额外负向（轮次43，超时）**：harness 末尾临时设 `LOCAL_SCRIPT_TIMEOUT_MS=250` 跑一个 sleep 1.2s 的夹具，子进程超预算被 node 杀（`ETIMEDOUT`/`SIGTERM`、无数值退出码），必须返回 error 且标注 `code timeout ... after 250ms`，与主动 `exit 1`（仍报 `code 1`，不被软化/误标）区分；删除覆盖后再跑快速夹具必须成功（env 不泄漏）。
-  - **1 个超时预算契约（静态）**：provider 必须定义具名 `DEFAULT_TIMEOUT_MS` 且 ≥60s（防止退回对 15 子进程 fingerprint 过紧的 30s——轮次41 高负载 flaky 根因），`LOCAL_SCRIPT_TIMEOUT_MS` 覆盖已接线、含 `ETIMEDOUT`/`SIGTERM` 分类，且非数值/非正覆盖回退默认（不得把预算清零）。
+  - **1 个超时预算契约（静态）**：provider 必须定义具名 `DEFAULT_TIMEOUT_MS` 且 ≥60s（防止退回对 15 子进程 fingerprint 过紧的 30s——轮次41 高负载 flaky 根因），`LOCAL_SCRIPT_TIMEOUT_MS` 覆盖已接线、含 `ETIMEDOUT`/`SIGTERM` 分类，且非数值/非正覆盖回退默认（不得把预算清零）；轮次75 同时钉自测自身的 `_run_harness()` 子进程超时（`HARNESS_TIMEOUT_S = 120`）与 `BlindProvider` 超时（`120000`ms）必须 ≥ `DEFAULT_TIMEOUT_MS`（消除高负载下 7 子进程 Node harness 在 60s 早于 provider 120s 预算自杀的 flaky）。
 - **范围边界**：钉 provider 的 prompt→argv→exit 裁决、output/error 通道与超时预算分类，不重复各 selftest 对 guard/runner/工具自身判定逻辑的断言。轮次43 对 provider 的唯一行为变更是超时预算（30s 固定 → 具名 120s 默认 + env 覆盖 + `code timeout` 分类）；非零退出仍一律 error、成功 output 仍仅 stdout，裁决语义不变。
 - 与 #18–#32 一样放在 `evals/` 下，**不是** gate、不进 `run_all_gates.GATES`、不被 CI structure 枚举、不需要 ci.yml 接线。
 
