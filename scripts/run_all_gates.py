@@ -8,7 +8,7 @@ prints. It does not re-implement any check logic.
 
 Why this exists
 ---------------
-The 13 gates were historically run by hand, one ``python3 scripts/<name>.py``
+The gates were historically run by hand, one ``python3 scripts/<name>.py``
 at a time. That makes the 《3》 eval loop (run all gates after every change)
 awkward and easy to forget one. This runner gives one command:
 
@@ -50,6 +50,7 @@ GATES: list[tuple[str, str]] = [
     ("scripts/check_dod_evidence.py", "Product DoD evidence healthy"),
     ("scripts/check_cega_bridge_hold.py", "Cega / Bridge Hold healthy"),
     ("scripts/check_frozen_path_literals.py", "Frozen-path literals healthy"),
+    ("scripts/check_rust_rewrite_scope.py", "Rust rewrite scope healthy"),
 ]
 
 

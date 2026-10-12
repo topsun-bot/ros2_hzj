@@ -68,10 +68,10 @@ EXTRA_GATES = ("prove_rmw.py", "print_bench_gates.py")
 # Never gates: the runner itself and underscore-prefixed shared helpers.
 RUNNER_NAME = "run_all_gates.py"
 
-# Explicit contract: the modernization loop currently has exactly 13 runner
+# Explicit contract: the modernization loop currently has exactly 14 runner
 # gates. Adding/removing a gate must deliberately update this number together
 # with run_all_gates.GATES, which is the synchronization this test enforces.
-EXPECTED_GATE_COUNT = 13
+EXPECTED_GATE_COUNT = 14
 
 # Registered gate base names, taken from the single source of truth.
 REGISTERED = frozenset(Path(rel).name for rel, _marker in runner.GATES)
@@ -159,7 +159,7 @@ def _check_nonflag_helpers(failures: list[str]) -> int:
 
 
 def _check_healthy_real(failures: list[str]) -> int:
-    """The real repo: discovered set == registered set, count == 13, markers set."""
+    """The real repo: discovered set == registered set, count == 14, markers set."""
     disk = discover_gate_scripts(SCRIPTS)
     missing, orphan = registry_problems(disk, REGISTERED)
     problems: list[str] = []
@@ -184,7 +184,7 @@ def _check_healthy_real(failures: list[str]) -> int:
 
 
 def _check_healthy_temp(failures: list[str]) -> int:
-    """A tempdir containing exactly the 13 registered gates is clean."""
+    """A tempdir containing exactly the 14 registered gates is clean."""
     with tempfile.TemporaryDirectory(prefix="gate_reg_ok_") as tmp:
         d = Path(tmp) / "scripts"
         _write_scripts(d, set(REGISTERED))
@@ -268,7 +268,7 @@ def main() -> int:
         "\nEvery gate-shape script under scripts/ is registered in "
         "run_all_gates.GATES and vice versa (no orphan, no missing); underscore "
         "helpers and the runner itself are never counted as gates; the gate "
-        "count is pinned at 13 with non-empty markers; and a discoverer that "
+        "count is pinned at 14 with non-empty markers; and a discoverer that "
         "blindly trusts the registry is proven to hide an orphan. Read-only, "
         "tempdir-only. Exit 0."
     )

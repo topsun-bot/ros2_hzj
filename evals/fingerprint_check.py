@@ -62,7 +62,7 @@ FIX_DIR = EVALS_DIR / "fixtures"
 sys.path.insert(0, str(SCRIPTS))
 from run_all_gates import GATES  # noqa: E402  (sys.path set just above)
 
-# (fixture name, argv run from repo root). The 13 gates come from
+# (fixture name, argv run from repo root). The runner gates come from
 # run_all_gates.GATES; the two load.py subcommands are added so the dual-chain
 # executable source of truth is fingerprinted as well.
 COMMANDS: list[tuple[str, list[str]]] = [
