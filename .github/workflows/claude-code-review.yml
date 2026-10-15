@@ -1,0 +1,82 @@
+name: claude-code-review
+
+# Automated Claude review on every non-draft pull request.
+# Advisory only: it posts one summary comment (updated in place on re-runs)
+# plus inline comments, it is NOT a required status check
+# and it never edits the branch. Hold boundaries stay enforced by ci.yml.
+# Needs the repository secret ANTHROPIC_API_KEY.
+# See docs/architecture/ci-cd-gates.md §1.1.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  # gh pr comment goes through the issue-comment API, which needs issues: write.
+  issues: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: claude review
+    # Drafts are skipped; the review runs once the PR is marked ready.
+    # Fork PRs have no access to secrets, so they are skipped as well.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Pinned to an immutable commit (v4.4.0); bump deliberately after review.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 1
+
+      # Pinned to an immutable commit (v1.0.231); bump deliberately after review.
+      - uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are the code reviewer for ros2_hzj, TOPSUN / 桦之坚's ROS 2 / DDS
+            dual-chain workspace. Read AGENTS.md first: it lists the repo commands
+            and the Hold rules. The PR branch is already checked out.
+
+            Review the diff of this pull request. Focus on, in this order:
+            1. Hold boundary. Flag any change to `config/fastdds.xml`,
+               `docs/artifacts/bench/SCOREBOARD.md`, `dimos_bridge` DDS behaviour,
+               `vendor/` sources, or anything that enables Agnocast / zenoh / Cega.
+               These are blockers unless the PR carries the `allow-hold-bypass` label.
+            2. Correctness bugs in `scripts/*.py`, `config/env/`, `evals/`:
+               wrong exit codes, assertions that can never fail, string checks that
+               drift from the files they guard, `import` of `config/env/load.py`
+               writing `os.environ`.
+            3. Consistency between docs and code: a new gate script must be listed in
+               `.github/workflows/ci.yml`, `docs/architecture/ci-cd-gates.md` and
+               `AGENTS.md`; a new doc must be reachable by relative links that resolve.
+            4. Honesty markers: do not accept text that claims measured latency,
+               PASS / PROVEN or DoD met where the repo marks `STATUS: blocked`.
+
+            Do not review vendored third-party code under `vendor/` for style.
+            Do not propose enabling anything the Hold rules forbid.
+
+            Output: write in 中文, keep code identifiers and paths in English.
+            Post exactly one top-level summary (verdict, blockers, then nits) with
+            `gh pr comment <PR NUMBER> --edit-last --create-if-none --body-file -`,
+            feeding the Markdown on stdin via a quoted heredoc (no temp file is
+            needed or allowed), so re-runs on new pushes update the same comment
+            instead of adding another one. Use `mcp__github_inline_comment__create_inline_comment`
+            (with `confirmed: true`) for line-specific findings. If there is nothing
+            to flag, say so in one short comment. Only post GitHub comments; do not
+            return the review as plain text and do not modify files.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*)"
