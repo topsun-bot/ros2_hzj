@@ -1,0 +1,75 @@
+name: claude-code-review
+
+# Claude Code as an automated PR reviewer. Advisory only: this workflow is
+# NOT a required check and never edits the branch. The Hold gates in ci.yml
+# (structure / contracts / boundary) remain the only blocking checks.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    name: claude-review
+    # Skip drafts, and skip fork PRs: GitHub withholds repository secrets
+    # (ANTHROPIC_API_KEY) from pull_request runs of forks, so the job
+    # could only fail there.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are reviewing a pull request in `ros2_hzj`, TOPSUN's ROS 2 / DDS
+            dual-chain workspace (Chain A: rmw_fastrtps_cpp domain 42 with
+            config/fastdds.xml; Chain B: Cyclone domain 0). Read AGENTS.md and
+            docs/architecture/ci-cd-gates.md first, then `gh pr diff` for the change.
+
+            Review for:
+            - Correctness bugs and logic errors in changed code (Python gate
+              scripts, evals, env helpers, shell, workflow YAML).
+            - Hold boundary violations: edits to config/fastdds.xml or
+              docs/artifacts/bench/SCOREBOARD.md; any Agnocast / zenoh / rmw_zenoh
+              introduction; changes to dimos_bridge DDS behavior or vendor sources;
+              Cega integration or Bridge runtime rewrites.
+            - Honesty markers: docs must not invent percentiles, PASS / PROVEN
+              claims, measured deltas, or reproduce runs that were not performed.
+            - Contract regressions: importing config/env/load.py must not write
+              os.environ; scripts/prove_rmw.py must still exit 0 without ROS.
+            - Docs-only PRs (iteration-log backfills): check that PR numbers, commit
+              SHAs and eval IDs cited in the log match the actual PR/base metadata,
+              and that relative links resolve.
+
+            Be concise. Report only findings that would change what the author
+            does; skip praise and restating the diff. If nothing is wrong, say so
+            in one or two sentences. Do not push commits or edit files.
+
+            Post the review with `gh pr comment` (the sticky comment is updated
+            in place on later pushes).
+          claude_args: >-
+            --model claude-opus-5
+            --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh search:*)"
