@@ -1,0 +1,45 @@
+name: claude-code-review
+
+# Advisory Claude code review on every non-draft pull request.
+# Not a required status check: structure / contracts / boundary in ci.yml stay
+# the merge gates. This job only reads the diff and posts review comments.
+#
+# Setup (one-time, repo admin):
+#   1. Install the Claude GitHub App on topsun-bot/ros2_hzj
+#      (Contents / Issues / Pull requests: read & write).
+#   2. Add repository secret ANTHROPIC_API_KEY
+#      (or CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` and swap the input).
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          claude_args: >-
+            --allowedTools "mcp__github_inline_comment__create_inline_comment"
+            --append-system-prompt "Repository rules for ros2_hzj (see AGENTS.md and docs/architecture/ci-cd-gates.md). Treat any of the following in the diff as a blocking finding: edits to config/fastdds.xml or docs/artifacts/bench/SCOREBOARD.md (Hold-frozen); new paths containing agnocast or zenoh; changes to dimos_bridge DDS runtime behavior or vendor/ sources; Cega integration. Also flag invented evidence: new latency percentiles, PASS / PROVEN / DoD-met markers, or removed STATUS: blocked / DoD: unmet markers that are not backed by a measured artifact in the diff. Chain A is rmw_fastrtps_cpp on domain 42, Chain B is Cyclone on domain 0; flag anything that changes those contracts. Do not review vendor/ or dimos_bridge/ line by line unless the PR touches them."
