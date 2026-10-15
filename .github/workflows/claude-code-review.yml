@@ -1,0 +1,102 @@
+name: claude-code-review
+
+# 建议性（advisory）审查。不是闸门：不要把本工作流设为 required status check。
+# 必绿三件套仍是 ci.yml 的 structure / contracts / boundary。
+# 口径见 docs/architecture/ci-cd-gates.md。
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: claude review (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      # fork PR 拿不到 secret；仓库还没配 secret 时也不应该把 PR 弄红。
+      - name: Credential preflight
+        id: auth
+        env:
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${OAUTH_TOKEN:-}" ] || [ -n "${API_KEY:-}" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY configured; advisory review skipped."
+          fi
+
+      - name: Checkout
+        if: steps.auth.outputs.have == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude advisory review
+        if: steps.auth.outputs.have == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          # 两种认证都兼容：OAuth token 优先，未配置时回退 API key。
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+
+            你在评审 `ros2_hzj`：TOPSUN / 桦之坚的 ROS 2 / DDS 双链工作区。
+            链 A = rmw_fastrtps_cpp，域 42，config/fastdds.xml；链 B = Cyclone，域 0。
+            无自研 RMW；LCM 不在范围内。先读 AGENTS.md 与
+            docs/architecture/ci-cd-gates.md，再看 diff。
+
+            只读评审。不要修改任何文件，不要推 commit，不要贴标签。
+
+            按顺序检查：
+
+            1. Hold 边界（最高优先级）。命中即点名，除非本 PR 带 `allow-hold-bypass` 标签：
+               - 改 `config/fastdds.xml` 或 `docs/artifacts/bench/SCOREBOARD.md`（内容冻结）
+               - 路径名含 `agnocast` / `zenoh`，或实际启用它们（文档正文提到这些词做对照不算引入）
+               - 改 `dimos_bridge` 的 DDS 运行时行为，或改 `vendor/` 源码
+               - 接入 Cega / 重写 Bridge 运行时（wiki3 §13(4) Hold）
+               - 把《3》–《6》（bench 分数闭环、Mac HIL、Promptfoo、CVE 审计）拉进来
+
+            2. 诚实标记。本仓的核心资产是「不说没证据的话」。检查 diff 是否：
+               - 把 `STATUS: blocked` / `DoD: unmet` / `drop-in: FAIL` / `wire: UNPROVEN`
+                 改成更乐观的说法（PASS / PROVEN / measured）
+               - 新增了无出处的分位数、时延数字、commit SHA、跨机结论
+               - 把 map（地图 / 静态分析）说成 reproduce（实跑复现）
+               单机环境下跨机 UDP 仍是 blocked。
+
+            3. 契约。链 A 域 42、链 B 域 0；`import config/env/load.py` 不得写 `os.environ`；
+               `scripts/prove_rmw.py` 在无 ROS 时必须 exit 0 且打印 `ROS not loaded`；
+               `dimos_bridge/dimos/protocol/dds_topics.py` 的话题常量不得漂移。
+
+            4. 登记同步。新增 `docs/architecture/*.md` 或 `scripts/check_*.py` 时，
+               提醒 `.github/workflows/ci.yml` 的 `structure` 路径清单、markdown 相对链接清单、
+               AGENTS.md 的 Commands / Docs 列表是否需要同步。
+
+            5. 常规代码质量：正确性 bug、脚本的 exit code 与 grep 断言是否真的能失败、
+               shell 的 `set -euo pipefail`、Python 的路径与编码处理。
+
+            输出要求：
+            - 中文，最多 10 条，按严重度从高到低。
+            - 每条给出 `文件:行` + 为什么是问题 + 具体建议。
+            - 没有可报告的问题就明说「未发现需要阻断的问题」，不要凑数。
+            - 不确定的写成「需确认」，不要断言。
+            - 结尾固定一句：本审查为建议性，不替代 ci.yml 的 structure / contracts / boundary。
+          claude_args: |
+            --max-turns 15
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*),Bash(python3 scripts/check_*.py),Bash(python3 scripts/prove_rmw.py),Bash(python3 scripts/print_bench_gates.py)"

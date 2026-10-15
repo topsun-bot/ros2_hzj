@@ -1,0 +1,63 @@
+name: claude
+
+# 评论区 @claude 答疑。只读身份：contents 只给 read —— 本仓不让 agent 自动改内容、
+# 不自动合入（docs/architecture/ci-cd-gates.md §5：人类批准 merge）。
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+jobs:
+  claude:
+    name: claude (mention)
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Credential preflight
+        id: auth
+        env:
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${OAUTH_TOKEN:-}" ] || [ -n "${API_KEY:-}" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY configured; @claude skipped."
+          fi
+
+      - name: Checkout
+        if: steps.auth.outputs.have == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        if: steps.auth.outputs.have == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          trigger_phrase: "@claude"
+          claude_args: |
+            --max-turns 15
+            --system-prompt "本仓是 ros2_hzj：ROS 2 / DDS 双链（链 A rmw_fastrtps_cpp 域 42；链 B Cyclone 域 0），先读 AGENTS.md 与 docs/architecture/ci-cd-gates.md。Hold 规则：不得改 config/fastdds.xml 或 docs/artifacts/bench/SCOREBOARD.md，不得引入 agnocast / zenoh，不得改 dimos_bridge DDS 运行时或 vendor 源码，不得接 Cega。不得发明分位数、时延、SHA 或把 blocked / unmet / UNPROVEN 改成乐观说法；map 不等于 reproduce。不得自行贴 allow-hold-bypass 标签。你没有写权限：只答疑与给建议，不改文件、不推分支、不合入。用中文回复。"
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*),Bash(python3 scripts/check_*.py),Bash(python3 scripts/prove_rmw.py),Bash(python3 config/env/load.py print-a),Bash(python3 config/env/load.py print-b)"
