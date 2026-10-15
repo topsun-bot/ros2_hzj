@@ -81,6 +81,15 @@ Status: **闸门先于自动化。** 本仓按 AI-native SDLC：先把结构 / �
 - Agent 可以做到 **merge / production 闸门之前**（开 PR、推提交、等 CI、修红）。
 - **人类批准 merge**。本仓不自动合入。
 
+### 5.1 Claude 代码评审（advisory，不是 required check）
+
+工作流：[`.github/workflows/claude-code-review.yml`](../../.github/workflows/claude-code-review.yml)。每个非 draft、来自本仓分支的 PR（`opened` / `synchronize` / `ready_for_review` / `reopened`）触发 `anthropics/claude-code-action@v1`，按 [AGENTS.md](../../AGENTS.md) 与本文的 Hold 边界评审 diff，以 inline comment + 一条 sticky 汇总评论给出结论。
+
+- **不是** required status check：合并门槛仍是 `structure` / `contracts` / `boundary`；评审只给建议，**不**改文件、**不**推提交。
+- 前置：仓库 secret `ANTHROPIC_API_KEY`。缺失时该 job 失败但不阻塞合并。
+- fork PR 跳过（GitHub 不向 fork run 下发 secret）。
+- 权限：`contents: read`、`pull-requests: write`、`issues: write`、`id-token: write`、`actions: read`；与 ci.yml 分离，不改动 ci.yml 的三个 gate。
+
 ---
 
 ## 6. 本地核对
