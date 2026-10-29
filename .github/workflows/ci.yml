@@ -53,6 +53,7 @@ jobs:
           test -f scripts/check_dual_chain_baseline.py
           test -f scripts/check_dod_evidence.py
           test -f scripts/check_cega_bridge_hold.py
+          test -f scripts/check_frozen_path_literals.py
           test -f docs/usage/transports/dds.md
           test -f docs/usage/transports/index.md
           test -f README.md
@@ -212,6 +213,13 @@ jobs:
           python3 scripts/check_cega_bridge_hold.py
           python3 scripts/check_cega_bridge_hold.py | grep -F '§13(4) Cega / Bridge: Hold'
           # Docs + Hold markers only. Do not integrate Cega or edit dimos_bridge runtime.
+
+      - name: check_frozen_path_literals.py (modernization §5.3 rule 1)
+        run: |
+          set -euo pipefail
+          python3 scripts/check_frozen_path_literals.py
+          python3 scripts/check_frozen_path_literals.py | grep -F 'Frozen-path literals healthy'
+          # Path(...) constructor scan only. Do not edit XML or SCOREBOARD.
 
   contracts:
     name: contracts
