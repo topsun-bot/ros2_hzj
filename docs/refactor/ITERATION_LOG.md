@@ -4884,3 +4884,36 @@
 - CVE / 飞书 3380004 / Humble·跨机仍等用户拍板或主机，不自行突破。
 - eval-only fingerprint / selftest 进 CI 仍是后续独立任务（本 PR 只接线第 13 闸，不扩 scope）。
 
+## 轮次 77 — 2026-10-29 21:54（Asia/Shanghai）— 文档同步：第 13 闸已接线后的现在时表述
+
+### 改了什么
+
+- 轮次 76 / PR #210 已把 `check_frozen_path_literals.py` 写入 CI `structure`，但 sibling 现在时页面仍写「CI 只跑前 12 闸 / 接线待 `workflow` scope / 离线备份」。本轮**只改现在时文档与注释**，不重开闸门逻辑、不改 `ci.yml` / gate 脚本 / fixtures。
+- [`docs/refactor/01-dds-request-flow.md`](01-dds-request-flow.md)：§2 引言、§2.4 CI 现状 callout、§5 命令注释改为「本地与 CI `structure` 均跑 13 闸」；Promptfoo / 指纹仍只本地、不进 CI。
+- [`docs/refactor/02-modernization-plan.md`](02-modernization-plan.md)：「仍阻塞的收尾」去掉第 13 闸 ci.yml 接线 / 离线备份；留下 eval-only 不进 CI、飞书 3380004、CVE 三项待批、Humble·跨机 blocked。
+- [`evals/README.md`](../../evals/README.md)、[`evals/gate_registry_selftest.py`](../../evals/gate_registry_selftest.py)、[`evals/gate_execution_selftest.py`](../../evals/gate_execution_selftest.py)、[`evals/promptfooconfig.yaml`](../../evals/promptfooconfig.yaml)：只改现在时 scope note。**不改**「为什么自测存在」的历史动机（#29/#40 仍记录当年 12-vs-13 漏注册），也不改断言 / SUCCESS marker。
+- 历史轮次 4–75 里如实写下的「当时 CI 12 / 待 workflow scope」条目**不改写**。
+
+### 分数（文档轮；零 gate 逻辑改动）
+
+| 项 | 结果 |
+|---|---|
+| gate (`run_all_gates.py`) | **13/13 exit 0**（接线后仍绿） |
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `SCOREBOARD.md`；未启用 Agnocast/zenoh、未集成 Cega；未改 `dimos_bridge` / vendor / gate 逻辑 / `ci.yml` / fixtures；未做 CVE 修复；未发明时延；未把 DoD 或跨机标 PASS。《3》–《6》仍 Hold。
+
+### 剩余风险 / 阻塞
+
+1. 4 份飞书方案文档 3380004 无匿名读权限。
+2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）仍待用户明确批准，本轮不实施。
+3. 无 Humble Linux 主机；真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`，不伪造。
+4. 仍开着的 PR #204（`feat/round75-provider-signal-classification`）相对已合并的 #208 已过时且 `CONFLICTING`；本轮仅记录，不强制关闭。
+
+### 下一步
+
+- 本 PR 合入后现在时文档与 CI `structure` 13 gate 对齐。
+- CVE / 飞书 3380004 / Humble·跨机仍等用户拍板或主机，不自行突破。
+- eval-only fingerprint / selftest 进 CI 仍是后续独立任务（本 PR 只同步文档，不扩 scope）。
+

@@ -5,8 +5,8 @@ Invoked by the Promptfoo local-script provider. It lives under ``evals/`` on
 purpose, like ``fingerprint_check.py``, the ``*_guard_selftest.py`` scripts and
 ``gate_registry_selftest.py``: it is **not** one of the 13 CI gates, is not
 enumerated by ``scripts/run_all_gates.py`` itself, and needs no
-``.github/workflows/ci.yml`` wiring (so it is not blocked by the missing GitHub
-``workflow`` token scope).
+``.github/workflows/ci.yml`` wiring (eval-only; fingerprint/selftests remain
+out of CI).
 
 Why this exists
 ---------------
@@ -34,8 +34,8 @@ tempdir fixtures and includes a mutation proving the missing-marker check is
 not vacuous.
 
 Scope note: this pins the runner's execution/verdict logic only. It does not
-assert the CI ``structure`` 12-vs-13 enumeration (that waits on the
-``workflow`` token scope, see eval #29) and does not run any real project gate.
+assert CI yaml contents (the 13th gate is already wired in ``structure``; see
+eval #29) and does not run any real project gate.
 
 Read-only: fixtures are created only inside a ``tempfile`` directory and
 ``run_all_gates.REPO_ROOT`` / ``GATES`` / ``run_one`` are monkey-patched and

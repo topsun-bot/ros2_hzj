@@ -168,8 +168,7 @@ Status: **计划文档 — 不是直接改代码。** 本文只列问题、证�
 - **结论**：A 面 Step 1–4 **进入「按需维护」**——不再为消除重复制造改动；后续仅在出现新的真实重复/陈旧模式、或评估暴露
   薄弱断言时，按同一纪律（先 AST/正则取证、行为不变、独立 PR）推进。B 面（`dimos_bridge/dimos/**`）与 C 面
   （vendor、`config/fastdds.xml`、SCOREBOARD 数字）维持 Hold。
-- **仍阻塞的收尾**：第 13 闸与 eval-only 自测接入 `.github/workflows/ci.yml` 需要推送凭证具备 `workflow` scope
-  （active 账号缺该 scope）；接线素材离线备份于 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`。
+- **仍阻塞的收尾**：第 13 闸已接入 CI `structure`（轮次 76 / PR #210）。eval-only 指纹与 selftest **仍不进 CI**（独立后续任务，本计划不扩 scope）。飞书 3380004 / CVE 三项待批 / Humble·跨机 `STATUS: blocked` 仍未解除。
 ---
 
 ## 4. 明确"不在本计划改"的陈旧模式（避免越界）

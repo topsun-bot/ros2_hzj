@@ -427,9 +427,9 @@ tests:
   # cannot detect an orphan gate (a new scripts/check_*.py, or one of the two
   # fixed-name gates, left out of GATES -> the headline stays "13/13") nor pin
   # the rule that excludes underscore helpers and run_all_gates.py itself. This
-  # case locks bidirectional disk<->GATES equality and the 13-gate count. The
-  # separate CI structure-job 12-vs-13 wiring gap is out of scope (ci.yml needs
-  # the workflow token scope) and is intentionally not asserted here.
+  # case locks bidirectional disk<->GATES equality and the 13-gate count. CI
+  # structure already runs the 13th gate; this case still does not read ci.yml
+  # and does not re-assert that wiring.
   - description: 'gate_registry_selftest.py: every gate-shape script under scripts/ is registered in run_all_gates.GATES and vice versa (no orphan/missing; underscore helpers and the runner excluded), tempdir-only'
     vars:
       script: evals/gate_registry_selftest.py
