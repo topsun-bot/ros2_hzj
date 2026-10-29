@@ -5,7 +5,7 @@ Invoked by the Promptfoo local-script provider. It lives under ``evals/`` on
 purpose, like ``fingerprint_check.py`` and the ``*_guard_selftest.py`` scripts:
 it is **not** one of the 13 CI gates, is not enumerated by
 ``scripts/run_all_gates.py`` itself, and needs no ``.github/workflows/ci.yml``
-wiring (so it is not blocked by the missing GitHub ``workflow`` token scope).
+wiring (eval-only; fingerprint/selftests remain out of CI).
 
 Why this exists
 ---------------
@@ -36,11 +36,10 @@ on tempdir fixtures. A stubbed discoverer that blindly trusts the registry
 must hide the orphan scenario (mutation), proving the orphan check is not
 vacuous.
 
-Scope note: this pins the **runner** registry vs. the scripts directory. The
-separate, known gap that the CI ``structure`` job enumerates only 12 gates is
-intentionally NOT asserted here -- wiring the 13th gate into
-``.github/workflows/ci.yml`` needs the ``workflow`` token scope (a standalone,
-user-approved change), and this script has no business reading CI yaml.
+Scope note: this pins the **runner** registry vs. the scripts directory. CI
+``structure`` already enumerates the 13th gate
+(``check_frozen_path_literals.py``); this script still does not read CI yaml
+and does not re-assert that wiring.
 
 Read-only: fixtures are created only inside a ``tempfile`` directory; the repo
 is never edited and no production code is imported for side effects beyond
