@@ -6,10 +6,14 @@ Context
 ``AGENTS.md`` is the operator entry point: its ``## Commands`` bash block lists
 the python entry points a human runs. ``scripts/run_all_gates.py`` is the
 machine runner whose ``GATES`` tuple is the single source of truth for the gate
-sequence. Round 5 added a 13th gate (``check_frozen_path_literals.py``) and the
-CI wiring is blocked on a missing ``workflow`` scope, so the CI ``structure``
-job still hard-codes only the first twelve gates -- the AGENTS.md command block
-is the only place that documents the *full* local set for operators.
+sequence. Round 5 added a 13th gate (``check_frozen_path_literals.py``). At
+that time CI wiring was blocked on a missing ``workflow`` scope, so the CI
+``structure`` job still hard-coded only the first twelve gates -- the
+AGENTS.md command block was then the only place that documented the *full*
+local set for operators. PR #210 later wired the 13th gate into ``structure``;
+the registered 13-gate set is now CI-wide (``structure`` runs 12 of them;
+``prove_rmw.py`` runs in ``contracts``). This self-test still pins the
+operator documentation surface, not CI yaml.
 
 Round 44 found that the 13th gate had never been added to the AGENTS.md command
 block: a gate could run green under ``run_all_gates.py`` while being invisible

@@ -65,7 +65,7 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 
 ## 2. 数据在哪些地方做校验（prove_rmw.py 与 check_*.py 强制了什么假设）
 
-本机无 ROS，下列闸门我已逐个跑过，**全部 exit 0**（基线）。它们强制的是**结构 / 字符串 / 路径存在**假设，不是行为假设。本地 runner [`scripts/run_all_gates.py`](../../scripts/run_all_gates.py) 现一把跑 **13 个 gate**（含轮次 4 新增的冻结路径防回潮闸，见 §2.4）；GitHub CI 的 `structure` job 已同样枚举并运行第 13 闸（见 [ci-cd-gates.md](../architecture/ci-cd-gates.md) §1 / §6 与 [ITERATION_LOG.md](ITERATION_LOG.md) 轮次 76）。Promptfoo 与指纹回归仍只在本地跑，不在 CI。
+本机无 ROS，下列闸门我已逐个跑过，**全部 exit 0**（基线）。它们强制的是**结构 / 字符串 / 路径存在**假设，不是行为假设。本地 runner [`scripts/run_all_gates.py`](../../scripts/run_all_gates.py) 现一把跑 **13 个 gate**（含轮次 4 新增的冻结路径防回潮闸，见 §2.4）。GitHub CI 的 13 闸覆盖是 **CI-wide**：`structure` 运行其中 12 个（含第 13 闸 `check_frozen_path_literals.py`），`prove_rmw.py` 在 `contracts` 跑（见 [ci-cd-gates.md](../architecture/ci-cd-gates.md) §1 / §6 与 [ITERATION_LOG.md](ITERATION_LOG.md) 轮次 76 / 78）。Promptfoo 与指纹回归仍只在本地跑，不在 CI。
 
 ### 2.1 身份闸：`scripts/prove_rmw.py`
 
@@ -109,10 +109,10 @@ Reader History  ──rmw_wait / WaitSet──▶  rmw_take / dds_take ──▶
 闸门之上叠了三层互补的本地回归，改任何 `scripts/*.py` 都应理解它们的分工（演进记录见 [ITERATION_LOG.md](ITERATION_LOG.md)，计划见 [02-modernization-plan.md](02-modernization-plan.md)）：
 
 1. **红绿层** [`scripts/run_all_gates.py`](../../scripts/run_all_gates.py)：数据驱动跑 13 个 `(script, marker)`，只看退出码 + 一个健康 marker，结尾打印 `all gates green`。
-2. **契约层** Promptfoo（[`evals/promptfooconfig.yaml`](../../evals/promptfooconfig.yaml) + custom provider [`localScriptProvider.mjs`](../../evals/localScriptProvider.mjs)，用法见 [`evals/README.md`](../../evals/README.md)）：跑 gate 脚本与 `load.py print-a/print-b`，对 stdout 做 `contains` **实质契约**断言——不只锁 marker，还锁裁决句 / blocked 诚实性 / Hold 短语 / 双链真值，防止"marker 还在但结论被翻转"。现 **17 个用例**，本地命令固定 `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`。
+2. **契约层** Promptfoo（[`evals/promptfooconfig.yaml`](../../evals/promptfooconfig.yaml) + custom provider [`localScriptProvider.mjs`](../../evals/localScriptProvider.mjs)，用法见 [`evals/README.md`](../../evals/README.md)）：跑 gate 脚本与 `load.py print-a/print-b`，对 stdout 做 `contains` **实质契约**断言——不只锁 marker，还锁裁决句 / blocked 诚实性 / Hold 短语 / 双链真值，防止"marker 还在但结论被翻转"。现 **42 个用例**（与 [`evals/README.md`](../../evals/README.md) / yaml 一致），本地命令固定 `npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml`。
 3. **指纹层（严格）** [`evals/fingerprint_check.py`](../../evals/fingerprint_check.py)（eval 用例 #17，**eval-only、不是第 14 个 gate**）：import `run_all_gates.GATES` 单一真源 + `load.py print-a/b` 共 15 个命令，完整 stdout 归一化后与 [`evals/fixtures/`](../../evals/fixtures/)（15 份基线）**逐字节**比对，漂移打 unified diff 并 exit 1。归一化只抹平仓库根绝对路径与 frozen gate 的动态扫描计数，其余计数（cited/symbol 数等）保持精确。**任何有意改动 gate stdout，都必须在同一 PR 跑 `python3 evals/fingerprint_check.py --update` 重生成并提交 fixtures**，否则 #17 红。
 
-> **CI 现状（如实标注）**：required checks 为 `structure` / `contracts` / `boundary`。`structure` 现已枚举并运行全部 **13** 个 gate（第 13 闸 `check_frozen_path_literals.py` 已接线，见 [ci-cd-gates.md](../architecture/ci-cd-gates.md) §1 / §6）。Promptfoo 与指纹回归**只在本地 / 本循环运行，CI 不跑**。因此"本地 13 gate + 17 eval 全绿"仍不等于 PR 上跑了 eval 集合。
+> **CI 现状（如实标注）**：required checks 为 `structure` / `contracts` / `boundary`。注册的 **13** 个 gate 是 CI-wide 覆盖：`structure` 运行其中 12 个（含第 13 闸 `check_frozen_path_literals.py`，见 [ci-cd-gates.md](../architecture/ci-cd-gates.md) §1 / §6），`prove_rmw.py` 在 `contracts` 跑（`ci.yml` 该 job 的 prove_rmw 步骤）。Promptfoo 与指纹回归**只在本地 / 本循环运行，CI 不跑**。因此"本地 13 gate + 42 eval 全绿"仍不等于 PR 上跑了 eval 集合。
 
 ---
 
@@ -188,7 +188,7 @@ python3 scripts/check_risk_matrix.py         # §9.4 层序（不打分）
 python3 scripts/check_dod_evidence.py        # DoD unmet / blocked
 python3 scripts/check_cega_bridge_hold.py    # §13(4) Hold / 不改 bridge 运行时
 python3 scripts/print_bench_gates.py         # bench 指针（不打数字）
-python3 scripts/check_frozen_path_literals.py # 第13闸：冻结路径防回潮（本地与 CI structure 均跑）
+python3 scripts/check_frozen_path_literals.py # 第13闸：冻结路径防回潮（本地 runner 与 CI structure 均跑；prove_rmw 在 contracts）
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```
@@ -197,7 +197,7 @@ python3 config/env/load.py print-b
 ```bash
 python3 scripts/run_all_gates.py                                  # 红绿层：一把跑 13 个 gate
 python3 evals/fingerprint_check.py                                # 指纹层：15 命令 stdout 逐字节等于 fixtures
-npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml    # 契约层：17 个 DDS 行为断言
+npx --yes promptfoo@0.123.1 eval -c evals/promptfooconfig.yaml    # 契约层：42 个 DDS 行为断言
 ```
 （`run_all_gates.py` 一把跑 13 gate 但不替 CI `boundary`，PR 上仍会被 `boundary` 单独审 diff；fingerprint 与 Promptfoo 目前是本地验收层，CI 不跑。有意改了 gate stdout 记得 `fingerprint_check.py --update` 重生成 fixtures。）
 **不要为了本地绿去编译 vendor、启 Humble、改 XML/SCOREBOARD、或把 DoD 改成已满足。**

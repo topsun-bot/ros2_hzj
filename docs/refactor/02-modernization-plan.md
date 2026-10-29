@@ -204,7 +204,7 @@ Status: **计划文档 — 不是直接改代码。** 本文只列问题、证�
 - **M2 — 死传输清理**：删 LCM/SHM/Jpeg 变体与 `ZenohTransport` stub（先改 `check_cega_bridge_hold.py:60` 的 `ZenohTransport` 断言）。前置：确认这些类无上游消费者。验证：`check_sink_layers.py` + `check_cega_bridge_hold.py`。
 - **M3 — DDS 参与者生命周期**：把 `ddsservice.py:36` 全局 `_participants` 改为可关闭/可重置。前置：Hold 解 + Humble 实跑。验证：`check_executor_map.py`（符号 `on_data_available` 仍在）。
 - **M4 — QoS 单一真源**：让 `rospubsub.py:108-117` 默认 QoS 与 `dds_topics.py` `QosContract` 对齐。前置：明确"冻结表 ≠ 库默认"的关系（`dds_topics.py:50`）；不改 `fastdds.xml`。验证：`check_dual_chain_baseline.py`。
-- **M5 — 文档去重**：16 篇 architecture 页抽公共 Hold 规则到一个"常量页"，其余页只指针。前置：先改所有 `check_*.py` 的 `_MUST` 断言为"指针仍在"而非"整串仍在"。验证：全 12 闸门 + structure job。
+- **M5 — 文档去重**：16 篇 architecture 页抽公共 Hold 规则到一个"常量页"，其余页只指针。前置：先改所有 `check_*.py` 的 `_MUST` 断言为"指针仍在"而非"整串仍在"。验证：全 13 闸门（CI 跨 `structure` + `contracts`）。
 - **M6 — vendor / Unitree 版本**：11.0.1 ↔ 0.10.2 线缆互通 smoke。前置：[unitree-sdk2-dds-swap.md](../architecture/unitree-sdk2-dds-swap.md) §3.1 配方跑通；本计划不碰。验证：`check_unitree_cyclone_swap.py` 仍打印 `drop-in: FAIL / wire: UNPROVEN`（互通跑通后由另一 PR 改裁决句）。
 
 ---
@@ -224,6 +224,7 @@ python3 scripts/check_risk_matrix.py
 python3 scripts/check_dod_evidence.py
 python3 scripts/check_cega_bridge_hold.py
 python3 scripts/print_bench_gates.py
+python3 scripts/check_frozen_path_literals.py
 python3 config/env/load.py print-a
 python3 config/env/load.py print-b
 ```

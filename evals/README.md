@@ -133,7 +133,7 @@
 
 ### AGENTS.md 操作员命令清单注册一致性自测（#40，eval-only）
 
-- `AGENTS.md` 的 `## Commands` 围栏 bash 块是**操作员入口清单**（列出人要跑的 python 入口），`scripts/run_all_gates.py` 的 `GATES` 是机器 runner 的 gate 序列单一真源。轮次5 加了第 13 个 gate `check_frozen_path_literals.py`，而 ci.yml 接线因缺 `workflow` scope 长期阻塞、CI structure 仍只硬编码前 12 个 gate——AGENTS.md 命令块是唯一向操作员记录**完整本地集合**的地方，却一直漏登第 13 gate：一个 gate 能在 `run_all_gates.py` 下跑绿、却在操作员清单里隐身，且无任何检查失败。
+- `AGENTS.md` 的 `## Commands` 围栏 bash 块是**操作员入口清单**（列出人要跑的 python 入口），`scripts/run_all_gates.py` 的 `GATES` 是机器 runner 的 gate 序列单一真源。轮次5 加了第 13 个 gate `check_frozen_path_literals.py`，而**当时** ci.yml 接线因缺 `workflow` scope 长期阻塞、CI `structure` **当时**只硬编码前 12 个 gate——AGENTS.md 命令块是当时唯一向操作员记录**完整本地集合**的地方，却一直漏登第 13 gate：一个 gate 能在 `run_all_gates.py` 下跑绿、却在操作员清单里隐身，且无任何检查失败。PR #210 已把第 13 闸写入 `structure`；当前 13 闸覆盖是 CI-wide（`structure` 跑 12 个注册闸，`prove_rmw.py` 在 `contracts`）。
 - #29 钉 `scripts/` 侧 gate 注册面（磁盘 gate ↔ GATES），#35 钉 eval 注册面（selftest ↔ yaml ↔ README 计数），都不覆盖**操作员文档面**；本项补齐该缺口。
 - `agents_commands_selftest.py`（中缀 `agents_commands`；纯标准库，import **真实** `run_all_gates.GATES`、读**真实** AGENTS.md，负向用**内存变异**、不写 tempdir、不改仓库）：
   - **只解析** `## Commands` 下的围栏 bash 块（块外散文里的 `python3 ...` 不算枚举），取每行 `python3` 后首个空白 token（故 `load.py print-a`/`print-b` 折叠为同一个 `config/env/load.py`）；
@@ -258,7 +258,7 @@
 
 ### gate-runner 注册表双向一致性自测（#29，eval-only）
 
-- 跑 `run_all_gates.py` 全绿只能证明 **GATES 里已注册的 13 个脚本**存在、exit 0 且打印 marker；它发现不了反向漂移：磁盘上新增一个 `scripts/check_*.py`（或两个固定名 gate `prove_rmw.py` / `print_bench_gates.py` 之一）却忘记加进 `GATES`——头条分数会一直停在 “13/13”，新 gate 永远不进《3》循环。这与第 13 闸 `check_frozen_path_literals.py` 落地后 CI `structure` 仍只枚举前 12 个 gate 是同一类漏注册。
+- 跑 `run_all_gates.py` 全绿只能证明 **GATES 里已注册的 13 个脚本**存在、exit 0 且打印 marker；它发现不了反向漂移：磁盘上新增一个 `scripts/check_*.py`（或两个固定名 gate `prove_rmw.py` / `print_bench_gates.py` 之一）却忘记加进 `GATES`——头条分数会一直停在 “13/13”，新 gate 永远不进《3》循环。这与第 13 闸 `check_frozen_path_literals.py` 落地后、**当时** CI `structure` 仍只枚举前 12 个 gate 是同一类漏注册（#210 已接线；现 13 闸覆盖跨 `structure` + `contracts`）。
 - `gate_registry_selftest.py`（对象是 **runner**，不是某个 guard，因此不叫 guard selftest）用**唯一发现规则**扫描 `scripts/`：名字以 `check_` 开头的 `.py`，加两个固定名；下划线前缀 helper（`_repo.py`/`_md_paths.py`/`_freeze_paths.py`）与 runner 自身 `run_all_gates.py` 永不算 gate。断言发现集合与 `run_all_gates.GATES` **双向相等**，纯标准库、`tempfile` 夹具、**不改仓库**：
   - **2 个负向**：N1 磁盘多一个 `check_orphan_gate.py` 但未注册 → 必报 orphan 且不报 missing；N2 GATES 含 `check_frozen_path_literals.py` 但磁盘缺该文件 → 必报 missing 且不报 orphan；
   - **1 个 non-flag**：磁盘同时放 13 个 gate + 3 个下划线 helper + `run_all_gates.py`，发现器必须只返回 13 个 gate、零问题（钉排除规则，防把 helper/runner 误判为孤儿）；
