@@ -4847,3 +4847,40 @@
 2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
 3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。
 
+## 轮次 76 — 2026-10-29 20:32（Asia/Shanghai）— 第 13 闸 `check_frozen_path_literals` 接入 CI structure（`workflow` scope 已可用）
+
+### 改了什么
+
+- 推送凭证现已具备 GitHub `workflow` scope。轮次 4 起因缺该 scope、只能离线备份、长期 blocked 的 `ci.yml` 接线本轮落地。
+- 本机找不到离线备份 `~/ros2_hzj_pending/ci.yml.iter4-with-frozen-gate.bak`，按 [ci-cd-gates.md](../architecture/ci-cd-gates.md) 与现有 sibling step 风格重建（不改 gate 逻辑、evals、fixtures）。
+- [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) `structure` job：
+  1. Required R0 路径存在性补 `test -f scripts/check_frozen_path_literals.py`；
+  2. 新增 step 跑 `python3 scripts/check_frozen_path_literals.py` 并 `grep -F 'Frozen-path literals healthy'`。
+- [ci-cd-gates.md](../architecture/ci-cd-gates.md)：§1 CI 实跑清单收录第 13 闸；§6 去掉「pending 授权 / 离线备份 / workflow scope」callout，改为已接线。
+- 本日志补登本轮。未改任何 gate 脚本、evals、fixtures、vendor、`dimos_bridge` 运行时、`config/fastdds.xml`、`SCOREBOARD.md`。
+
+### 分数（接线前已绿；本轮零 gate 逻辑改动）
+
+| 项 | 结果 |
+|---|---|
+| gate (`run_all_gates.py`) | **13/13 exit 0**（接线前已绿） |
+| `check_frozen_path_literals.py` | 打印 `Frozen-path literals healthy` |
+| ci.yml | YAML 解析合法 |
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `SCOREBOARD.md`；未启用 Agnocast/zenoh、未集成 Cega；未改 `dimos_bridge` / vendor / gate 逻辑 / evals / fixtures；未做 CVE 修复；未发明时延；未把 DoD 或跨机标 PASS。《3》–《6》仍 Hold。
+
+### 剩余风险 / 阻塞
+
+1. 4 份飞书方案文档 3380004 无匿名读权限。
+2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）仍待用户明确批准，本轮不实施。
+3. 无 Humble Linux 主机；真·双链 pub/sub、p99、跨机 UDP、三链实际复现仍 `STATUS: blocked`，不伪造。
+4. 仍开着的 PR #204（`feat/round75-provider-signal-classification`）相对已合并的 #208 已过时且 `CONFLICTING`；本轮仅记录，不强制关闭。
+
+### 下一步
+
+- 本 PR 合入后 CI `structure` 与本地 runner 同为 13 gate。
+- CVE / 飞书 3380004 / Humble·跨机仍等用户拍板或主机，不自行突破。
+- eval-only fingerprint / selftest 进 CI 仍是后续独立任务（本 PR 只接线第 13 闸，不扩 scope）。
+
