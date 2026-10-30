@@ -4847,3 +4847,31 @@
 2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
 3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。
 
+## 轮次 76 — 2026-10-30（UTC）— Thor 2204 Rust DDS 计划-only（文档，无实现）
+
+### 本轮改动（一项重点：只写计划）
+
+- **无生产代码、无 vendor、无 XML、无 SCOREBOARD、无 `dimos_bridge` DDS 改动。** 本轮只把「Jetson Thor + Ubuntu 22.04 上用 Rust 现代化 ROS 2 DDS / RMW」写成诚实计划，供后续一刀一层，不在本轮落地实现。
+- 新增 [`docs/architecture/thor-2204-rust-dds-plan.md`](../architecture/thor-2204-rust-dds-plan.md)：
+  - 范围：Thor 2204 = Jetson Thor + jammy；本仓今天没有 Thor 板级树 / Thor 已记账 bench；已记账 Chain A 产物是 x86_64 Ubuntu 22.04 / Humble 容器，**不能**当 Thor 分母。
+  - 双链基线只做 pointer：[feishu-dual-chain-baseline.md](../architecture/feishu-dual-chain-baseline.md) + SCOREBOARD **pointer only**；**no XML rewrite**；same-topology XML tuning is paused。
+  - 硬门 1：行为对等（公开 RMW / QoS / topic / 域 42 vs 0）；硬门 2：×100 相对 SCOREBOARD **路径**是 **stretch DoD，必须实测，不得宣称**。
+  - 层选项：S shim（默认先做）/ R 新 `rmw_*`（自定义 RMW 仍 Hold）/ D Rust DDS core（§9.4 最后，默认 no-go）。
+  - 对等矩阵 + 从现有 `scripts/bench/` 配方出发的 p50/p95/p99 + jitter 测量环；like-to-like 分母必须是 Thor-host 复现，禁止用 x86 旧表相除。
+  - Hold：XML / SCOREBOARD / Agnocast / zenoh / Cega / 跨机 / 《3》–《6》；go/no-go 允许 stretch 诚实失败。
+- README News + 文档清单、`AGENTS.md` Docs 各加一条指针。未新增 gate 脚本（one-layer：planning only）。
+
+### 分数
+
+本轮合入前跑 `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**。文档闸绿 **不是** 产品 DoD，也 **不是** Thor 已测或 ×100 已达。
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `docs/artifacts/bench/SCOREBOARD.md`；未启用 Agnocast/zenoh；未集成 Cega；未改 `dimos_bridge` 运行时 / vendor 源码；未改 shell / `load.py` / `ci.yml`。真·Thor 2204 / Humble aarch64 / 跨机 UDP 仍 `STATUS: blocked`，未伪造分位数。
+
+### 剩余风险 / 下一步
+
+1. 缺 Thor 板与 jammy Humble aarch64 时停在计划 P1 `STATUS: blocked`，不得用 qemu-amd64 或 noble/Jazzy 冒充 2204。
+2. 选项 R/D 仍 Hold，须 owner 书面解禁后另开实现 PR。
+3. ×100 是 stretch，预期多数格子达不到；达不到记 unmet，不改 SCOREBOARD。
+
