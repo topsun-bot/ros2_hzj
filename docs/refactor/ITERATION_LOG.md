@@ -4847,3 +4847,29 @@
 2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
 3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。
 
+## 轮次 76 — 2026-10-30（UTC）— Thor 2204 Rust DDS 计划（纯文档，无实现）
+
+### 本轮改动（一项重点：只写计划）
+
+- 新增 [`docs/refactor/03-thor-2204-rust-dds-plan.md`](03-thor-2204-rust-dds-plan.md)：Thor / Ubuntu 22.04 上用 Rust 重构 ROS 2 DDS 的 **M0 计划**（功能对等 + 100× **设计目标**）。
+- 覆盖：scope/non-goals、本仓已跟踪基线（SCOREBOARD **pointer** + 配方，不改数字）、Rust 栈选型（S shim / D native DDS / F full / H bypass；推荐 S 后 D）、Thor 2204 约束、对 R0/双链/rmw 的对等清单、M0→Mn、风险清单（不打分）、100× 证明协议（分母只能是 Thor 上 M1 复测，禁止编造 µs）。
+- **无** Rust crate / rmw 源码 / vendor 编译；**未**编辑 gate、`ci.yml`、`config/fastdds.xml`、SCOREBOARD 数字、`dimos_bridge`、vendor。
+- 不宣称 `DoD` / 跨机 / 时延 PASS。产品 DoD 仍 **DoD: unmet** / **STATUS: blocked**；跨机 UDP 仍 blocked；三条链仍 map ≠ reproduce。
+
+### 分数（本轮回归，docs-only）
+
+| 项 | 结果 |
+|---|---|
+| gate (`run_all_gates.py`) | **13/13 exit 0**，`all gates green` |
+| doc links (`evals/doc_link_selftest.py`) | **PASS**（36 md / 987 相对链接 / 0 断链；含新计划页） |
+| fingerprint / promptfoo | 未跑全套（本轮零脚本改动，fixtures 不应漂） |
+
+### Hold 合规
+
+未碰 XML / SCOREBOARD / Agnocast / zenoh / Cega / dimos_bridge 运行时 / vendor。自定义 RMW 与 iceoryx2 仍 Hold；计划把解除 Hold 列为给张益新的开放问题，不自行突破。
+
+### 下一步
+
+- **不要合并**本 PR，直到张益新回答计划 §8（SKU、100× 分母、哪条链、是否解自定义 RMW Hold、谁跑 M1）。
+- M1（Thor Humble 复测 SCOREBOARD 配方）在拿到板子之前保持 **STATUS: blocked**。
+
