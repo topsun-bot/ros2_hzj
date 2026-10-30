@@ -4847,3 +4847,27 @@
 2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
 3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。
 
+---
+
+## 轮次 76 — 2026-10-30 — Thor 2204 / Rust DDS **plan-only** 分支打开（纯文档）
+
+### 本轮改动（一项重点：开计划轨，无实现）
+
+- 用户指令：在已有分支 `plan/thor-2204-rust-dds`（从 `main` 切出）上搭一条 **plan-only** 轨，目标是为 NVIDIA Jetson Thor / Thor 2204 用 Rust 重建与本仓今日 Chain A（`rmw_fastrtps_cpp` / Fast-DDS / 域 42）功能对等的 ROS 2 DDS，并把「约 100×」写成**待测假说**，不是已达成结论。
+- 新增 [`docs/refactor/thor-2204-rust-dds-plan.md`](thor-2204-rust-dds-plan.md)：问题/范围、「identical function」定义、v0 明确不做、Thor 2204 平台表（行均 **UNVERIFIED**）、对等矩阵（状态全 **TBD**）、bench 与 100× **证伪**方法、M0–M4 里程碑（每档含退出条件 + Hold）、风险、本页 Hold。
+- 新增占位 [`docs/refactor/thor-2204/README.md`](thor-2204/README.md) 指向计划页。**无** Rust crate / `Cargo.toml`。
+- **未**改 `scripts/`、`evals/`、`config/fastdds.xml`、`SCOREBOARD.md`、`ci.yml`、vendor、`dimos_bridge`。
+
+### 分数
+
+- Gate：`python3 scripts/run_all_gates.py` **13/13 exit 0**（本轮未改闸门脚本 / eval fixtures；Promptfoo 未跑）。
+- **没有** Thor 实测、**没有** Humble 端到端、**没有** 100× 数字。`DoD: unmet` / 跨机 `STATUS: blocked` 不变。
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `SCOREBOARD.md`；未启用 Agnocast/zenoh；未集成 Cega；未改 `dimos_bridge` / vendor / gate / eval。自定义 RMW 仍 Hold——本计划不视为解禁。禁止把 100× 写成已达成。
+
+### 下一步
+
+- 人类合 / 解 Hold 之前：**不要 merge**。M0 清单（本仓真实用到的 service/action 名、是否要线级互通）需在 Thor 或 Humble 主机上取证后再开实现 PR。
+
