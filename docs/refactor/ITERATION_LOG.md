@@ -4875,3 +4875,30 @@
 2. 选项 R/D 仍 Hold，须 owner 书面解禁后另开实现 PR。
 3. ×100 是 stretch，预期多数格子达不到；达不到记 unmet，不改 SCOREBOARD。
 
+## 轮次 77 — 2026-10-30（UTC）— 千任务池工厂编排（文档扩写，无实现）
+
+### 本轮改动（一项重点：只写编排计划）
+
+- **仍无 steward/worker 代码、无 vendor、无 XML、无 SCOREBOARD、无 `dimos_bridge` DDS 改动。** Owner 要求把 Thor 2204 Rust DDS 拆成可并行小票并定义自动验收；本轮只落文档。
+- 新增 [`docs/architecture/thor-2204-task-pool-factory.md`](../architecture/thor-2204-task-pool-factory.md)，并由主计划 / README / `AGENTS.md` 指针链过去：
+  - 规模模型是百～千张互不干扰票；**第一刀只开 shim 40 张**（T-S-001…040）。完整 ROS 2 重写（`rcl` / `rclcpp` / `rclpy` / 消息 / launch）**OUT**。选项 R/D 仍 Hold。
+  - 每机 1 steward + 最多 N worker（`THOR_POOL_MAX_WORKERS` 默认可配 2）；`THOR_POOL_COMPILE_SLOTS` 默认 1。**不声称 100 路并发编译。**
+  - 每张完成票：同一输入跑旧 ROS 2 DDS baseline vs candidate；位/行为一致才 accept 并落盘，否则 reject+requeue。指向 `prove_rmw.py` / `run_all_gates.py` / 现有 bench 配方。无 Humble 写 `STATUS: blocked`。分位数不参与 accept。×100 不进本池。
+  - 人每天看计划中的 `docs/refactor/task-pool/STATUS.md` 计数器（本 PR **不**建 live 文件，避免假进度）。
+  - Cursor box Linux：用现有 `prove_rmw.py` + `load.py print-a` 做 1 steward + 2 假 worker 的 baseline-vs-baseline 空跑；`cmp` 相等不是 shim 已对等。
+- T-S-036（loaned）与 T-S-040（跨机）标 `skip-hold`，永不派发。
+
+### 分数
+
+本轮合入前跑 `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**；`evals/doc_link_selftest.py` PASS（37 md、1018 相对链接、0 断链）。文档闸绿 **不是** 工厂已开、**不是** DDS PASS、**不是** ×100。
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `SCOREBOARD.md`；未启用 Agnocast/zenoh；未集成 Cega；未改 `dimos_bridge` / vendor；未实现并行编译。真·Thor / Humble aarch64 / 跨机仍 blocked，未伪造 PASS。
+
+### 剩余风险 / 下一步
+
+1. 工厂实现须另开 PR；空跑通过不得当成可上 100 worker。
+2. T-S-013…039 在无 Humble 主机上保持 blocked。
+3. ×100 仍须 Thor-host 分母，不在本池第一刀。
+

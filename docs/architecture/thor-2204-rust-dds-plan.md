@@ -27,6 +27,7 @@ Status: **计划 — 本切只写文档，不实现、不重测、不发明分�
 8. **《3》–《6》仍 Hold。** bench 分数闭环 / Mac HIL / Promptfoo / CVE 不在本计划实现范围。
 9. **Rolling ≠ Humble。** vendor 是对照快照，不是 `/opt/ros/humble` 已加载 `.so`。[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。`prove_rmw.py` 是 env / 字符串身份闸，不是 modified `.so` 证明。
 10. **产品 DoD 今天仍 unmet / blocked。** [feishu-dod-evidence.md](feishu-dod-evidence.md)。本计划不假装五项产品验收已过。
+11. **编排另页。** 千任务池 / steward+N worker / 自动对等验收见 [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md)。本页不实现工厂。完整 ROS 2 重写不在第一刀。
 
 ---
 
@@ -293,11 +294,11 @@ T_e2e = T_app_pub + T_rmw_pub + T_dds_write + T_transport + T_dds_ingress + T_rm
 
 | 是 | 不是 |
 |----|------|
-| 计划文档 | Rust / RMW / DDS 实现 |
+| 计划文档 + [千任务池编排](thor-2204-task-pool-factory.md) | Rust / RMW / DDS 实现；已开工厂 |
 | 指向已有双链基线与 bench 配方 | 新的 SCOREBOARD 行或 XML 旋钮 |
 | 对等矩阵 + 测量环 + go/no-go | 已测 Thor 数、已达 ×100、已加载 modified `.so` |
-| ITERATION_LOG 一轮 plan-only | 《3》–《6》解 Hold |
-| 后续实现的分层选项 | 已决「必须自研 RMW」 |
+| ITERATION_LOG plan-only 轮次 | 《3》–《6》解 Hold |
+| 后续实现的分层选项 | 已决「必须自研 RMW」；完整 ROS 2 重写 |
 
 本自动化主机仍无 Humble runtime、无 Thor 板。P1+ 保持 `STATUS: blocked` 直到有主机。禁止在本页或后续评论里写本机 `measured-delta` / `PROVEN`。
 
@@ -336,8 +337,9 @@ python3 scripts/check_dod_evidence.py
 8. [docs/artifacts/bench/SCOREBOARD.md](../artifacts/bench/SCOREBOARD.md) — current-best **pointer only**
 9. [scripts/bench/README.md](../../scripts/bench/README.md) · [docs/usage/benchmark-dds.md](../usage/benchmark-dds.md)
 10. [AGENTS.md](../../AGENTS.md) · [ci-cd-gates.md](ci-cd-gates.md)
+11. [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md) — 千任务池工厂编排（shim 第一刀 40 票；1 steward + 可配置 N；baseline vs candidate 自动验收）
 
 飞书（查阅指针；本环境仍可能 3380004 无正文）：
 
-11. 《ROS 2 源码闭环》§12 / §13：<https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf>
-12. 《通信中间件》：<https://topsunhzj.feishu.cn/wiki/XKDbw7blLieO4ykCRgLcUCJKnXe>
+12. 《ROS 2 源码闭环》§12 / §13：<https://topsunhzj.feishu.cn/wiki/N0Xaw1vsdiXRD4km9Jvc8kHynBf>
+13. 《通信中间件》：<https://topsunhzj.feishu.cn/wiki/XKDbw7blLieO4ykCRgLcUCJKnXe>
