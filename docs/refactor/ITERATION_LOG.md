@@ -4847,3 +4847,58 @@
 2. 《6》CVE 修复三项（external Cyclone ≥0.10.5、requirements 补锁、rosdistro key 钉 SHA）待用户明确批准后拆 3 个独立 PR。
 3. 4 份飞书方案文档 3380004 无匿名读权限；需 arm64 jammy/Humble 主机做 Humble 认证、第二台物理主机做跨机/真实网卡 p99。
 
+## 轮次 76 — 2026-10-30（UTC）— Thor 2204 Rust DDS 计划-only（文档，无实现）
+
+### 本轮改动（一项重点：只写计划）
+
+- **无生产代码、无 vendor、无 XML、无 SCOREBOARD、无 `dimos_bridge` DDS 改动。** 本轮只把「Jetson Thor + Ubuntu 22.04 上用 Rust 现代化 ROS 2 DDS / RMW」写成诚实计划，供后续一刀一层，不在本轮落地实现。
+- 新增 [`docs/architecture/thor-2204-rust-dds-plan.md`](../architecture/thor-2204-rust-dds-plan.md)：
+  - 范围：Thor 2204 = Jetson Thor + jammy；本仓今天没有 Thor 板级树 / Thor 已记账 bench；已记账 Chain A 产物是 x86_64 Ubuntu 22.04 / Humble 容器，**不能**当 Thor 分母。
+  - 双链基线只做 pointer：[feishu-dual-chain-baseline.md](../architecture/feishu-dual-chain-baseline.md) + SCOREBOARD **pointer only**；**no XML rewrite**；same-topology XML tuning is paused。
+  - 硬门 1：行为对等（公开 RMW / QoS / topic / 域 42 vs 0）；硬门 2：×100 相对 SCOREBOARD **路径**是 **stretch DoD，必须实测，不得宣称**。
+  - 层选项：S shim（默认先做）/ R 新 `rmw_*`（自定义 RMW 仍 Hold）/ D Rust DDS core（§9.4 最后，默认 no-go）。
+  - 对等矩阵 + 从现有 `scripts/bench/` 配方出发的 p50/p95/p99 + jitter 测量环；like-to-like 分母必须是 Thor-host 复现，禁止用 x86 旧表相除。
+  - Hold：XML / SCOREBOARD / Agnocast / zenoh / Cega / 跨机 / 《3》–《6》；go/no-go 允许 stretch 诚实失败。
+- README News + 文档清单、`AGENTS.md` Docs 各加一条指针。未新增 gate 脚本（one-layer：planning only）。
+
+### 分数
+
+本轮合入前跑 `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**。文档闸绿 **不是** 产品 DoD，也 **不是** Thor 已测或 ×100 已达。
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `docs/artifacts/bench/SCOREBOARD.md`；未启用 Agnocast/zenoh；未集成 Cega；未改 `dimos_bridge` 运行时 / vendor 源码；未改 shell / `load.py` / `ci.yml`。真·Thor 2204 / Humble aarch64 / 跨机 UDP 仍 `STATUS: blocked`，未伪造分位数。
+
+### 剩余风险 / 下一步
+
+1. 缺 Thor 板与 jammy Humble aarch64 时停在计划 P1 `STATUS: blocked`，不得用 qemu-amd64 或 noble/Jazzy 冒充 2204。
+2. 选项 R/D 仍 Hold，须 owner 书面解禁后另开实现 PR。
+3. ×100 是 stretch，预期多数格子达不到；达不到记 unmet，不改 SCOREBOARD。
+
+## 轮次 77 — 2026-10-30（UTC）— 千任务池工厂编排（文档扩写，无实现）
+
+### 本轮改动（一项重点：只写编排计划）
+
+- **仍无 steward/worker 代码、无 vendor、无 XML、无 SCOREBOARD、无 `dimos_bridge` DDS 改动。** Owner 要求把 Thor 2204 Rust DDS 拆成可并行小票并定义自动验收；本轮只落文档。
+- 新增 [`docs/architecture/thor-2204-task-pool-factory.md`](../architecture/thor-2204-task-pool-factory.md)，并由主计划 / README / `AGENTS.md` 指针链过去：
+  - 规模模型是百～千张互不干扰票；**第一刀只开 shim 40 张**（T-S-001…040）。完整 ROS 2 重写（`rcl` / `rclcpp` / `rclpy` / 消息 / launch）**OUT**。选项 R/D 仍 Hold。
+  - 每机 1 steward + 最多 N worker（`THOR_POOL_MAX_WORKERS` 默认可配 2）；`THOR_POOL_COMPILE_SLOTS` 默认 1。**不声称 100 路并发编译。**
+  - 每张完成票：同一输入跑旧 ROS 2 DDS baseline vs candidate；位/行为一致才 accept 并落盘，否则 reject+requeue。指向 `prove_rmw.py` / `run_all_gates.py` / 现有 bench 配方。无 Humble 写 `STATUS: blocked`。分位数不参与 accept。×100 不进本池。
+  - 人每天看计划中的 `docs/refactor/task-pool/STATUS.md` 计数器（本 PR **不**建 live 文件，避免假进度）。
+  - Cursor box Linux：用现有 `prove_rmw.py` + `load.py print-a` 做 1 steward + 2 假 worker 的 baseline-vs-baseline 空跑；`cmp` 相等不是 shim 已对等。
+- T-S-036（loaned）与 T-S-040（跨机）标 `skip-hold`，永不派发。
+
+### 分数
+
+本轮合入前跑 `python3 scripts/run_all_gates.py`：**13/13 exit 0，all gates green**；`evals/doc_link_selftest.py` PASS（37 md、1018 相对链接、0 断链）。文档闸绿 **不是** 工厂已开、**不是** DDS PASS、**不是** ×100。
+
+### Hold 合规
+
+未编辑 `config/fastdds.xml` / `SCOREBOARD.md`；未启用 Agnocast/zenoh；未集成 Cega；未改 `dimos_bridge` / vendor；未实现并行编译。真·Thor / Humble aarch64 / 跨机仍 blocked，未伪造 PASS。
+
+### 剩余风险 / 下一步
+
+1. 工厂实现须另开 PR；空跑通过不得当成可上 100 worker。
+2. T-S-013…039 在无 Humble 主机上保持 blocked。
+3. ×100 仍须 Thor-host 分母，不在本池第一刀。
+
