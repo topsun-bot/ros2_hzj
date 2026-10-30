@@ -192,7 +192,7 @@ flowchart LR
 
 Steward 领取伪代码（文档，不是实现）：
 
-1. 过滤 `hold != none`、`status in {open, requeued}`。
+1. 过滤 `hold == none`、`status in {open, requeued}`（`hold: skip-hold` 如 T-S-036 / T-S-040 永不派发）。
 2. 丢掉 `deps` 尚未全部 `accepted` 的票（冻结 / golden 根除外）。
 3. 丢掉与当前 `claimed`/`accepted` 票 `exclusive_paths` 相交的票。
 4. 丢掉触及 `forbidden_paths` 的票（T-S-007）。
