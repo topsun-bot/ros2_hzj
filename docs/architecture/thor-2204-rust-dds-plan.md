@@ -27,7 +27,7 @@ Status: **计划 — 本切只写文档，不实现、不重测、不发明分�
 8. **《3》–《6》仍 Hold。** bench 分数闭环 / Mac HIL / Promptfoo / CVE 不在本计划实现范围。
 9. **Rolling ≠ Humble。** vendor 是对照快照，不是 `/opt/ros/humble` 已加载 `.so`。[feishu-runtime-provenance.md](feishu-runtime-provenance.md)。`prove_rmw.py` 是 env / 字符串身份闸，不是 modified `.so` 证明。
 10. **产品 DoD 今天仍 unmet / blocked。** [feishu-dod-evidence.md](feishu-dod-evidence.md)。本计划不假装五项产品验收已过。
-11. **编排另页。** 千任务池 / steward+N worker / 自动对等验收见 [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md)。本页不实现工厂。完整 ROS 2 重写不在第一刀。
+11. **编排另页（只此一份，不另开工厂 markdown）。** 千任务池 / steward+N / 自动对等见 [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md)。DDS/RMW 须先冻结契约 + 录 stock ROS 2 DDS golden，再切带 `deps` 的 DAG（不是 1000 个无依赖文件）。一台 Linux cloud VM 的 proven N = **1 steward + 2–4 workers**（100 = 未来规模）。Auto-accept = 同一 fixture 上相对 stock 的行为合同，**不是**编译过或假哈希。Box 上 `prove_rmw`/`print-a` 两侧 `ROS not loaded` 且 `cmp` 相同 = **baseline-vs-baseline only**，`shim/` 仍 ABSENT，不得称 Thor/shim 对等。真实对等还缺：Humble（或等价 `.so`）、计划路径下的第一批 `shim/` 产物、steward **入仓**并可 `git pull` 复跑（仓外 `thor-steward-proto` 只是 box-only）。本页不实现工厂。完整 ROS 2 重写不在第一刀。**禁止无人类 合 merge `main`。**
 
 ---
 
@@ -142,7 +142,8 @@ flowchart LR
 
 | 阶段 | 做什么 | 不做什么 | 退出条件 |
 |------|--------|----------|----------|
-| **P0 — 本 PR** | 本页 + README / AGENTS 指针 + ITERATION_LOG 一轮（plan-only） | 任何 `.rs` / vendor / XML / SCOREBOARD / `dimos_bridge` DDS | 文档合入；现有 gate 仍绿 |
+| **P0 — 本 PR** | 本页 + [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md)（含 golden/harness 合同、`deps`、box evidence）+ README / AGENTS 指针 | 任何 `.rs` / vendor / XML / SCOREBOARD / `dimos_bridge` DDS / 第二份工厂页 / 真 worker | 文档合入；13 gate 仍绿；box `cmp` 只记 baseline-vs-baseline；**人类 合 之前不 merge `main`** |
+| **P0.5 — 冻结 + golden，再切 DAG** | 钉 R0 / 13-gate；录 stock ROS 2 DDS golden；票带 `deps`。解除对等还要：Humble（或等价）、`shim/` 首批产物、in-repo steward | 不假装 1000 文件无依赖；不把 `ROS not loaded`×2 当 shim PASS；不把仓外 proto 当 CI | 夹具合同写清；缺件 **UNVERIFIED** / `blocked` |
 | **P1 — Thor-host 复现** | 在 Thor 2204（jammy + Humble）上跑现有 `run_chain_a.sh` / `docker_chain_a.sh` / `run_imu_hf.sh` / `run_large_packet.sh`；写**新日期目录** `summary.md` + `raw.json` + `environment.md`（须含 SoC / L4T / `uname -m` / Humble 包版本 / git SHA） | 不改 XML；不抄旧 x86 表当本机 delta；不跑《3》打分闭环 | 至少 Chain A `same-process` + `same-host` 复现完成或诚实 `STATUS: blocked`（缺板 / 缺 Humble） |
 | **P2 — 层选择闸** | owner 书面选 S / R / D；若选 R 或 D，走 `allow-hold-bypass` | 代理选 zenoh / Agnocast / Cega | 书面选择 + Hold 状态更新（另 PR） |
 | **P3 — 对等矩阵** | 按 §6 在 Thor 上跑功能对等（先 S 或 R；D 另议） | 一边对等一边改 QoS「为了更快」 | §6 必测项全过，或逐条 blocked 并写缺件 |
@@ -294,11 +295,11 @@ T_e2e = T_app_pub + T_rmw_pub + T_dds_write + T_transport + T_dds_ingress + T_rm
 
 | 是 | 不是 |
 |----|------|
-| 计划文档 + [千任务池编排](thor-2204-task-pool-factory.md) | Rust / RMW / DDS 实现；已开工厂 |
+| 计划文档 + [千任务池编排](thor-2204-task-pool-factory.md)（一份） | Rust / RMW / DDS 实现；已开工厂；第二份工厂 markdown |
 | 指向已有双链基线与 bench 配方 | 新的 SCOREBOARD 行或 XML 旋钮 |
-| 对等矩阵 + 测量环 + go/no-go | 已测 Thor 数、已达 ×100、已加载 modified `.so` |
-| ITERATION_LOG plan-only 轮次 | 《3》–《6》解 Hold |
-| 后续实现的分层选项 | 已决「必须自研 RMW」；完整 ROS 2 重写 |
+| 对等矩阵 + 测量环 + go/no-go + box baseline-vs-baseline 诚实记录 | 已测 Thor 数、已达 ×100、已加载 modified `.so`、shim 已对等 |
+| ITERATION_LOG / 编排扩写 | 《3》–《6》解 Hold |
+| 后续实现的分层选项 | 已决「必须自研 RMW」；完整 ROS 2 重写；N=100 已可跑；编译过或假哈希即对等 |
 
 本自动化主机仍无 Humble runtime、无 Thor 板。P1+ 保持 `STATUS: blocked` 直到有主机。禁止在本页或后续评论里写本机 `measured-delta` / `PROVEN`。
 
@@ -337,7 +338,7 @@ python3 scripts/check_dod_evidence.py
 8. [docs/artifacts/bench/SCOREBOARD.md](../artifacts/bench/SCOREBOARD.md) — current-best **pointer only**
 9. [scripts/bench/README.md](../../scripts/bench/README.md) · [docs/usage/benchmark-dds.md](../usage/benchmark-dds.md)
 10. [AGENTS.md](../../AGENTS.md) · [ci-cd-gates.md](ci-cd-gates.md)
-11. [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md) — 千任务池工厂编排（shim 第一刀 40 票；1 steward + 可配置 N；baseline vs candidate 自动验收）
+11. [thor-2204-task-pool-factory.md](thor-2204-task-pool-factory.md) — 千任务池工厂（40 张 shim 票 + `deps` + stock DDS golden 合同 + box DoD；proven N = 1 steward + 2–4 workers）
 
 飞书（查阅指针；本环境仍可能 3380004 无正文）：
 
