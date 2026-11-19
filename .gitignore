@@ -44,3 +44,6 @@ htmlcov/
 .idea/
 .vscode/
 .cache/
+
+# Rust / Cargo (D 面 workspace；Cargo.lock 须入库以保证可复现，勿忽略)
+/rust/target/

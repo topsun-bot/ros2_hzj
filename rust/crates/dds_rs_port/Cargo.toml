@@ -1,0 +1,13 @@
+[package]
+name = "dds_rs_port"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+# 平台/网络/时钟差异的唯一归集处；Phase 0 零外部依赖。
+[dependencies]

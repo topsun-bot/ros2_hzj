@@ -31,6 +31,18 @@ python3 config/env/load.py print-b
 - 《3》–《6》 (bench score loops, Mac HIL, Promptfoo, CVE) stay out of scope.
 - Do not change `dimos_bridge` DDS behavior or vendor sources.
 - Do not integrate Cega / rewrite Bridge runtime (wiki3 §13(4) Hold).
+- Default chains remain "no custom RMW". The sole approved exception is the opt-in Rust D-plane below: it never changes the default RMW/domain/env/XML, and the Phase 4 C-ABI shim still requires a human `allow-hold-bypass` plus a dedicated ADR.
+
+## Rust D-plane (opt-in; approved 2026-11-19)
+
+Independent Cargo workspace under `rust/`; R2 end-state target is `rmw_rustdds_hzj`, always opt-in, never in-place replacement. Decision and boundaries: [docs/architecture/rust-rmw-adr.md](docs/architecture/rust-rmw-adr.md). It must not touch `vendor/**`, `config/fastdds.xml`, `SCOREBOARD.md`, or `dimos_bridge` runtime; no Agnocast/zenoh/eCAL/DPDK/Cega. Phase 0 is scaffold only — no loadable RMW and no network runtime.
+
+```bash
+cd rust && cargo test --workspace
+cd rust && cargo clippy --workspace --all-targets -- -D warnings
+cd rust && cargo fmt --all -- --check
+python3 scripts/run_all_gates.py   # existing gates must stay 13/13
+```
 
 ## Docs
 
@@ -46,3 +58,4 @@ python3 config/env/load.py print-b
 - [docs/architecture/feishu-dual-chain-baseline.md](docs/architecture/feishu-dual-chain-baseline.md) — wiki3 §13(3) FastDDS + Cyclone baseline pointer (no XML rewrite; SCOREBOARD pointer only; same-topology XML tuning is paused)
 - [docs/architecture/feishu-dod-evidence.md](docs/architecture/feishu-dod-evidence.md) — wiki3 §6.3 product DoD honesty (`DoD: unmet` / `STATUS: blocked`; `prove_rmw.py` is env/string, not modified `.so`)
 - [docs/architecture/feishu-cega-bridge-hold.md](docs/architecture/feishu-cega-bridge-hold.md) — wiki3 §13(4) Cega / Bridge deferred Hold (no Cega; no `dimos_bridge` runtime edits)
+- [docs/architecture/rust-rmw-adr.md](docs/architecture/rust-rmw-adr.md) — opt-in Rust D-plane / R2 `rmw_rustdds_hzj` (approved Phase 0; default chains frozen; Phase 4 shim needs `allow-hold-bypass`)
