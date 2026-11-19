@@ -1,0 +1,17 @@
+[package]
+name = "rmw_rustdds_hzj"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+# Phase 4 才把本 crate 改为 cdylib 并开启 extern "C"（届时需在 lints 中谨慎、
+# 局部地放开 unsafe_code，逐函数论证不变量）。Phase 0 保持普通 lib、forbid unsafe。
+[dependencies]
+
+dds_rs_core = { path = "../dds_rs_core" }
+dds_rs_rtps = { path = "../dds_rs_rtps" }

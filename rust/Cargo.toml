@@ -1,0 +1,52 @@
+# ============================================================================
+# rust/ —— TOPSUN / 桦之坚 自研 Rust RMW（D 面，opt-in，非默认 RMW）
+#
+# 这是一个独立的 Cargo workspace，与仓库既有的 Python 闸门、vendor/ 只读
+# C/C++ 快照、config/fastdds.xml、dimos_bridge 运行时完全隔离：
+#   * 不修改链 A（rmw_fastrtps_cpp / domain 42）与链 B（Cyclone / domain 0）；
+#   * 默认 RMW 实现永远不因本 workspace 而改变；
+#   * Phase 0 仅提供可在 vanilla macOS 上 `cargo test` 的空骨架，零外部依赖。
+#
+# 终态目标（R2）与分阶段门禁见：
+#   docs/architecture/rust-rmw-adr.md
+#   docs/refactor/03-rust-dds-migration-plan.md
+# ============================================================================
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/dds_rs_core",
+    "crates/dds_rs_rtps",
+    "crates/dds_rs_port",
+    "crates/rmw_rustdds_hzj",
+    "crates/dds_rs_judge",
+]
+
+# 集中管理 workspace 级元数据，成员以 workspace = true 继承，避免漂移。
+[workspace.package]
+version = "0.0.0-phase0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/topsun-bot/ros2_hzj"
+# 确定性优先：版本号保持 0.x，未到线协议互通证据（Phase 2）前不发版。
+publish = false
+
+[workspace.lints.rust]
+# 全 workspace 默认把警告提升为错误，等价于 CI 的 clippy `-D warnings` 纪律，
+# 让本地 `cargo build/test` 与 CI 行为一致，不依赖记忆传参。成员 crate 通过
+# `[lints] workspace = true` 继承（virtual workspace 根只能用 [workspace.lints]）。
+unsafe_code = "forbid"
+
+# ----------------------------------------------------------------------------
+# 外部依赖预留位：Phase 0/1 保持为空（核心库零外部依赖、可纯单测）。
+# 未来引入任何第三方 crate 必须：精确钉版本 + Cargo.lock 入库 + 走 ADR。
+# 计划中的首个外部依赖是 RTPS/DDS 内核（候选 rustdds，钉 "=0.15.1"），
+# 仅在 Phase 2 垂直薄切片需要真实互通时才加入，且封装在 dds_rs_rtps 内部，
+# 不污染 dds_rs_core 的纯逻辑。
+# ----------------------------------------------------------------------------
+[workspace.dependencies]
+
+[profile.release]
+# 实时中间件关注可重复的优化与调试信息；具体调优在拿到 bench 证据后再改，
+# Phase 0 不显式调优，仅保留确定性的默认基线。
+debug = true

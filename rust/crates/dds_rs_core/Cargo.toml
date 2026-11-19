@@ -1,0 +1,13 @@
+[package]
+name = "dds_rs_core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+# Phase 0：零外部依赖，保持可在 vanilla macOS 纯单测。
+[dependencies]
